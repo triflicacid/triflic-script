@@ -1,5 +1,5 @@
 const Complex = require("../Complex");
-const { parseNumber, parseOperator, getMatchingBracket, peek, operators, parseFunction, parseVariable, bracketValues } = require("../utils");
+const { parseNumber, parseOperator, getMatchingBracket, peek, operators, parseFunction, parseVariable, bracketValues, bracketMap } = require("../utils");
 
 
 class Token {
@@ -13,6 +13,9 @@ class Token {
   toString() {
     return this.value.toString();
   }
+  adjacentMultiply(obj) {
+    return false;
+  }
 }
 
 /** For numerical values e.g. '3.1519' */
@@ -23,6 +26,9 @@ class NumberToken extends Token {
   eval() {
     return this.n;
   }
+  adjacentMultiply(obj) {
+    return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
+  }
 }
 
 /** For brackets */
@@ -32,6 +38,17 @@ class BracketToken extends Token {
     if (bracketValues[x] === undefined) throw new Error(`new BracketToken() : '${x}' is not a bracket`);
   }
   priority() { return 0; }
+  /** 1 : opening, -1 : closing */
+  facing() {
+    return bracketValues[this.value];
+  }
+  adjacentMultiply(obj) {
+    if (this.facing() === -1) {
+      if (obj instanceof BracketToken && bracketMap[this.value] === obj.value) return true; // Matching brackets e.g. ')(' or ']['
+      return obj instanceof FunctionToken || obj instanceof VariableToken || obj instanceof NumberToken;
+    }
+    return false;
+  }
   static isGrammar(x) {
     const array = ["(", ")", "[", "]", "{", "}"];
     return array.includes(x);
@@ -63,6 +80,9 @@ class VariableToken extends Token {
   valueOf() {
     return this.tstr.env.var(this.value);
   }
+  adjacentMultiply(obj) {
+    return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
+  }
 }
 
 /** For functions e.g. 'f(...)' (non-definitions) */
@@ -79,6 +99,9 @@ class FunctionToken extends Token {
     let args = this.args.map(a => a.eval());
     return fn.eval(args);
   }
+  adjacentMultiply(obj) {
+    return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
+  }
   toString() {
     return `${this.value}(${this.args.map(a => a.toString()).join(', ')})`;
   }
@@ -94,10 +117,6 @@ class TokenString {
 
   parse() {
     this.tokens = this._parse(this.string);
-  }
-
-  toRPN() {
-    this.tokens = this._toRPN(this.tokens);
   }
 
   eval() {
@@ -130,7 +149,9 @@ class TokenString {
         stack.push(res);
       }
     }
-    if (stack.length !== 1) throw new Error(`Syntax Error: Invalid syntax (evaluation failed to reduce expression to single number)`);
+    if (stack.length !== 1) {
+      throw new Error(`Syntax Error: Invalid syntax (evaluation failed to reduce expression to single number)`);
+    }
     return stack[0];
   }
 
@@ -230,7 +251,15 @@ class TokenString {
       throw new Error(`Syntax Error: unexpected token '${string[i]}' at ${i}`);
     }
 
-    return tokens;
+    // Special actions e.g. multiply adjacent variables
+    const newTokens = [];
+    for (let i = 0; i < tokens.length; i++) {
+      newTokens.push(tokens[i]);
+      if (tokens[i + 1] instanceof Token && tokens[i].adjacentMultiply(tokens[i + 1])) {
+        newTokens.push(new OperatorToken(this, '!*')); // High-precedence multiplication
+      }
+    }
+    return newTokens;
   }
 
   /** Token array from infix to postfix */

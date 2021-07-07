@@ -130,6 +130,13 @@ function parseNumber(string) {
   return { nStr, n: +nStr, pos: i };
 }
 const operators = {
+  "!*": { // Internal multiplication for higher-precedence multiplication. Used for e.g. "2ln(2)" should be evaluated before "^"
+    precedence: 10,
+    args: 2,
+    fn: (a, b) => Complex.mult(a, b),
+    desc: `Used internally for high-precedence multiplication`,
+    syntax: 'a !* b',
+  },
   "!": {
     precedence: 5,
     args: 1,

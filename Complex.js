@@ -184,7 +184,7 @@ class Complex {
   static pow(a, b) {
     a = Complex.assert(a);
     b = Complex.assert(b);
-    if (a.isReal() && b.isReal()) return new Complex(a.a * b.a);
+    if (a.isReal() && b.isReal()) return new Complex(Math.pow(a.a, b.a));
     return a.copy().pow(b);
   }
 

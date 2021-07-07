@@ -113,6 +113,7 @@ class Environment {
           const ts = new TokenString(this, parts[1]);
           let value = ts.eval();
           this.var(vname, value);
+          return value;
         } else {
           throw new Error(`Syntax Error: Invalid syntax "${parts[0]}"`);
         }
