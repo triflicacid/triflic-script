@@ -3,6 +3,11 @@ A simple maths interpreter for the console
 
 Input maths problems to be solved. Supports dynamic operators, variables and functions.
 
+## Execution Methods
+- `cli.js` - prompt a console-based CLI
+- `discord.js` - connect to a discord bot and listens on a particular channel (defined as `BOT_TOKEN` and `CHANNEL` in `.env`)
+  Type `!start` to start the maths environment. Everything after this point will be fed into the engine. Type `!close` to close session.
+
 ## Implicit Multiplication
 Multiplication operations are inserted automatically between tokens in the following cases:
 let two tokens in sequence be `a` and `b`:

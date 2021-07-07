@@ -130,7 +130,8 @@ class Complex {
     if (this.a !== 0) str += this.a;
     if (this.b !== 0) {
       if (this.b >= 0 && this.a !== 0) str += '+';
-      if (this.b !== 1) str += this.b;
+      if (this.b === -1) str += '-';
+      else if (this.b !== 1) str += this.b;
       str += 'i';
     }
     return str;

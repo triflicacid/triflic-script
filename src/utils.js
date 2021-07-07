@@ -19,7 +19,7 @@ async function input(msg = '') {
 
 /** Print */
 function print(...args) {
-  STDOUT.write(...args);
+  console.log(...args);
 }
 
 const bracketMap = {
