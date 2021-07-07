@@ -1,7 +1,7 @@
 const { EnvUserFunction } = require("./function");
 const { TokenString } = require("./token");
-const { peek, parseSymbol, getMatchingBracket, operators, parseFunction, parseVariable } = require("../utils");
-const Complex = require("../Complex");
+const { peek, operators, parseFunction, parseVariable } = require("./utils");
+const Complex = require("./Complex");
 
 class Environment {
   constructor() {
@@ -59,10 +59,12 @@ class Environment {
   eval(string) {
     if (string.startsWith('help(') && string[string.length - 1] === ')') {
       let query = string.substring('help('.length, string.length - 1);
-      if (query == undefined) {
-        return `help(?s) \t Get help on a specific symbol\nvars() \t List all variables\nfuncs() \t List all functions\nexit() \t Terminate the program`;
+      if (query == undefined || query === '') {
+        return `help(?s) \t Get help on a specific symbol\nvars() \t List all variables\nfuncs() \t List all functions\nexit() \t Terminate the program\nvalue(s) \t Retrieve raw value of a symbol`;
       } else if (query === 'help') {
         return `Type: function\nDesc: Returns general help, or help on a provided symbol\nSyntax: help(?s)`;
+      } else if (query === 'value') {
+        return `Type: function\nDesc: Returns raw value of provided argument (argument is a symbol)\nSyntax: value(s)`;
       } else {
         if (operators.hasOwnProperty(query)) {
           let info = operators[query];
@@ -77,9 +79,31 @@ class Environment {
           throw new Error(`Argument Error: Cannot retrieve help on given argument`);
         }
       }
+    } else if (string.startsWith('value(') && string[string.length - 1] === ')') {
+      let query = string.substring('value('.length, string.length - 1);
+      if (query == undefined) {
+        return `value(s) \t Get value of a symbol`;
+      } else if (query === 'help' || query === 'value') {
+        return '[[internal]]';
+      } else {
+        if (operators.hasOwnProperty(query)) {
+          let info = operators[query];
+          return info.fn;
+        } else if (this.func(query) !== undefined) {
+          let fn = this.func(query);
+          return `${fn.raw()}`;
+        } else if (this.var(query) !== undefined) {
+          let v = this.var(query);
+          return v;
+        } else {
+          let n = +query;
+          if (!isNaN(n)) return n;
+          throw new Error(`Argument Error: Unable to retrieve raw value`);
+        }
+      }
     }
 
-    let parts = string.split(/\=(.+)/);
+    let parts = string.split(/\=(.+)/).map(x => x.trim());
     if (parts[parts.length - 1] === '') parts.pop(); // Remove empty string '' from end
     if (parts.length === 0) return;
 
@@ -87,8 +111,6 @@ class Environment {
       const ts = new TokenString(this, parts[0]);
       return ts.eval();
     } else {
-      parts[0] = parts[0].trimStart().trimEnd();
-
       let fname = parseFunction(parts[0]);
       if (fname != null && parts[0][fname.length] === '(') { // FUNCTION DEFINITION
         if (this.var(fname) !== undefined) throw new Error(`Syntax Error: Invalid syntax - symbol '${fname}' is a variable but treated as a function`);

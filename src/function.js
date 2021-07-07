@@ -38,6 +38,10 @@ class EnvFunction {
   about() {
     return 'n/a';
   }
+
+  raw() {
+    return '[internal]';
+  }
 }
 
 /** User defined function using a TokenList */
@@ -68,6 +72,10 @@ class EnvUserFunction extends EnvFunction {
   about() {
     return 'user-defined function';
   }
+
+  raw() {
+    return this.tstr.string;
+  }
 }
 
 /** Built-in function using JS code */
@@ -94,6 +102,10 @@ class EnvBuiltinFunction extends EnvFunction {
 
   about() {
     return this.desc;
+  }
+
+  raw() {
+    return this.fn;
   }
 }
 

@@ -1,5 +1,5 @@
-const Complex = require("../Complex");
-const { parseNumber, parseOperator, getMatchingBracket, peek, operators, parseFunction, parseVariable, bracketValues, bracketMap } = require("../utils");
+const Complex = require("./Complex");
+const { parseNumber, parseOperator, getMatchingBracket, peek, operators, parseFunction, parseVariable, bracketValues, bracketMap } = require("./utils");
 
 
 class Token {
@@ -10,11 +10,11 @@ class Token {
   is(klass, val = undefined) {
     return (this instanceof klass && (val != undefined && this.value === val));
   }
-  toString() {
-    return this.value.toString();
-  }
   adjacentMultiply(obj) {
     return false;
+  }
+  toString() {
+    return this.value.toString();
   }
 }
 
@@ -89,6 +89,7 @@ class VariableToken extends Token {
 class FunctionToken extends Token {
   constructor(tstring, fname, body) {
     super(tstring, fname);
+    this.raw = body;
 
     let rargs = body.split(',').filter(a => a.length !== 0);
     this.args = rargs.map(a => new TokenString(tstring.env, a));
@@ -103,7 +104,7 @@ class FunctionToken extends Token {
     return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
   }
   toString() {
-    return `${this.value}(${this.args.map(a => a.toString()).join(', ')})`;
+    return `${this.value}(${this.raw})`;
   }
 }
 
@@ -123,7 +124,7 @@ class TokenString {
     try {
       return this._eval();
     } catch (e) {
-      throw new Error(`Error in '${this.toString()}':\n${e}`);
+      throw new Error(`${this.string}:\n${e}`);
     }
   }
 
@@ -133,7 +134,7 @@ class TokenString {
       if (T[i] instanceof NumberToken) {
         stack.push(T[i].value);
       } else if (T[i] instanceof FunctionToken) {
-        let res = T[i].eval([]);
+        let res = T[i].eval(); // Error already handled if one occurs
         stack.push(res);
       } else if (T[i] instanceof VariableToken) {
         let val = T[i].valueOf();
@@ -161,8 +162,6 @@ class TokenString {
 
   /** Parse a raw input string. Return token array */
   _parse(string) {
-    string = string.replace(/÷/g, '/');
-    string = string.replace(/×/g, '*');
     const tokens = [];
     let nestLevel = 0;
 

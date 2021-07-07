@@ -1,5 +1,5 @@
 const Complex = require("./Complex");
-const { EnvBuiltinFunction } = require("./src/function");
+const { EnvBuiltinFunction } = require("./function");
 const { operators } = require("./utils");
 
 /** Base definitions for an Environment */

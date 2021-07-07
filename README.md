@@ -15,3 +15,7 @@ The special `!*` operator will be inserted between `a` and `b`. This has higher 
 
 e.g. If `e ^ 2ln(2)` -> `e ^ 2 * ln(2)`, `e ^ 2` would be evaluated first which is not what the user wanted.
 So, `e ^ 2ln(2)` -> `e ^ 2 !* ln(2)` so `2 !* ln(2)` is evaluated first, as the user expected.
+
+## Built-Ins
+Base definitions to an `Environment` are present in `src/def.js`
+For more information on built-ins, enter `help()`.
