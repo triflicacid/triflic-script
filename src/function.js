@@ -50,7 +50,7 @@ class EnvUserFunction extends EnvFunction {
   }
 
   clone() {
-    return new EnvUserFunction(this.env, this.value, this.rargs, this.tstr);
+    return new EnvUserFunction(this.env, this.name, this.rargs, this.tstr);
   }
 
   eval(args) {
@@ -78,7 +78,7 @@ class EnvBuiltinFunction extends EnvFunction {
   }
 
   clone() {
-    return new EnvBuiltinFunction(this.env, this.value, this.rargs, this.fn, this.desc);
+    return new EnvBuiltinFunction(this.env, this.name, this.rargs, this.fn, this.desc);
   }
 
   eval(args) {

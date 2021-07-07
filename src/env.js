@@ -1,6 +1,6 @@
 const { EnvUserFunction } = require("./function");
 const { TokenString } = require("./token");
-const { peek, parseSymbol, getMatchingBracket, operators } = require("../utils");
+const { peek, parseSymbol, getMatchingBracket, operators, parseFunction, parseVariable } = require("../utils");
 const Complex = require("../Complex");
 
 class Environment {
@@ -57,7 +57,6 @@ class Environment {
   }
 
   eval(string) {
-    string = string.replace(/\s+/g, '');
     if (string.startsWith('help(') && string[string.length - 1] === ')') {
       let query = string.substring('help('.length, string.length - 1);
       if (query == undefined) {
@@ -88,23 +87,35 @@ class Environment {
       const ts = new TokenString(this, parts[0]);
       return ts.eval();
     } else {
-      let symbol = parseSymbol(parts[0]);
-      if (symbol == null) throw new Error(`Syntax Error: Invalid syntax`);
-      if (parts[0][symbol.length] === '(') {
-        let fargStr = parts[0].substring(symbol.length + 1, parts[0].length - 1);
+      parts[0] = parts[0].trimStart().trimEnd();
+
+      let fname = parseFunction(parts[0]);
+      if (fname != null && parts[0][fname.length] === '(') { // FUNCTION DEFINITION
+        if (this.var(fname) !== undefined) throw new Error(`Syntax Error: Invalid syntax - symbol '${fname}' is a variable but treated as a function`);
+
+        let charEnd = parts[0][parts[0].length - 1];
+        if (charEnd !== ')') throw new Error(`Syntax Error: expected closing parenthesis, got '${charEnd}'`);
+
+        let fargStr = parts[0].substring(fname.length + 1, parts[0].length - 1);
         let fargsRaw = fargStr.split(','), fargs = [];
         for (let arg of fargsRaw) {
-          let symbol = parseSymbol(arg);
+          let symbol = parseVariable(arg);
           if (symbol !== arg) throw new Error(`Syntax Error: Invalid syntax ('${symbol}' arg '${arg}')`);
           fargs.push(symbol);
         }
         const ts = new TokenString(this, parts[1]);
-        const fn = new EnvUserFunction(this, symbol, fargs, ts);
-        this.func(symbol, fn);
+        const fn = new EnvUserFunction(this, fname, fargs, ts);
+        this.define(fn);
       } else {
-        const ts = new TokenString(this, parts[1]);
-        let value = ts.eval();
-        this.var(symbol, value);
+        let vname = parseVariable(parts[0]);
+        if (vname === parts[0].trimEnd()) { // VARIABLE DEFINITION
+          if (this.func(vname) !== undefined) throw new Error(`Syntax Error: Invalid syntax - symbol '${vname}' is a function but treated as a variable`);
+          const ts = new TokenString(this, parts[1]);
+          let value = ts.eval();
+          this.var(vname, value);
+        } else {
+          throw new Error(`Syntax Error: Invalid syntax "${parts[0]}"`);
+        }
       }
     }
   }

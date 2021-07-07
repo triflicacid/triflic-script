@@ -31,6 +31,9 @@ function define(env) {
     console.log(`Terminating with exit code ${c}`);
     process.exit(0);
   }, 'exit application with given code'));
+  env.define(new EnvBuiltinFunction(env, 'clear', [], () => {
+    process.stdout.write('\033c');
+  }, 'clears the screen'));
   env.define(new EnvBuiltinFunction(env, 'funcs', [], () => {
     for (let func in env._funcs) {
       if (env._funcs.hasOwnProperty(func)) {

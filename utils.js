@@ -41,6 +41,16 @@ function getMatchingBracket(pos, program) {
 
 const isDigit = x => x >= "0" && x <= "9";
 
+const peek = a => a[a.length - 1];
+
+function factorial(n) {
+  if (n === 0) return 1; // 0! = 1
+  if (n < 1 || Math.floor(n) !== n) throw new Error(`Argument Error: factorial expects a positive integer, got ${n}`);
+  let x = n--;
+  for (; n > 1; n--) x *= n;
+  return x;
+}
+
 /**
  * Like parseFloat
  * @param {string} string
@@ -182,8 +192,9 @@ function parseOperator(string) {
   return null;
 }
 
-function parseSymbol(string) {
-  const rStart = /[A-Za-z_$ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω√∛°∞]/;
+/** Parse a variable name */
+function parseVariable(string) {
+  const rStart = /[A-Za-z_$ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω∞]/;
   const rRest = /[0-9]/;
   if (!rStart.test(string[0])) return null;
   let symbol = string[0];
@@ -197,14 +208,20 @@ function parseSymbol(string) {
   return symbol;
 }
 
-const peek = a => a[a.length - 1];
-
-function factorial(n) {
-  if (n === 0) return 1; // 0! = 1
-  if (n < 1 || Math.floor(n) !== n) throw new Error(`Argument Error: factorial expects a positive integer, got ${n}`);
-  let x = n--;
-  for (; n > 1; n--) x *= n;
-  return x;
+/** Parse a function name */
+function parseFunction(string) {
+  const rStart = /[A-Za-z_$ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω√∛]/;
+  const rRest = /[0-9]/;
+  if (!rStart.test(string[0])) return null;
+  let symbol = string[0];
+  for (let i = 1; i < string.length; i++) {
+    if (rStart.test(string[i]) || rRest.test(string[i])) {
+      symbol += string[i];
+    } else {
+      break;
+    }
+  }
+  return symbol;
 }
 
 function isMathError(n, emsg) {
@@ -213,5 +230,6 @@ function isMathError(n, emsg) {
 
 module.exports = {
   getMatchingBracket, peek, factorial,
-  operators, parseNumber, parseOperator, parseSymbol, isMathError,
+  operators, bracketMap, bracketValues,
+  parseNumber, parseOperator, parseVariable, parseFunction, isMathError,
 };

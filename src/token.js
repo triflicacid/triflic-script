@@ -1,5 +1,5 @@
 const Complex = require("../Complex");
-const { parseNumber, parseOperator, parseSymbol, getMatchingBracket, peek, operators, isMathError } = require("../utils");
+const { parseNumber, parseOperator, getMatchingBracket, peek, operators, parseFunction, parseVariable, bracketValues } = require("../utils");
 
 
 class Token {
@@ -25,10 +25,11 @@ class NumberToken extends Token {
   }
 }
 
-/** For grammer items e.g. '(' */
-class GrammarToken extends Token {
+/** For brackets */
+class BracketToken extends Token {
   constructor(tstring, x) {
     super(tstring, x);
+    if (bracketValues[x] === undefined) throw new Error(`new BracketToken() : '${x}' is not a bracket`);
   }
   priority() { return 0; }
   static isGrammar(x) {
@@ -41,6 +42,7 @@ class GrammarToken extends Token {
 class OperatorToken extends Token {
   constructor(tstring, op) {
     super(tstring, op);
+    if (operators[op] === undefined) throw new Error(`new OperatorToken() : '${op}' is not an operator`);
   }
   eval(a, b) {
     return operators[this.value].fn(a, b);
@@ -128,7 +130,7 @@ class TokenString {
         stack.push(res);
       }
     }
-    if (stack.length !== 1) throw new Error(`Syntax Error: Invalid syntax`);
+    if (stack.length !== 1) throw new Error(`Syntax Error: Invalid syntax (evaluation failed to reduce expression to single number)`);
     return stack[0];
   }
 
@@ -138,15 +140,26 @@ class TokenString {
 
   /** Parse a raw input string. Return token array */
   _parse(string) {
-    string = string.replace(/\s+/g, '');
     string = string.replace(/÷/g, '/');
     string = string.replace(/×/g, '*');
     const tokens = [];
+    let nestLevel = 0;
 
     for (let i = 0; i < string.length;) {
+      if (string[i] === ' ') {
+        i++;
+        continue; // WHITESPACE - IGNORE
+      }
+
       // Grammar?
-      if (GrammarToken.isGrammar(string[i])) {
-        const t = new GrammarToken(this, string[i]);
+      if (BracketToken.isGrammar(string[i])) {
+        if (bracketValues[string[i]] === 1) nestLevel++;
+        else if (bracketValues[string[i]] === -1) {
+          if (nestLevel === 0) throw new Error(`Syntax Error: unexpected parenthesis '${string[i]}' at ${i}`);
+          nestLevel--;
+        }
+
+        const t = new BracketToken(this, string[i]);
         tokens.push(t);
         i++;
         continue;
@@ -155,7 +168,8 @@ class TokenString {
       // Operator?
       let op = parseOperator(string.substr(i));
       if (op !== null) {
-        if (op === '-' && (tokens.length === 0 || peek(tokens) instanceof OperatorToken)) {
+        let top = peek(tokens);
+        if (op === '-' && (tokens.length === 0 || top instanceof OperatorToken || top instanceof BracketToken)) {
           // Negative sign for a number, then
         } else {
           const t = new OperatorToken(this, op);
@@ -174,34 +188,42 @@ class TokenString {
         continue;
       }
 
-      // Symbol?
-      let symbol = parseSymbol(string.substr(i));
-      if (symbol !== null) {
+      // Function?
+      let fname = parseFunction(string.substr(i));
+      if (fname !== null && this.env.func(fname) !== undefined) {
+        i += fname.length;
+        while (string[i] === ' ') i++; // Remove whitespace
         let t;
-        i += symbol.length;
-        if (string[i] === '(') { // Function
+        if (string[i] === '(') {
+          // Get matching bracket
           let end;
           try {
             end = getMatchingBracket(i, string);
           } catch (e) {
             throw new Error(`Syntax Error: unmatched parenthesis '${string[i]}' at ${i}`);
           }
-          let body = string.substring(i + 1, end);
+          // Extract function argument string
+          let argString = string.substring(i + 1, end);
+          // Parse argument string
           try {
-            t = new FunctionToken(this, symbol, body);
+            t = new FunctionToken(this, fname, argString);
           } catch (e) {
-            throw new Error(`Syntax Error: error whilst parsing function '${symbol}' at ${i}:\n${e}`);
+            throw new Error(`Syntax Error: in '${fname}' at ${i}:\n${e}`);
           }
-          i = end + 1; // Extend past closing bracket
+          i += argString.length + 2; // Skip over argument string and ()
         } else {
-          t = new VariableToken(this, symbol);
-          let p = peek(tokens);
-          if (p instanceof VariableToken || p instanceof NumberToken) {
-            tokens.push(t);
-            t = new OperatorToken(this, '*'); // Multiply adjacent symbols
-          }
+          throw new Error(`Syntax Error: expected '(' after function reference`);
         }
         tokens.push(t);
+        continue;
+      }
+
+      // Variable?
+      let vname = parseVariable(string.substr(i));
+      if (vname !== null) {
+        let t = new VariableToken(this, vname);
+        tokens.push(t);
+        i += vname.length;
         continue;
       }
 
@@ -217,10 +239,10 @@ class TokenString {
     for (let i = 0; i < tokens.length; i++) {
       if (tokens[i] instanceof NumberToken || tokens[i] instanceof VariableToken || tokens[i] instanceof FunctionToken) {
         output.push(tokens[i]);
-      } else if (tokens[i].is(GrammarToken, '(')) {
+      } else if (tokens[i].is(BracketToken, '(')) {
         stack.push(tokens[i]);
-      } else if (tokens[i].is(GrammarToken, ')')) {
-        while (peek(stack) instanceof Token && !peek(stack).is(GrammarToken, '(')) {
+      } else if (tokens[i].is(BracketToken, ')')) {
+        while (peek(stack) instanceof Token && !peek(stack).is(BracketToken, '(')) {
           output.push(stack.pop());
         }
         stack.pop(); // Remove ) from stack
@@ -244,4 +266,4 @@ class TokenString {
   }
 }
 
-module.exports = { Token, NumberToken, GrammarToken, VariableToken, OperatorToken, FunctionToken, TokenString };
+module.exports = { Token, NumberToken, GrammarToken: BracketToken, VariableToken, OperatorToken, FunctionToken, TokenString };
