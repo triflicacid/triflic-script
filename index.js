@@ -1,23 +1,12 @@
 const Environment = require("./src/env");
 const { define } = require("./def");
-const readline = require("readline");
+const { input } = require("./utils");
 const Complex = require("./Complex");
-
-async function input(msg = '') {
-  const instance = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  return new Promise(function (resolve, reject) {
-    instance.question(msg, x => {
-      instance.close();
-      resolve(x);
-    });
-  });
-}
 
 const env = new Environment();
 define(env);
+
+env.var('z', new Complex(1, 2));
 
 (async function () {
   const msg = '> ';

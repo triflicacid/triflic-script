@@ -76,28 +76,16 @@ function define(env) {
   /****************** MATHS FUNCTIONS */
   env.define(new EnvBuiltinFunction(env, 'abs', ['x'], ({ x }) => Complex.abs(x), 'calculate absolute value of x')); // abs
   env.define(new EnvBuiltinFunction(env, 'arccos', ['x'], ({ x }) => Complex.arccos(x), 'return arccosine of x')); // arccosine
-  env.define(new EnvBuiltinFunction(env, 'arccosh', ['x'], ({ x }) => { // hyperbolic arccosine
-    if (x.isReal()) return Math.acosh(x.a);
-    throw new Error(`Argument Error: unexpected complex number`);
-  }, 'return hyperbolic arccosine of x'));
+  env.define(new EnvBuiltinFunction(env, 'arccosh', ['x'], ({ x }) => Complex.arccosh(x), 'return hyperbolic arccosine of x')); // hyperbolic arccosine
   env.define(new EnvBuiltinFunction(env, 'arcsin', ['x'], ({ x }) => Complex.arcsin(x), 'return arcsine of x')); // arcsine
-  env.define(new EnvBuiltinFunction(env, 'arcsinh', ['x'], ({ x }) => { // hyperbolic arcsine
-    if (x.isReal()) return Math.asinh(x.a);
-    throw new Error(`Argument Error: unexpected complex number`);
-  }, 'return hyperbolic arcsine of x'));
+  env.define(new EnvBuiltinFunction(env, 'arcsinh', ['x'], ({ x }) => Complex.arcsinh(x), 'return hyperbolic arcsine of x')); // hyperbolic arcsine
   env.define(new EnvBuiltinFunction(env, 'arctan', ['x'], ({ x }) => Complex.arctan(x), 'return arctangent of x')); // arctangent
-  env.define(new EnvBuiltinFunction(env, 'arctanh', ['x'], ({ x }) => { // hyperbolic arctangent
-    if (x.isReal()) return Math.atanh(x.a);
-    throw new Error(`Argument Error: unexpected complex number`);
-  }, 'return hyperbolic arctangent of x'));
+  env.define(new EnvBuiltinFunction(env, 'arctanh', ['x'], ({ x }) => Complex.arctanh(x), 'return hyperbolic arctangent of x')); // hyperbolic arctangent
   env.define(new EnvBuiltinFunction(env, 'cbrt', ['x'], ({ x }) => Complex.cbrt(x), 'return cube root of x')); // cube root
   env.funcAlias('cbrt', '∛');
   env.define(new EnvBuiltinFunction(env, 'ceil', ['x'], ({ x }) => Complex.ceil(x), 'round x up to the nearest integer')); // ceiling (round up)
   env.define(new EnvBuiltinFunction(env, 'cos', ['x'], ({ x }) => Complex.cos(x), 'return cosine of x')); // cosine
-  env.define(new EnvBuiltinFunction(env, 'cosh', ['x'], ({ x }) => { // hyperbolic cosine
-    if (x.isReal()) return Math.cosh(x.a);
-    throw new Error(`Argument Error: unexpected complex number`);
-  }, 'return hyperbolic cosine of x'));
+  env.define(new EnvBuiltinFunction(env, 'cosh', ['x'], ({ x }) => Complex.cosh(x), 'return hyperbolic cosine of x')); // hyperbolic cosine
   env.define(new EnvBuiltinFunction(env, 'equals', ['a', 'b'], ({ a, b }) => +Complex.assert(a).equals(b), 'return 0 or 1 depending if a == b'));
   env.define(new EnvBuiltinFunction(env, 'exp', ['x'], ({ x }) => Complex.exp(x), 'return e^x')); // raise e to the x
   env.define(new EnvBuiltinFunction(env, 'floor', ['x'], ({ x }) => Complex.floor(x), 'round x down to the nearest integer')); // floor (round down)
@@ -118,17 +106,11 @@ function define(env) {
   }, 'return a pseudo-random decimal number. Range: 0 arguments: 0-1. 1 argument: 0-a. 2 arguments: a-b'));
   env.define(new EnvBuiltinFunction(env, 'round', ['x'], ({ x }) => Complex.round(x), 'round x to the nearest integer')); // round
   env.define(new EnvBuiltinFunction(env, 'sin', ['x'], ({ x }) => Complex.sin(x), 'return sine of x')); // sine
-  env.define(new EnvBuiltinFunction(env, 'sinh', ['x'], ({ x }) => { // hyperbolic cosine
-    if (x.isReal()) return Math.cosh(x.a);
-    throw new Error(`Argument Error: unexpected complex number`);
-  }, 'return hyperbolic sine of x'));
+  env.define(new EnvBuiltinFunction(env, 'sinh', ['x'], ({ x }) => Complex.sinh(x), 'return hyperbolic sine of x')); // hyperbolic sine
   env.define(new EnvBuiltinFunction(env, 'sqrt', ['x'], ({ x }) => Complex.sqrt(x), 'return square root of x')); // cube root
   env.funcAlias('sqrt', '√');
   env.define(new EnvBuiltinFunction(env, 'tan', ['x'], ({ x }) => Complex.tan(x), 'return tangent of x')); // tangent
-  env.define(new EnvBuiltinFunction(env, 'tanh', ['x'], ({ x }) => { // hyperbolic tangent
-    if (x.isReal()) return Math.tanh(x.a);
-    throw new Error(`Argument Error: unexpected complex number`);
-  }, 'return hyperbolic tangent of x'));
+  env.define(new EnvBuiltinFunction(env, 'tanh', ['x'], ({ x }) => Complex.tanh(x), 'return hyperbolic tangent of x')); // hyperbolic tangent
 }
 
 module.exports = { define };

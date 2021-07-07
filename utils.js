@@ -1,4 +1,19 @@
 const Complex = require("./Complex");
+const readline = require("readline");
+
+/** Get user input from STDIN */
+async function input(msg = '') {
+  const instance = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  return new Promise(function (resolve, reject) {
+    instance.question(msg, x => {
+      instance.close();
+      resolve(x);
+    });
+  });
+}
 
 const bracketMap = {
   "[": "]", "]": "[",
@@ -229,7 +244,7 @@ function isMathError(n, emsg) {
 }
 
 module.exports = {
-  getMatchingBracket, peek, factorial,
+  input, getMatchingBracket, peek, factorial,
   operators, bracketMap, bracketValues,
   parseNumber, parseOperator, parseVariable, parseFunction, isMathError,
 };

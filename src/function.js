@@ -27,7 +27,8 @@ class EnvFunction {
 
   eval(args) {
     let req = this.args.length - this.optional;
-    if (args.length < req || args.length > this.args.length) throw new Error(`Argument Error: function '${this.name}' expects ${req}-${this.args.length} arguments, got ${args.length}`);
+    let expected = this.optional === 0 ? req : `${req}-${this.args.length}`;
+    if (args.length < req || args.length > this.args.length) throw new Error(`Argument Error: function '${this.name}' expects ${expected} argument${req == 1 ? '' : 's'}, got ${args.length}`);
   }
 
   defString() {
