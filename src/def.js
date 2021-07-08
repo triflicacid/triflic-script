@@ -1,30 +1,32 @@
 const Complex = require("./Complex");
 const { EnvBuiltinFunction } = require("./function");
 const lambertw = require("./lambertw");
-const { operators, print } = require("./utils");
+const { operators, print, isPrime, LCF, primeFactors, assertReal, factorial } = require("./utils");
 
 /** Base definitions for an Environment */
 function define(env) {
   /****************** VARIABLES */
-  env.var('π', Math.PI); // pi
-  env.var('pi', Math.PI); // pi
+  env.var('pi', Math.PI, 'pi is equal to the circumference of any circle divided by its diameter'); // pi
+  env.var('π', env.var('pi'));
   env.var('e', Math.E); // e
-  env.var('Ω', 0.56714329040978387299997); // W(1, 0)
-  env.var('φ', 1.618033988749895); // phi, golden ratio
-  env.var('phi', env.var('φ')); // phi, golden ratio
-  env.var('τ', 2 * Math.PI); // tau
-  env.var('i', Complex.I.copy()); // i
+  env.var('omega', 0.56714329040978387299997, 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
+  env.var('Ω', env.var('omega'));
+  env.var('phi', 1.618033988749895, 'Phi, the golden ratio, approx (1 + √5)/2'); // phi, golden ratio
+  env.var('φ', env.var('phi'));
+  env.var('tau', 2 * Math.PI, 'A constant representing the ratio between circumference and radius of a circle'); // tau
+  env.var('τ', env.var('tau'));
+  env.var('i', Complex.I.copy(), '√(-1)'); // i
 
-  env.var('ln2', Math.LN2);
-  env.var('ln10', Math.LN10);
-  env.var('log2e', Math.LOG2E);
-  env.var('log10e', Math.LOG10E);
-  env.var('√1_2', Math.SQRT1_2);
-  env.var('√2', Math.SQRT2);
+  env.var('ln2', Math.LN2, 'Natural logarithm of 2');
+  env.var('ln10', Math.LN10, 'Natural logarithm of 10');
+  env.var('log2e', Math.LOG2E, 'Base-2 logarithm of e');
+  env.var('log10e', Math.LOG10E, 'Base-10 logarithm of e');
+  env.var('sqrt1_2', Math.SQRT1_2, 'Square root of 0.5');
+  env.var('sqrt2', Math.SQRT2, 'Square root of 2');
 
-  env.var('nan', NaN);
-  env.var('∞', Infinity);
-  env.var('inf', Infinity);
+  env.var('nan', NaN, 'Value representing Not A Number');
+  env.var('inf', Infinity, 'Value representing Infinity');
+  env.var('∞', env.var('inf'));
 
   /****************** CORE FUNCTIONS */
   env.define(new EnvBuiltinFunction(env, 'exit', ['?c'], ({ c }) => {
@@ -36,19 +38,22 @@ function define(env) {
     process.stdout.write('\033c');
   }, 'clears the screen'));
   env.define(new EnvBuiltinFunction(env, 'funcs', [], () => {
+    let output = '';
     for (let func in env._funcs) {
       if (env._funcs.hasOwnProperty(func)) {
         let fn = env.func(func);
-        print(`- [${fn instanceof EnvBuiltinFunction ? 'BUILT-IN' : 'USER-DEF'}] '${func}' \t ${fn.defString()}`);
+        output += `- [${fn instanceof EnvBuiltinFunction ? 'BUILT-IN' : 'USER-DEF'}] '${func}' \t ${fn.defString()}\n`;
       }
     }
+    return output;
   }, 'list all defined functions'));
   env.define(new EnvBuiltinFunction(env, 'vars', ['?s'], ({ s }) => {
+    let output = '';
     if (s === undefined) {
       env._vars.forEach((scope, i) => {
         for (let v in scope) {
           if (scope.hasOwnProperty(v)) {
-            print(`- [${i}]  '${v}' \t = \t ${env._vars[i][v]}`);
+            output += `- [${i}]  '${v}' \t = \t ${env._vars[i][v]}\n`;
           }
         }
       });
@@ -61,19 +66,28 @@ function define(env) {
       if (env._vars[s] === undefined) throw new Error(`Argument Error: scope ${s} does not exist`);
       for (let v in env._vars[s]) {
         if (env._vars[s].hasOwnProperty(v)) {
-          print(`- '${v}' \t = \t ${env._vars[s][v]}`);
+          output += `- '${v}' \t = \t ${env._vars[s][v]}\n`;
         }
       }
     }
+    return output;
   }, 'list all defined variables in a given scope depth'));
   env.define(new EnvBuiltinFunction(env, 'operators', [], () => {
-    print(` Operator | Syntax | Description`);
+    let output = ` Operator | Syntax | Description\n`;
     for (let op in operators) {
       if (operators.hasOwnProperty(op)) {
-        print(`- '${op}' \t ${operators[op].syntax} \t ${operators[op].desc}`);
+        output += `- '${op}' \t ${operators[op].syntax} \t ${operators[op].desc}\n`;
       }
     }
+    return output;
   }, 'list all available operators'));
+  env.define(new EnvBuiltinFunction(env, 'logical', ['?v'], ({ v }) => {
+    if (v !== undefined) {
+      assertReal(v);
+      env.logical = !!v.a;
+    }
+    return `Logical Mode: ${env.v ? 'On' : 'Off'}`;
+  }, 'View or enable/disable logical mode. Logical mode changes the behaviour of some operators to be logical (e.g. "!" factorial <-> logical not'));
 
   /****************** MATHS FUNCTIONS */
   env.define(new EnvBuiltinFunction(env, 'abs', ['x'], ({ x }) => Complex.abs(x), 'calculate absolute value of x')); // abs
@@ -90,25 +104,43 @@ function define(env) {
   env.define(new EnvBuiltinFunction(env, 'conj', ['z'], ({ z }) => Complex.assert(z).conjugate(), 'return z* (the configate) of z'));
   env.define(new EnvBuiltinFunction(env, 'cos', ['x'], ({ x }) => Complex.cos(x), 'return cosine of x')); // cosine
   env.define(new EnvBuiltinFunction(env, 'cosh', ['x'], ({ x }) => Complex.cosh(x), 'return hyperbolic cosine of x')); // hyperbolic cosine
-  env.define(new EnvBuiltinFunction(env, 'equals', ['a', 'b'], ({ a, b }) => +Complex.assert(a).equals(b), 'return 0 or 1 depending if a == b'));
   env.define(new EnvBuiltinFunction(env, 'exp', ['x'], ({ x }) => Complex.exp(x), 'return e^x')); // raise e to the x
   env.define(new EnvBuiltinFunction(env, 'floor', ['x'], ({ x }) => Complex.floor(x), 'round x down to the nearest integer')); // floor (round down)
   env.define(new EnvBuiltinFunction(env, 'isnan', ['x'], ({ x }) => +Complex.isNaN(x), 'return 0 or 1 depending on is x is NaN'));
   env.define(new EnvBuiltinFunction(env, 'isinf', ['x'], ({ x }) => Complex.isFinite(x) ? 0 : 1, 'return 0 or 1 depending on is x is infinite'));
+  env.define(new EnvBuiltinFunction(env, 'isprime', ['x'], ({ x }) => {
+    assertReal(x);
+    return +isPrime(x.a);
+  }, 'return 0 or 1 depending on if x is prime'));
+  env.define(new EnvBuiltinFunction(env, 'factors', ['x'], ({ x }) => {
+    assertReal(x);
+    let f = primeFactors(x.a);
+    return f.length === 0 ? '[none]' : f.join(' * ');
+  }, 'return prime factors of x'));
+  env.define(new EnvBuiltinFunction(env, 'factorial', ['x'], ({ x }) => {
+    assertReal(x);
+    return new Complex(factorial(x.a));
+  }, 'calculate the factorial of x'));
   env.define(new EnvBuiltinFunction(env, 'ln', ['x'], ({ x }) => Complex.log(x), 'calculate the natural logarithm of x')); // natural logarithm
   env.define(new EnvBuiltinFunction(env, 'log', ['a', '?b'], ({ a, b }) => {
-    if (b === undefined) { // log base 10 of <a>
-      return Complex.div(Complex.log(a), Math.LN10);
-    } else {
-      return Complex.div(Complex.log(b), Complex.log(a)); // log base <a> of <b>
-    }
+    return b === undefined ?
+      Complex.div(Complex.log(a), Math.LN10) :// log base 10 of <a>
+      Complex.div(Complex.log(a), Complex.log(b));// log base <a> of <b>
   }, 'return log base <a> of <b>. If b is not provided, return log base 10 of <a>'));
+  env.define(new EnvBuiltinFunction(env, 'lcf', ['a', 'b'], ({ a, b }) => {
+    assertReal(a, b);
+    return LCF(a.a, b.a);
+  }, 'return the lowest common factor of a and b'));
   env.define(new EnvBuiltinFunction(env, 'random', ['?a', '?b'], ({ a, b }) => {
-    if (a !== undefined && b === undefined) return Math.random() * a; // random(max)
-    if (a !== undefined && b !== undefined) return (Math.random() * (b - a)) + a; // random(min, max)
+    if (a !== undefined && b === undefined) { assertReal(a); return Math.random() * a.a; } // random(max)
+    if (a !== undefined && b !== undefined) { assertReal(a, b); return (Math.random() * (b.a - a.a)) + a.a; } // random(min, max)
     return Math.random();
   }, 'return a pseudo-random decimal number. Range: 0 arguments: 0-1. 1 argument: 0-a. 2 arguments: a-b'));
-  env.define(new EnvBuiltinFunction(env, 'round', ['x'], ({ x }) => Complex.round(x), 'round x to the nearest integer')); // round
+  env.define(new EnvBuiltinFunction(env, 'round', ['x', '?dp'], ({ x, dp }) => {
+    if (dp === undefined) return Complex.round(x);
+    assertReal(dp);
+    return Complex.roundDp(x, Math.floor(dp.a));
+  }, 'round x to the nearest integer, or to <dp> decimal places')); // round
   env.define(new EnvBuiltinFunction(env, 'isreal', ['x'], ({ x }) => +x.isReal(), 'return 0 or 1 depending on if z is real'));
   env.define(new EnvBuiltinFunction(env, 'Re', ['x'], ({ x }) => x.a, 'return real component of x'));
   env.define(new EnvBuiltinFunction(env, 'Im', ['x'], ({ x }) => x.b, 'return imaginary component of x'));

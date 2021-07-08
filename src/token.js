@@ -78,7 +78,7 @@ class VariableToken extends Token {
     super(tstring, vname);
   }
   valueOf() {
-    return this.tstr.env.var(this.value);
+    return this.tstr.env.var(this.value).valueOf();
   }
   adjacentMultiply(obj) {
     return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
@@ -113,11 +113,12 @@ class TokenString {
     this.env = env;
     this.string = string;
     this.tokens = []; // Array of token objects
+    this.comment = '';
     if (string) this.parse();
   }
 
   parse() {
-    this.tokens = this._parse(this.string);
+    this.comment = this._parse(this.string, this.tokens);
   }
 
   eval() {
@@ -146,13 +147,11 @@ class TokenString {
         let args = [];
         for (let i = 0; i < info.args; i++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
         let res = T[i].eval(...args);
-        // isMathError(res, `At operator '${T[i]}' given values { ${args.join(', ')} }`);
         stack.push(res);
       }
     }
-    if (stack.length !== 1) {
-      throw new Error(`Syntax Error: Invalid syntax (evaluation failed to reduce expression to single number)`);
-    }
+    if (stack.length === 0) return 0;
+    if (stack.length !== 1) throw new Error(`Syntax Error: Invalid syntax (evaluation failed to reduce expression to single number)`);
     return stack[0];
   }
 
@@ -161,14 +160,20 @@ class TokenString {
   }
 
   /** Parse a raw input string. Return token array */
-  _parse(string) {
-    const tokens = [];
-    let nestLevel = 0;
+  _parse(string, tokens) {
+    tokens.length = 0;
+    let nestLevel = 0, comment = '';
 
     for (let i = 0; i < string.length;) {
       if (string[i] === ' ') {
         i++;
         continue; // WHITESPACE - IGNORE
+      }
+
+      // Comment?
+      if (string[i] === '/' && string[i + 1] === '/') {
+        comment = string.substr(i + 2).trim();
+        break;
       }
 
       // Grammar?
@@ -189,7 +194,7 @@ class TokenString {
       let op = parseOperator(string.substr(i));
       if (op !== null) {
         let top = peek(tokens);
-        if (op === '-' && (tokens.length === 0 || top instanceof OperatorToken || top instanceof BracketToken)) {
+        if ((op === '-' || op === '+') && (tokens.length === 0 || top instanceof OperatorToken || top instanceof BracketToken)) {
           // Negative sign for a number, then
         } else {
           const t = new OperatorToken(this, op);
@@ -228,7 +233,7 @@ class TokenString {
           try {
             t = new FunctionToken(this, fname, argString);
           } catch (e) {
-            throw new Error(`Syntax Error: in '${fname}' at ${i}:\n${e}`);
+            throw new Error(`Syntax Error: ${fname}(${argString}):\n${e}`);
           }
           i += argString.length + 2; // Skip over argument string and ()
         } else {
@@ -258,7 +263,11 @@ class TokenString {
         newTokens.push(new OperatorToken(this, '!*')); // High-precedence multiplication
       }
     }
-    return newTokens;
+    // console.log(newTokens.map(t => t.toString()));
+
+    tokens.length = 0;
+    newTokens.forEach(i => tokens.push(i));
+    return comment;
   }
 
   /** Token array from infix to postfix */

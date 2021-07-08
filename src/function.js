@@ -1,3 +1,4 @@
+const Complex = require("./Complex");
 const { TokenString } = require("./token");
 
 class EnvFunction {
@@ -5,12 +6,13 @@ class EnvFunction {
    * @param {Environment} env 
    * @param {string[]} args - array of arg variables e.g. ["x", "y", "z"] for f(x, y, z). Prefix with '?' if optional
    */
-  constructor(env, name, args) {
+  constructor(env, name, args, desc) {
     this.env = env;
     this.rargs = args;
     this.optional = 0;
     this.args = [];
     this.name = name;
+    this.desc = desc === undefined ? '[no information]' : desc;
 
     let metOptn = false;
     for (let i = 0; i < args.length; i++) {
@@ -36,7 +38,7 @@ class EnvFunction {
   }
 
   about() {
-    return 'n/a';
+    return this.desc;
   }
 
   raw() {
@@ -49,8 +51,8 @@ class EnvUserFunction extends EnvFunction {
   /**
    * @param {TokenString} body 
    */
-  constructor(env, name, args, body) {
-    super(env, name, args);
+  constructor(env, name, args, body, desc = 'user-defined') {
+    super(env, name, args, desc);
     this.tstr = body;
   }
 
@@ -69,10 +71,6 @@ class EnvUserFunction extends EnvFunction {
     return x;
   }
 
-  about() {
-    return 'user-defined function';
-  }
-
   raw() {
     return this.tstr.string;
   }
@@ -80,10 +78,10 @@ class EnvUserFunction extends EnvFunction {
 
 /** Built-in function using JS code */
 class EnvBuiltinFunction extends EnvFunction {
-  constructor(env, name, args, fn, description = 'n/a') {
+  constructor(env, name, args, fn, desc = '[built-in function]') {
     super(env, name, args);
     this.fn = fn;
-    this.desc = description;
+    this.desc = desc;
   }
 
   clone() {
@@ -100,13 +98,20 @@ class EnvBuiltinFunction extends EnvFunction {
     return x;
   }
 
-  about() {
-    return this.desc;
-  }
-
   raw() {
     return this.fn;
   }
 }
 
-module.exports = { EnvUserFunction, EnvBuiltinFunction };
+class EnvVariable {
+  constructor(name, value, desc = undefined) {
+    this.name = name;
+    this.value = Complex.assert(value);
+    this.desc = desc ?? '[no information]';
+  }
+
+  valueOf() { return this.value; }
+  copy() { return new EnvVariable(this.name, this.value, this.desc); }
+}
+
+module.exports = { EnvUserFunction, EnvBuiltinFunction, EnvVariable };

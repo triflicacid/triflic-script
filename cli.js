@@ -6,8 +6,6 @@ const { FgRed, Reset, Bright, } = require("./src/console-colours");
 const env = new Environment();
 define(env);
 
-env.eval(`f(x) = equals(OMEGA, W(x))`);
-
 (async function () {
   print(`JS Maths CLI at ${Date.now()}\nType help() for basic help\n`);
   let prompt = '>>> ', inp;

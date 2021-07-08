@@ -24,3 +24,12 @@ So, `e ^ 2ln(2)` -> `e ^ 2 !* ln(2)` so `2 !* ln(2)` is evaluated first, as the 
 ## Built-Ins
 Base definitions to an `Environment` are present in `src/def.js`
 For more information on built-ins, enter `help()`.
+
+## Input
+Lines may be inputted and process by using `Environment#eval()`.
+
+The input will be pre-processed in the `eval()` method itself before being parsed as a `TokenString` and evaluated/stored.
+
+Input may be an assignment; either `<var> = ...` or `<function>(<args>...) = ...`.
+
+Comments may be includes as `// ...`. Enything after `//` will be ignored. If a comment is included in a function/variable definition, the contents of this comment will be displayed when `help(<thing>)` is called.
