@@ -34,10 +34,12 @@ class NonNumericalToken extends Token {
   constructor(tstring, v) {
     super(tstring, v);
   }
-  eval() {
+  /** isFinal - is this for a final value, or for propagation */
+  eval(isFinal = false) {
+    if (isFinal) return this.value;
     let comment;
     if (!isNaN(+this.value)) {
-      return +this.value;
+      return new Complex(+this.value);
     } else if (typeof this.value === 'string') {
       let ts;
       try {
@@ -56,7 +58,7 @@ class NonNumericalToken extends Token {
         }
       }
     }
-    return NaN;
+    return new Complex(NaN);
     // throw new Error(`Syntax Error: action attempted to evaluate non-numerical ${typeof this.value} value "${this.toString()}"${comment === undefined ? '' : `\n  Comment:\n${prefixLines(comment, '\t')}`}`);
   }
 }
@@ -274,7 +276,7 @@ class TokenString {
           try {
             t = new FunctionToken(this, fname, argString);
           } catch (e) {
-            throw new Error(`Syntax Error: ${fname}(${argString}):\n${e}`);
+            throw new Error(`Syntax Error: ${argString}:\n${e}`);
           }
           i += argString.length + 2; // Skip over argument string and ()
         } else {

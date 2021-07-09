@@ -15,8 +15,7 @@ class Environment {
     if (value === null) { // Delete variable
       for (let i = this._vars.length - 1; i >= 0; i--) {
         if (this._vars[i].hasOwnProperty(name)) {
-          delete this._vars[i][name];
-          return;
+          return delete this._vars[i][name];
         }
       }
     } else if (value !== undefined) {
@@ -84,9 +83,9 @@ class Environment {
 
     if (parts.length === 1) {
       const ts = new TokenString(this, parts[0]);
-      const ans = ts.eval();
-      if (this._storeAns) this._vars[0].ans = ans;
-      return ans;
+      const tmp = ts.eval();
+      if (this._storeAns) this._vars[0].ans = new EnvVariable('ans', tmp.eval());
+      return tmp.eval(true); // Return raw value
     } else {
       let fname = parseFunction(parts[0]);
       if (fname != null && parts[0][fname.length] === '(') { // FUNCTION DEFINITION
@@ -108,13 +107,13 @@ class Environment {
         this.define(fn);
       } else {
         let vname = parseVariable(parts[0]);
-        let assigOp = parseOperator(parts[0].substr(vname.length).trimStart());
+        let assigOp = vname == undefined ? undefined : parseOperator(parts[0].substr(vname.length).trimStart());
         if (assigOp) parts[0] = parts[0].substr(0, parts[0].length - assigOp.length).trimEnd();
 
         if (vname === parts[0]) { // VARIABLE DEFINITION
           if (this.func(vname) !== undefined) throw new Error(`Syntax Error: Invalid syntax - symbol '${vname}' is a function but treated as a variable`);
           const ts = new TokenString(this, assigOp === null ? parts[1] : `${vname} ${assigOp} ${parts[1]}`);
-          const value = ts.eval(), varObj = this.var(vname, value);
+          const value = ts.eval().eval(), varObj = this.var(vname, value);
           if (ts.comment.length !== 0) varObj.desc = ts.comment;
           return value;
         } else {

@@ -33,7 +33,7 @@ function define(env) {
   env.define(new EnvBuiltinFunction(env, 'help', ['?item'], ({ item }) => {
     let help = '0';
     if (item === undefined) {
-      help = `help(?s) \t Get help on a specific symbol\nvars() \t List all variables\nfuncs() \t List all functions\nexit() \t Terminate the program\nvalue(s) \t Retrieve raw value of a symbol`;
+      help = `help(?s) \t Get help on a specific symbol\nvars() \t List all variables\nfuncs() \t List all functions\noperators() \t List all operators\nexit() \t Terminate the program`;
     } else if (item instanceof OperatorToken) {
       let info = operators[item];
       help = `Type: operator\nDesc: ${info.desc}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
@@ -64,6 +64,18 @@ function define(env) {
     }
     return help;
   }, 'Get general help or help on a provided argument', 1)); // evalState=1; get eval'd value from TokenString, still a Token though
+  env.define(new EnvBuiltinFunction(env, 'del', ['item'], ({ item }) => {
+    if (item instanceof VariableToken) {
+      return +env.var(item.value, null);
+    } else if (item instanceof FunctionRefToken) {
+      let fn = item.getFn();
+      if (fn instanceof EnvBuiltinFunction) return 0;
+      return +env.func(item.value, null);
+    } else {
+      // throw new Error(`Argument Error: Cannot remove provided symbol`);
+      return 0;
+    }
+  }, 'attempt to delete provided symbol, returning 0 or 1 upon success', 1));
   env.define(new EnvBuiltinFunction(env, 'exit', ['?c'], ({ c }) => {
     if (c === undefined) c = 0;
     print(`Terminating with exit code ${c}`);
@@ -88,7 +100,7 @@ function define(env) {
       env._vars.forEach((scope, i) => {
         for (let v in scope) {
           if (scope.hasOwnProperty(v)) {
-            output += `- [${i}]  '${v}' \t = \t ${env._vars[i][v]}\n`;
+            output += `- [${i}]  '${v}' \t = \t ${env._vars[i][v].eval()}\n`;
           }
         }
       });
@@ -101,17 +113,17 @@ function define(env) {
       if (env._vars[s] === undefined) throw new Error(`Argument Error: scope ${s} does not exist`);
       for (let v in env._vars[s]) {
         if (env._vars[s].hasOwnProperty(v)) {
-          output += `- '${v}' \t = \t ${env._vars[s][v]}\n`;
+          output += `- '${v}' \t = \t ${env._vars[s][v].eval()}\n`;
         }
       }
     }
     return output;
   }, 'list all defined variables in a given scope depth'));
   env.define(new EnvBuiltinFunction(env, 'operators', [], () => {
-    let output = ` Operator | Syntax | Description\n`;
+    let output = `Precedence | Operator | Syntax | Description\n`;
     for (let op in operators) {
       if (operators.hasOwnProperty(op)) {
-        output += `- '${op}' \t ${operators[op].syntax} \t ${operators[op].desc}\n`;
+        output += `- ${operators[op].precedence} \t '${op}' \t ${operators[op].syntax} \t ${operators[op].desc}\n`;
       }
     }
     return output;
