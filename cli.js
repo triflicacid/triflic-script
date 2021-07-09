@@ -7,7 +7,7 @@ const env = new Environment();
 define(env);
 
 (async function () {
-  print(`JS Maths CLI at ${Date.now()}\nType help() for basic help\n`);
+  print(`${__filename} - JS Maths CLI\nType help() for basic help\n`);
   let prompt = '>>> ', inp;
   while (true) {
     inp = await input(prompt);

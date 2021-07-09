@@ -5,14 +5,17 @@ class EnvFunction {
   /**
    * @param {Environment} env 
    * @param {string[]} args - array of arg variables e.g. ["x", "y", "z"] for f(x, y, z). Prefix with '?' if optional
+   * @param {string} desc - optional description of function
+   * @param {number} evalStage - how much to evaluate args (how many times to call .eval())
    */
-  constructor(env, name, args, desc) {
+  constructor(env, name, args, desc = undefined, evalState = 2) {
     this.env = env;
     this.rargs = args;
     this.optional = 0;
     this.args = [];
     this.name = name;
     this.desc = desc === undefined ? '[no information]' : desc;
+    this.evalState = evalState;
 
     let metOptn = false;
     for (let i = 0; i < args.length; i++) {
@@ -78,10 +81,9 @@ class EnvUserFunction extends EnvFunction {
 
 /** Built-in function using JS code */
 class EnvBuiltinFunction extends EnvFunction {
-  constructor(env, name, args, fn, desc = '[built-in function]') {
-    super(env, name, args);
+  constructor(env, name, args, fn, desc = '[built-in function]', evalState = undefined) {
+    super(env, name, args, desc, evalState, evalState);
     this.fn = fn;
-    this.desc = desc;
   }
 
   clone() {
@@ -110,7 +112,7 @@ class EnvVariable {
     this.desc = desc ?? '[no information]';
   }
 
-  valueOf() { return this.value; }
+  eval() { return this.value; }
   copy() { return new EnvVariable(this.name, this.value, this.desc); }
 }
 

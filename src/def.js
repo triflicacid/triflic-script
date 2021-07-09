@@ -1,6 +1,7 @@
 const Complex = require("./Complex");
 const { EnvBuiltinFunction } = require("./function");
 const lambertw = require("./lambertw");
+const { OperatorToken, VariableToken, NumberToken, NonNumericalToken, FunctionRefToken } = require("./token");
 const { operators, print, isPrime, LCF, primeFactors, assertReal, factorial } = require("./utils");
 
 /** Base definitions for an Environment */
@@ -29,6 +30,40 @@ function define(env) {
   env.var('∞', env.var('inf'));
 
   /****************** CORE FUNCTIONS */
+  env.define(new EnvBuiltinFunction(env, 'help', ['?item'], ({ item }) => {
+    let help = '0';
+    if (item === undefined) {
+      help = `help(?s) \t Get help on a specific symbol\nvars() \t List all variables\nfuncs() \t List all functions\nexit() \t Terminate the program\nvalue(s) \t Retrieve raw value of a symbol`;
+    } else if (item instanceof OperatorToken) {
+      let info = operators[item];
+      help = `Type: operator\nDesc: ${info.desc}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
+    } else if (item instanceof FunctionRefToken) {
+      let fn = item.getFn();
+      if (fn === undefined) {
+        throw new Error(`Reference Error: null reference ${item} - unable to retrieve help`);
+      } else {
+        let type = fn instanceof EnvBuiltinFunction ? 'built-in' : 'user-defined'
+        help = `Type: function [${type}]\nDesc: ${fn.about()}\nSyntax: ${fn.defString()}`;
+      }
+    } else if (item instanceof VariableToken) {
+      let v = env.var(item);
+      help = `Type: variable\nDesc: ${v.desc}\nValue: ${v.eval()}`;
+    } else if (item instanceof NumberToken) {
+      help = `Type: number\nValue: ${item.eval()}`;
+    } else if (item instanceof NonNumericalToken) {
+      if (operators[item.value] === undefined) {
+        let nval;
+        try { nval = item.eval(); } catch (e) { nval = '[failed]'; }
+        help = `Type: non-numerical (${typeof item.value})\nRaw Value: ${item.value}\nNum Value: ${nval}`;
+      } else {
+        let info = operators[item.value];
+        return `Type: operator\nDesc: ${info.desc}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
+      }
+    } else {
+      throw new Error(`Cannot retrieve help on given argument`);
+    }
+    return help;
+  }, 'Get general help or help on a provided argument', 1)); // evalState=1; get eval'd value from TokenString, still a Token though
   env.define(new EnvBuiltinFunction(env, 'exit', ['?c'], ({ c }) => {
     if (c === undefined) c = 0;
     print(`Terminating with exit code ${c}`);
@@ -104,6 +139,7 @@ function define(env) {
   env.define(new EnvBuiltinFunction(env, 'conj', ['z'], ({ z }) => Complex.assert(z).conjugate(), 'return z* (the configate) of z'));
   env.define(new EnvBuiltinFunction(env, 'cos', ['x'], ({ x }) => Complex.cos(x), 'return cosine of x')); // cosine
   env.define(new EnvBuiltinFunction(env, 'cosh', ['x'], ({ x }) => Complex.cosh(x), 'return hyperbolic cosine of x')); // hyperbolic cosine
+  env.define(new EnvBuiltinFunction(env, 'time', [], () => Date.now(), 'returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC'));
   env.define(new EnvBuiltinFunction(env, 'exp', ['x'], ({ x }) => Complex.exp(x), 'return e^x')); // raise e to the x
   env.define(new EnvBuiltinFunction(env, 'floor', ['x'], ({ x }) => Complex.floor(x), 'round x down to the nearest integer')); // floor (round down)
   env.define(new EnvBuiltinFunction(env, 'isnan', ['x'], ({ x }) => +Complex.isNaN(x), 'return 0 or 1 depending on is x is NaN'));

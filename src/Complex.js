@@ -137,10 +137,6 @@ class Complex {
     return str;
   }
 
-  valueOf() {
-    return Complex.isNaN(this) ? NaN : this.mag();
-  }
-
   /** Return copy of this */
   copy() {
     return new Complex(this.a, this.b);
@@ -354,11 +350,21 @@ class Complex {
 /** The imaginary number i */
 Complex.I = Object.freeze(new Complex(0, 1));
 
+/** Make sure input is Complex. Return value, or error. */
 Complex.assert = function (z) {
   if (z instanceof Complex) return z;
   if (typeof z === 'number') return new Complex(z, 0);
   throw new TypeError(`Expected Complex, got ${typeof z} ${z}`);
 };
+
+/** Is value a complex number? Return <false> or the complex number. */
+Complex.is = function (value) {
+  try {
+    return Complex.assert(value);
+  } catch (e) {
+    return false;
+  }
+}
 
 // Apply a function to a complex number
 function _zapply(z, fn) {

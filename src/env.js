@@ -1,7 +1,6 @@
 const { EnvUserFunction, EnvBuiltinFunction, EnvVariable } = require("./function");
 const { TokenString } = require("./token");
 const { peek, operators, parseFunction, parseVariable, parseOperator } = require("./utils");
-const Complex = require("./Complex");
 
 class Environment {
   constructor(storeAns = true) {
@@ -76,56 +75,11 @@ class Environment {
   }
 
   eval(string) {
-    if (string.startsWith('help(') && string[string.length - 1] === ')') {
-      let query = string.substring('help('.length, string.length - 1);
-      if (query == undefined || query === '') {
-        return `help(?s) \t Get help on a specific symbol\nvars() \t List all variables\nfuncs() \t List all functions\nexit() \t Terminate the program\nvalue(s) \t Retrieve raw value of a symbol`;
-      } else if (query === 'help') {
-        return `Type: function\nDesc: Returns general help, or help on a provided symbol\nSyntax: help(?s)`;
-      } else if (query === 'value') {
-        return `Type: function\nDesc: Returns raw value of provided argument (argument is a symbol)\nSyntax: value(s)`;
-      } else {
-        if (operators.hasOwnProperty(query)) {
-          let info = operators[query];
-          return `Type: operator\nDesc: ${info.desc}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
-        } else if (this.func(query) !== undefined) {
-          let fn = this.func(query), type = fn instanceof EnvBuiltinFunction ? 'built-in' : 'user-defined'
-          return `Type: function [${type}]\nDesc: ${fn.about()}\nSyntax: ${fn.defString()}`;
-        } else if (this.var(query) !== undefined) {
-          let v = this.var(query);
-          return `Type: variable\nDesc: ${v.desc}\nValue: ${v.valueOf()}`;
-        } else {
-          throw new Error(`Argument Error: Cannot retrieve help on given argument`);
-        }
-      }
-    } else if (string.startsWith('value(') && string[string.length - 1] === ')') {
-      let query = string.substring('value('.length, string.length - 1);
-      if (query == undefined) {
-        return `value(s) \t Get value of a symbol`;
-      } else if (query === 'help' || query === 'value') {
-        return '[[internal]]';
-      } else {
-        if (operators.hasOwnProperty(query)) {
-          let info = operators[query];
-          return info.fn;
-        } else if (this.func(query) !== undefined) {
-          let fn = this.func(query);
-          return `${fn.raw()}`;
-        } else if (this.var(query) !== undefined) {
-          let v = this.var(query);
-          return v.valueOf();
-        } else {
-          let n = +query;
-          if (!isNaN(n)) return n;
-          throw new Error(`Argument Error: Unable to retrieve raw value`);
-        }
-      }
-    }
-
     let parts = string.split(/\=(.+)/);
     if (parts[parts.length - 1] === '') parts.pop(); // Remove empty string '' from end
     if (parts.length === 0) return;
-    if (parts[1] && parts[1][0] === '=') parts[0] += '=' + parts.pop();; // Preserve '=='
+    if (operators[parts[0][parts[0].length - 1].trimEnd() + '='] !== undefined) parts[0] += '=' + parts.pop(); // Preserve operator containing '='
+    else if (parts[1] && operators['=' + parts[1][0]] !== undefined) parts[0] += '=' + parts.pop(); // Preserve operator containing '='
     parts = parts.map(x => x.trim()); // Now finished processing, remove trailing whitespace
 
     if (parts.length === 1) {
@@ -154,7 +108,7 @@ class Environment {
         this.define(fn);
       } else {
         let vname = parseVariable(parts[0]);
-        let assigOp = parseOperator(parts[0].substr(fname.length).trimStart());
+        let assigOp = parseOperator(parts[0].substr(vname.length).trimStart());
         if (assigOp) parts[0] = parts[0].substr(0, parts[0].length - assigOp.length).trimEnd();
 
         if (vname === parts[0]) { // VARIABLE DEFINITION

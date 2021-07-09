@@ -230,16 +230,6 @@ const operators = {
     desc: `Bitwise right shift a by b places`,
     syntax: 'a >> b',
   },
-  "<": {
-    precedence: 12,
-    args: 2,
-    fn: (a, b) => {
-      assertReal(a, b);
-      return +(a.a < b.a);
-    },
-    desc: `a less than b`,
-    syntax: 'a < b',
-  },
   "<=": {
     precedence: 12,
     args: 2,
@@ -250,15 +240,15 @@ const operators = {
     desc: `a less than or equal to b`,
     syntax: 'a <= b',
   },
-  ">": {
+  "<": {
     precedence: 12,
     args: 2,
     fn: (a, b) => {
       assertReal(a, b);
-      return +(a.a > b.a);
+      return +(a.a < b.a);
     },
-    desc: `a greater than b`,
-    syntax: 'a > b',
+    desc: `a less than b`,
+    syntax: 'a < b',
   },
   ">=": {
     precedence: 12,
@@ -270,17 +260,27 @@ const operators = {
     desc: `a greater than or equal to b`,
     syntax: 'a >= b',
   },
+  ">": {
+    precedence: 12,
+    args: 2,
+    fn: (a, b) => {
+      assertReal(a, b);
+      return +(a.a > b.a);
+    },
+    desc: `a greater than b`,
+    syntax: 'a > b',
+  },
   "==": {
     precedence: 11,
     args: 2,
-    fn: (a, b) => +a.equals(b),
+    fn: (a, b) => +Complex.assert(a).equals(b),
     desc: `a equal to b`,
     syntax: 'a == b',
   },
   "!=": {
     precedence: 11,
     args: 2,
-    fn: (a, b) => +(!a.equals(b)),
+    fn: (a, b) => +(!Complex.assert(a).equals(b)),
     desc: `a not equal to b`,
     syntax: 'a != b',
   },
@@ -433,8 +433,12 @@ function primeFactors(n) {
   return factors;
 }
 
+function prefixLines(str, prefix) {
+  return str.split('\n').map(x => prefix + x).join('\n');
+}
+
 module.exports = {
-  input, print, getMatchingBracket, peek, factorial,
+  input, print, getMatchingBracket, peek, factorial, prefixLines,
   operators, bracketMap, bracketValues,
   parseNumber, parseOperator, parseVariable, parseFunction, assertReal,
   isPrime, LCF, primeFactors,

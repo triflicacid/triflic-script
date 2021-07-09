@@ -33,3 +33,5 @@ The input will be pre-processed in the `eval()` method itself before being parse
 Input may be an assignment; either `<var> = ...` or `<function>(<args>...) = ...`.
 
 Comments may be includes as `// ...`. Enything after `//` will be ignored. If a comment is included in a function/variable definition, the contents of this comment will be displayed when `help(<thing>)` is called.
+
+Strings are marcked by `"..."`.
