@@ -69,7 +69,8 @@ class EnvUserFunction extends EnvFunction {
     for (let i = 0; i < args.length; i++) {
       this.env.var(this.args[i], args[i]);
     }
-    let x = this.tstr.eval();
+    const t = this.tstr.eval(); // Return token
+    let x = t.eval(); // Reduce Token to raw value
     this.env.popScope();
     return x;
   }
@@ -96,7 +97,7 @@ class EnvBuiltinFunction extends EnvFunction {
     for (let i = 0; i < args.length; i++) {
       o[this.args[i]] = args[i];
     }
-    let x = this.fn(o);
+    let x = this.fn(o); // Returns primitive value
     return x;
   }
 

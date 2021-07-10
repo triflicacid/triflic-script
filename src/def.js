@@ -1,8 +1,8 @@
 const Complex = require("./Complex");
 const { EnvBuiltinFunction } = require("./function");
 const lambertw = require("./lambertw");
-const { OperatorToken, VariableToken, NumberToken, NonNumericalToken, FunctionRefToken } = require("./token");
-const { operators, print, isPrime, LCF, primeFactors, assertReal, factorial } = require("./utils");
+const { OperatorToken, VariableToken, NumberToken, NonNumericalToken, FunctionRefToken, TokenString } = require("./token");
+const { operators, print, isPrime, LCF, primeFactors, assertReal, factorial, generatePrimes, parseVariable } = require("./utils");
 
 /** Base definitions for an Environment */
 function define(env) {
@@ -160,6 +160,11 @@ function define(env) {
     assertReal(x);
     return +isPrime(x.a);
   }, 'return 0 or 1 depending on if x is prime'));
+  env.define(new EnvBuiltinFunction(env, 'primes', ['limit'], ({ limit }) => {
+    assertReal(limit);
+    return generatePrimes(limit.a);
+  }, 'generate list of primes 0..limit'));
+
   env.define(new EnvBuiltinFunction(env, 'factors', ['x'], ({ x }) => {
     assertReal(x);
     let f = primeFactors(x.a);
@@ -169,6 +174,12 @@ function define(env) {
     assertReal(x);
     return new Complex(factorial(x.a));
   }, 'calculate the factorial of x'));
+  env.define(new EnvBuiltinFunction(env, 'len', ['list'], ({ list }) => {
+    if (list instanceof NonNumericalToken) {
+      if (Array.isArray(list.value) || typeof list.value === 'string') return list.value.length;
+    }
+    return NaN;
+  }, 'return length of argument', 1));
   env.define(new EnvBuiltinFunction(env, 'ln', ['x'], ({ x }) => Complex.log(x), 'calculate the natural logarithm of x')); // natural logarithm
   env.define(new EnvBuiltinFunction(env, 'log', ['a', '?b'], ({ a, b }) => {
     return b === undefined ?
@@ -196,6 +207,52 @@ function define(env) {
   env.define(new EnvBuiltinFunction(env, 'sinh', ['x'], ({ x }) => Complex.sinh(x), 'return hyperbolic sine of x')); // hyperbolic sine
   env.define(new EnvBuiltinFunction(env, 'sqrt', ['x'], ({ x }) => Complex.sqrt(x), 'return square root of x')); // cube root
   env.funcAlias('sqrt', '√');
+  env.define(new EnvBuiltinFunction(env, 'summation', ['start', 'limit', 'action', '?svar'], ({ start, limit, action, svar }) => {
+    let sumVar = 'x', sum = new Complex(0);
+    start = start.eval(); assertReal(start);
+    limit = limit.eval(); assertReal(limit);
+    if (svar !== undefined) {
+      if (svar instanceof NonNumericalToken) {
+        sumVar = svar.value;
+        let extract = parseVariable(sumVar);
+        if (sumVar !== extract) throw new Error(`Argument Error: Invalid variable provided '${sumVar}'`);
+      } else throw new Error(`Argument Error: Invalid value for <svar>: ${svar}`);
+    }
+    if (action instanceof FunctionRefToken) { // Execute action as a function
+      const fn = action.getFn();
+      for (let i = start; i <= limit; i++) {
+        try {
+          sum.add(fn.eval([i]));
+        } catch (e) {
+          throw new Error(`${fn.defString()}:\n${e}`);
+        }
+      }
+    } else if (action instanceof NumberToken || action instanceof VariableToken) { // Stored value
+      sum = Complex.mult(action.eval(), Complex.sub(limit, start).add(1));
+    } else if (action instanceof NonNumericalToken) { // Evaluate action as a TokenString
+      let ts;
+      try {
+        ts = new TokenString(env, action.value);
+      } catch (e) {
+        throw new Error(`Summation action: ${action.value}:\n${e}`);
+      }
+
+      ts.env.pushScope();
+      for (let i = start; i <= limit; i++) {
+        try {
+          ts.env.var(sumVar, i);
+          sum.add(ts.eval().eval());
+        } catch (e) {
+          throw new Error(`${action.value} when ${sumVar} = ${i}:\n${e}`);
+        }
+      }
+      ts.env.popScope();
+    } else {
+      throw new Error(`Argument Error: invalid summation action`);
+    }
+    return sum;
+  }, 'Calculate a summation series between <start> and <limit>, executing <action> (may be constant, function or string). Use variable <svar> as counter.', 1));
+  env.funcAlias('summation', '∑');
   env.define(new EnvBuiltinFunction(env, 'tan', ['x'], ({ x }) => Complex.tan(x), 'return tangent of x')); // tangent
   env.define(new EnvBuiltinFunction(env, 'tanh', ['x'], ({ x }) => Complex.tanh(x), 'return hyperbolic tangent of x')); // hyperbolic tangent
   env.define(new EnvBuiltinFunction(env, 'W', ['z', '?k', '?tol'], ({ z, k, tol }) => lambertw(z, k, tol), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));

@@ -117,6 +117,7 @@ function parseNumber(string) {
 
     // Digit
     else if (isDigit(string[i])) {
+      if (stage === 0) stage = 1; // Implicit sign
       nStr += string[i];
     } else {
       break;
@@ -374,7 +375,7 @@ function parseVariable(string) {
 
 /** Parse a function name */
 function parseFunction(string) {
-  const rStart = /[A-Za-z_$ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω√∛]/;
+  const rStart = /[A-Za-z_$ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω√∛∑]/;
   const rRest = /[0-9]/;
   if (!rStart.test(string[0])) return null;
   let symbol = string[0];
@@ -437,9 +438,28 @@ function prefixLines(str, prefix) {
   return str.split('\n').map(x => prefix + x).join('\n');
 }
 
+function generatePrimes(limit) {
+  const marks = new Array(limit + 1).fill(false);
+  for (let i = 2; i * i <= limit; i++) {
+    if (!marks[i]) { // If not prime...
+      // Mark all multiples as non-prime
+      for (let j = i * i; j <= limit; j += i) {
+        marks[j] = true;
+      }
+    }
+  }
+  const primes = [];
+  for (let i = 0; i <= limit; i++) {
+    if (i > 1 && !marks[i]) {
+      primes.push(i);
+    }
+  }
+  return primes;
+}
+
 module.exports = {
   input, print, getMatchingBracket, peek, factorial, prefixLines,
   operators, bracketMap, bracketValues,
   parseNumber, parseOperator, parseVariable, parseFunction, assertReal,
-  isPrime, LCF, primeFactors,
+  isPrime, LCF, primeFactors, generatePrimes,
 };

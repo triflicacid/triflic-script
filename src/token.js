@@ -158,8 +158,8 @@ class FunctionRefToken extends Token {
   getFn() {
     return this.tstr.env.func(this.value);
   }
-  eval() {
-    throw new Error(`Syntax Error: unexpected function reference ${this}`);
+  eval(isFinal = false) {
+    return isFinal ? this.toString() : NaN;
   }
 
   toString() {
