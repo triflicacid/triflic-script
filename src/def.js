@@ -195,6 +195,16 @@ function define(env) {
     if (a !== undefined && b !== undefined) { assertReal(a, b); return (Math.random() * (b.a - a.a)) + a.a; } // random(min, max)
     return Math.random();
   }, 'return a pseudo-random decimal number. Range: 0 arguments: 0-1. 1 argument: 0-a. 2 arguments: a-b'));
+  env.define(new EnvBuiltinFunction(env, 'nPr', ['n', 'r'], ({ n, r }) => {
+    assertReal(n); assertReal(r);
+    if (r.a > n.a) throw new Error(`Argument Error: invalid argument size relationship: n=${n.a} and r=${r.a}`);
+    return factorial(n.a) / factorial(n.a - r.a);
+  }, 'Return the probability of selecting an ordered set of <r> objects from a group of <n> number of objects'));
+  env.define(new EnvBuiltinFunction(env, 'nCr', ['n', 'r'], ({ n, r }) => {
+    assertReal(n); assertReal(r);
+    if (r.a > n.a) throw new Error(`Argument Error: invalid argument size relationship: n=${n.a} and r=${r.a}`);
+    return factorial(n.a) / (factorial(r.a) * factorial(n.a - r.a));
+  }, 'Represents the selection of objects from a group of objects where order of objects does not matter'));
   env.define(new EnvBuiltinFunction(env, 'round', ['x', '?dp'], ({ x, dp }) => {
     if (dp === undefined) return Complex.round(x);
     assertReal(dp);
