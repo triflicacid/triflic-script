@@ -41,11 +41,11 @@ class RunspaceFunction {
     }
   }
 
-  /** Evaluate given an array of arguments */
-  eval(args) {
+  /** Check arg count */
+  checkArgCount(args) {
     let req = this.argCount - this.optional;
     let expected = this.optional === 0 ? req : `${req}-${this.argCount}`;
-    if (args.length < req || args.length > this.argCount) throw new Error(`Argument Error: function '${this.name}' expects ${expected} argument${req == 1 ? '' : 's'}, got ${args.length}`);
+    if (args.length < req || args.length > this.argCount) throw new Error(`Argument Error: function '${this.name}' expects ${expected} argument${expected == 1 ? '' : 's'}, got ${args.length}`);
   }
 
   /** Given Token[], extract to raw values following types */
@@ -89,7 +89,7 @@ class RunspaceUserFunction extends RunspaceFunction {
 
   /** Array of Token arguments */
   eval(args) {
-    super.eval(args);
+    this.checkArgCount(args);
     this.rs.pushScope();
     // Set arguments to variables matching definition symbols
     let i = 0;
@@ -129,7 +129,7 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
   }
 
   eval(args) {
-    super.eval(args);
+    this.checkArgCount(args);
     const o = {};
     // Assign 'param: value' in o
     let i = 0;

@@ -25,6 +25,8 @@ function attempt(fn) {
   }
 }
 
+// env.eval('f(x) = log(log(x, 2x), 3x)');
+
 (async function () {
   if (opts.intro) print(`${__filename} - JS Maths CLI\nType help() for basic help\n`);
   let inp;

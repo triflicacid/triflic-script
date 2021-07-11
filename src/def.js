@@ -177,7 +177,7 @@ function define(env, defVariables = true, defFuncs = true) {
     env.define(new RunspaceBuiltinFunction(env, 'log', { a: 'complex', b: '?complex' }, ({ a, b }) => {
       return b === undefined ?
         Complex.div(Complex.log(a), Math.LN10) :// log base 10 of <a>
-        Complex.div(Complex.log(a), Complex.log(b));// log base <a> of <b>
+        Complex.div(Complex.log(b), Complex.log(a));// log base <a> of <b>
     }, 'return log base <a> of <b>. If b is not provided, return log base 10 of <a>'));
     env.define(new RunspaceBuiltinFunction(env, 'lcf', { a: 'real', b: 'real' }, ({ a, b }) => LCF(a, b), 'return the lowest common factor of a and b'));
     env.define(new RunspaceBuiltinFunction(env, 'random', { a: '?real', b: '?real' }, ({ a, b }) => {

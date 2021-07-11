@@ -1,14 +1,15 @@
 const Complex = require("../maths/Complex");
 const operators = require("../evaluation/operators");
-const { peek, prefixLines, str } = require("../utils");
+const { peek, prefixLines, str, createTokenStringParseObj } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, getMatchingBracket, parseFunction, parseVariable } = require("./parse");
 const { isNumericType, isIntType, castingError } = require("./types");
 const { RunspaceUserFunction } = require("../runspace/Function");
 
 class Token {
-  constructor(tstring, v) {
+  constructor(tstring, v, pos = NaN) {
     this.tstr = tstring;
     this.value = v;
+    this.pos = pos; // Definition position
   }
   eval(type) {
     throw new Error(`Overload Required (type provided: ${type})`);
@@ -26,8 +27,8 @@ class Token {
 
 /** For numerical values e.g. '3.1519' */
 class NumberToken extends Token {
-  constructor(tstring, n) {
-    super(tstring, Complex.assert(n));
+  constructor(tstring, n, pos) {
+    super(tstring, Complex.assert(n), pos);
   }
   eval(type) {
     if (type === 'any' || type === 'complex') return this.value;
@@ -45,35 +46,8 @@ class NumberToken extends Token {
 
 /** For non-numerical values */
 class NonNumericalToken extends Token {
-  constructor(tstring, v) {
-    super(tstring, v);
-  }
-  /** isFinal - is this for a final value, or for propagation */
-  _old_eval(isFinal = false) {
-    if (isFinal) return this.value;
-    let comment;
-    if (!isNaN(+this.value)) {
-      return new Complex(+this.value);
-    } else if (typeof this.value === 'string') {
-      let ts;
-      try {
-        ts = new TokenString(this.tstr.env, this.value);
-      } catch (e) {
-        ts = undefined;
-        comment = `Attempted to parse as expression, but failed:\n${prefixLines(e.toString(), '\t')}`;
-      }
-      if (ts) {
-        try {
-          let val = ts.eval(); // Reduce to single token
-          val = val.eval(); // Reduce to raw value
-          return val;
-        } catch (e) {
-          comment = `Attempted to evaluate as expression, but failed:\n${prefixLines(e.toString(), '\t')}`;
-        }
-      }
-    }
-    return new Complex(NaN);
-    // throw new Error(`Syntax Error: action attempted to evaluate non-numerical ${typeof this.value} value "${this.toString()}"${comment === undefined ? '' : `\n  Comment:\n${prefixLines(comment, '\t')}`}`);
+  constructor(tstring, v, pos) {
+    super(tstring, v, pos);
   }
   eval(type) {
     if (type === 'any' || type === 'string') return this.toString();
@@ -94,8 +68,8 @@ class NonNumericalToken extends Token {
 
 /** For brackets */
 class BracketToken extends Token {
-  constructor(tstring, x) {
-    super(tstring, x);
+  constructor(tstring, x, pos) {
+    super(tstring, x, pos);
     if (bracketValues[x] === undefined) throw new Error(`new BracketToken() : '${x}' is not a bracket`);
   }
   priority() { return 0; }
@@ -124,8 +98,8 @@ class BracketToken extends Token {
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
-  constructor(tstring, op) {
-    super(tstring, op);
+  constructor(tstring, op, pos) {
+    super(tstring, op, pos);
     if (operators[op] === undefined) throw new Error(`new OperatorToken() : '${op}' is not an operator`);
   }
   /** Either 1) cast to type (1 arg) or 2) evaluate as operators (2 args) */
@@ -147,8 +121,8 @@ class OperatorToken extends Token {
 
 /** For symbols e.g. 'hello' */
 class VariableToken extends Token {
-  constructor(tstring, vname) {
-    super(tstring, vname);
+  constructor(tstring, vname, pos) {
+    super(tstring, vname, pos);
   }
   eval(type) {
     return this.tstr.env.var(this.value)?.eval(type);
@@ -166,17 +140,22 @@ class VariableToken extends Token {
 
 /** For functions e.g. 'f(...)' (non-definitions) */
 class FunctionToken extends Token {
-  constructor(tstring, fname, argStr) {
-    super(tstring, fname);
+  /**
+   * @param {string} fname Name of function
+   * @param {string} argStr Raw string of function definition
+   * @param {TokenString[]} argTokens Array of token strings representing the function parameters 
+   */
+  constructor(tstring, fname, argStr, argTokens, pos) {
+    super(tstring, fname, pos);
     this.raw = argStr;
-
-    let rargs = this.raw.split(',').filter(a => a.length !== 0);
-    this.args = rargs.map(a => new TokenString(tstring.env, a));
+    this.args = argTokens;
   }
   /** Evaluate as a function (non-casting) */
   eval() {
     const fn = this.tstr.env.func(this.value);
     if (fn === undefined) throw new Error(`Name Error: name '${this.value}' is not a function`);
+    // Check arg count
+    fn.checkArgCount(this.args);
     // Args are given as TokenString[], so reduce to Token[]
     let args = this.args.map(a => a == undefined ? undefined : a.eval());
     // Reduce from Token[] to object[]?
@@ -197,8 +176,8 @@ class FunctionToken extends Token {
 
 /** Reference to function without calling */
 class FunctionRefToken extends Token {
-  constructor(tstring, fname) {
-    super(tstring, fname);
+  constructor(tstring, fname, pos) {
+    super(tstring, fname, pos);
   }
   exists() {
     return this.tstr.env.func(this.value) !== undefined;
@@ -229,20 +208,23 @@ class TokenString {
   }
 
   parse() {
-    this.comment = this._parse(this.string, this.tokens);
+    const obj = createTokenStringParseObj(this.string, 0, 0);
+    this._parse(obj);
+    this.tokens = obj.tokens;
+    this.comment = obj.comment;
   }
 
-  /** Parse a raw input string. Return token array */
-  _parse(string, tokens) {
-    tokens.length = 0;
-    let nestLevel = 0, inString = false, strPos, str = '', comment = '';
+  /** Parse a raw input string. Populate tokens array. */
+  _parse(obj) {
+    let string = obj.string, inString = false, strPos, str = '';
+    const brackets = [];
 
     for (let i = 0; i < string.length;) {
       // Start/End string?
       if (string[i] === '"') {
         if (inString) {
-          const t = new NonNumericalToken(this, str);
-          tokens.push(t);
+          const t = new NonNumericalToken(this, str, obj.pos);
+          obj.tokens.push(t);
           str = '';
           strPos = undefined;
         } else {
@@ -250,6 +232,7 @@ class TokenString {
         }
         inString = !inString;
         i++;
+        obj.pos++;
         continue;
       }
 
@@ -257,44 +240,67 @@ class TokenString {
       if (inString) {
         str += string[i];
         i++;
+        obj.pos++;
         continue;
       }
 
       if (string[i] === ' ') {
         i++;
+        obj.pos++;
         continue; // WHITESPACE - IGNORE
       }
 
-      // Comment?
-      if (string[i] === '/' && string[i + 1] === '/') {
-        comment = string.substr(i + 2).trim();
+      // Comment? (only recognise in depth=0)
+      if (obj.depth === 0 && string[i] === '/' && string[i + 1] === '/') {
+        obj.comment = string.substr(i + 2).trim();
+        break;
+      }
+
+      // Comma? (only in depth>0)
+      if (string[i] === ',' && obj.depth > 0) {
         break;
       }
 
       // Grammar?
       if (BracketToken.isGrammar(string[i])) {
-        if (bracketValues[string[i]] === 1) nestLevel++;
-        else if (bracketValues[string[i]] === -1) {
-          if (nestLevel === 0) throw new Error(`Syntax Error: unexpected parenthesis '${string[i]}' at ${i}`);
-          nestLevel--;
+        const t = new BracketToken(this, string[i], obj.pos);
+
+        if (bracketValues[string[i]] === 1) { // Opening bracket
+          brackets.push(t);
+        } else if (bracketValues[string[i]] === -1) { // Closing bracket
+          const lastOpened = peek(brackets);
+          if (lastOpened === undefined) {
+            if (string[i] === obj.terminateClosing) {
+              obj.terminateClosing = true; // Signify that it was met
+              break;
+            }
+            throw new Error(`Syntax Error: unexpected token '${string[i]}' (position ${obj.pos}); no matching '${bracketMap[string[i]]}' found.`);
+          } else {
+            if (bracketMap[lastOpened.value] === string[i]) {
+              brackets.pop(); // Matches, so remove
+            } else {
+              throw new Error(`Syntax Error: unexpected token '${string[i]}'. Expected '${bracketMap[lastOpened.value]}' following '${lastOpened.value}' at position ${lastOpened.pos}.`);
+            }
+          }
         }
 
-        const t = new BracketToken(this, string[i]);
-        tokens.push(t);
+        obj.tokens.push(t);
         i++;
+        obj.pos++;
         continue;
       }
 
       // Operator?
       let op = parseOperator(string.substr(i));
       if (op !== null) {
-        let top = peek(tokens);
-        if ((op === '-' || op === '+') && (tokens.length === 0 || top instanceof OperatorToken || top instanceof BracketToken)) {
+        let top = peek(obj.tokens);
+        if ((op === '-' || op === '+') && (obj.tokens.length === 0 || top instanceof OperatorToken || top instanceof BracketToken)) {
           // Negative sign for a number, then
         } else {
-          const t = new OperatorToken(this, op);
-          tokens.push(t);
+          const t = new OperatorToken(this, op, obj.pos);
+          obj.tokens.push(t);
           i += op.length;
+          obj.pos += op.length;
           continue;
         }
       }
@@ -302,69 +308,90 @@ class TokenString {
       // Number?
       let o = parseNumber(string.substr(i));
       if (o.nStr.length !== 0) {
-        const t = new NumberToken(this, o.n);
-        tokens.push(t);
+        const t = new NumberToken(this, o.n, obj.pos);
+        obj.tokens.push(t);
         i += o.pos;
+        obj.pos += o.pos;
         continue;
       }
 
       // Function?
       let fname = parseFunction(string.substr(i));
       if (fname !== null && this.env.func(fname) !== undefined) {
+        const declPos = obj.pos; // Position where function name was enountered
         i += fname.length;
-        while (string[i] === ' ') i++; // Remove whitespace
+        obj.pos += fname.length;
+        while (string[i] === ' ') { i++; obj.pos++; } // Remove whitespace
         let t;
         if (string[i] === '(') {
-          // Get matching bracket
-          let end;
-          try {
-            end = getMatchingBracket(i, string);
-          } catch (e) {
-            throw new Error(`Syntax Error: unmatched parenthesis '${string[i]}' at ${i}`);
+          const openingBracket = new BracketToken(this, string[i], obj.pos);
+          i++;
+          obj.pos++;
+
+          let argStrStart = i, done = false, argTokens = []; // Array of array of tokens for function args
+          while (!done && i < string.length) { // Keep parsing args until ending ")" is found
+            const pobj = createTokenStringParseObj(string.substr(i), obj.pos, obj.depth + 1, bracketMap[openingBracket.value]);
+            try {
+              this._parse(pobj); // Parse
+              const ts = new TokenString(this.env, string.substr(i, pobj.pos - obj.pos));
+              ts.tokens = pobj.tokens;
+              argTokens.push(ts);
+
+              // Increment position
+              i += (pobj.pos - obj.pos) + 1;
+              obj.pos = pobj.pos + 1;
+
+              // Was terminating bracket met?
+              if (pobj.terminateClosing === true) {
+                done = true;
+              }
+            } catch (e) {
+              throw new Error(`${string}:\n${e}`);
+            }
           }
-          // Extract function argument string
-          let argString = string.substring(i + 1, end);
-          // Parse argument string
-          try {
-            t = new FunctionToken(this, fname, argString);
-          } catch (e) {
-            throw new Error(`Syntax Error: ${argString}:\n${e}`);
-          }
-          i += argString.length + 2; // Skip over argument string and ()
+          if (!done) throw new Error(`Syntax Error: expected '${bracketMap[openingBracket.value]}' after <function ${fname}> invocation following '${openingBracket.value}' (position ${openingBracket.pos})`);
+          const argStr = string.substr(argStrStart, i - 1);
+
+          t = new FunctionToken(this, fname, argStr, argTokens, declPos);
         } else {
           // throw new Error(`Syntax Error: expected '(' after function reference`);
-          t = new FunctionRefToken(this, fname);
+          t = new FunctionRefToken(this, fname, obj.pos);
         }
-        tokens.push(t);
+        obj.tokens.push(t);
         continue;
       }
 
       // Variable?
       let vname = parseVariable(string.substr(i));
       if (vname !== null) {
-        let t = new VariableToken(this, vname);
-        tokens.push(t);
+        let t = new VariableToken(this, vname, obj.pos);
+        obj.tokens.push(t);
         i += vname.length;
+        obj.pos += vname.length;
         continue;
       }
 
       throw new Error(`Syntax Error: unexpected token '${string[i]}' at ${i}`);
     }
     if (inString) throw new Error(`Syntax Error: unterminated string literal at position ${strPos}`);
+    if (brackets.length !== 0) {
+      const bracket = peek(brackets);
+      throw new Error(`Syntax Error: unterminated bracketed group at position ${bracket.pos}; expected ${bracketMap[bracket.value]}`);
+    }
 
     // Special actions e.g. multiply adjacent variables
     const newTokens = [];
-    for (let i = 0; i < tokens.length; i++) {
-      newTokens.push(tokens[i]);
-      if (tokens[i + 1] instanceof Token && tokens[i].adjacentMultiply(tokens[i + 1])) {
-        newTokens.push(new OperatorToken(this, '!*')); // High-precedence multiplication
+    for (let i = 0; i < obj.tokens.length; i++) {
+      newTokens.push(obj.tokens[i]);
+      if (obj.tokens[i + 1] instanceof Token && obj.tokens[i].adjacentMultiply(obj.tokens[i + 1])) {
+        newTokens.push(new OperatorToken(this, '!*', obj.tokens[i].pos)); // High-precedence multiplication
       }
     }
     // console.log(this.string, newTokens.map(t => t.toString()));
 
-    tokens.length = 0;
-    newTokens.forEach(i => tokens.push(i));
-    return comment;
+    obj.tokens.length = 0;
+    newTokens.forEach(i => obj.tokens.push(i));
+    return;
   }
 
   eval() {
@@ -406,7 +433,7 @@ class TokenString {
         throw new Error(`Syntax Error: invalid syntax: ${T[i]}`);
       }
     }
-    if (stack.length === 0) return 0;
+    if (stack.length === 0) return new NumberToken(this, 0);
     if (stack.length !== 1) throw new Error(`Syntax Error: Invalid syntax (evaluation failed to reduce expression to single number)`);
     return stack[0];
   }

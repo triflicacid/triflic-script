@@ -93,6 +93,15 @@ const str = x => {
 };
 const bool = x => !!x;
 
+const createTokenStringParseObj = (str, pos, depth, terminateClosing = null) => ({
+  string: str,
+  pos,
+  depth,
+  tokens: [],
+  comment: '',
+  terminateClosing, // When depth>0 and this closing bracket is found (assuming brackets.length==0) break from the function
+});
+
 module.exports = {
-  input, print, peek, isDigit, prefixLines, getArgvBool, assertReal, consoleColours, createEnum, str, bool,
+  input, print, peek, isDigit, prefixLines, getArgvBool, assertReal, consoleColours, createEnum, str, bool, createTokenStringParseObj,
 };
