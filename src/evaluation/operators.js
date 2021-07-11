@@ -1,5 +1,6 @@
-const Complex = require("./Complex");
-const { assertReal, factorial } = require("./utils");
+const { factorial } = require("../maths/functions");
+const Complex = require("../maths/Complex");
+const { assertReal } = require("../utils");
 
 module.exports = {
   "!*": { // Internal multiplication for higher-precedence multiplication. Used for e.g. "2ln(2)" should be evaluated before "^"

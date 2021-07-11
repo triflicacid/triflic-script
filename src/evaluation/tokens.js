@@ -1,14 +1,18 @@
-const Complex = require("./Complex");
-const operators = require("./operators");
-const { peek, prefixLines } = require("./utils");
-const { parseNumber, parseOperator, getMatchingBracket, parseFunction, parseVariable, bracketValues, bracketMap, } = require("./parse");
+const Complex = require("../maths/Complex");
+const operators = require("../evaluation/operators");
+const { peek, prefixLines, str } = require("../utils");
+const { bracketValues, bracketMap, parseNumber, parseOperator, getMatchingBracket, parseFunction, parseVariable } = require("./parse");
+const { isNumericType, isIntType, castingError } = require("./types");
+const { RunspaceUserFunction } = require("../runspace/Function");
 
 class Token {
   constructor(tstring, v) {
     this.tstr = tstring;
     this.value = v;
   }
-  eval() { return this.value; }
+  eval(type) {
+    throw new Error(`Overload Required (type provided: ${type})`);
+  }
   is(klass, val = undefined) {
     return (this instanceof klass && (val != undefined && this.value === val));
   }
@@ -25,6 +29,15 @@ class NumberToken extends Token {
   constructor(tstring, n) {
     super(tstring, Complex.assert(n));
   }
+  eval(type) {
+    if (type === 'any' || type === 'complex') return this.value;
+    if (type === 'complex_int') return Complex.floor(this.value);
+    if (type === 'real') return this.value.a;
+    if (type === 'real_int') return Math.floor(this.value.a);
+    if (type === 'string') return this.value.toString();
+    if (type === 'list') return [this.value];
+    castingError(this, type);
+  }
   adjacentMultiply(obj) {
     return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
   }
@@ -36,7 +49,7 @@ class NonNumericalToken extends Token {
     super(tstring, v);
   }
   /** isFinal - is this for a final value, or for propagation */
-  eval(isFinal = false) {
+  _old_eval(isFinal = false) {
     if (isFinal) return this.value;
     let comment;
     if (!isNaN(+this.value)) {
@@ -62,6 +75,21 @@ class NonNumericalToken extends Token {
     return new Complex(NaN);
     // throw new Error(`Syntax Error: action attempted to evaluate non-numerical ${typeof this.value} value "${this.toString()}"${comment === undefined ? '' : `\n  Comment:\n${prefixLines(comment, '\t')}`}`);
   }
+  eval(type) {
+    if (type === 'any' || type === 'string') return this.toString();
+    if (type === 'list') return [this.value];
+    if (isNumericType(type)) {
+      let n = +this.value;
+      if (isIntType(type)) n = Math.floor(n);
+      return Complex.assert(n);
+    }
+    castingError(this, type);
+  }
+
+  toString() {
+    if (Array.isArray(this.value)) return '[' + this.value.join(',') + ']';
+    return str(this.value);
+  }
 }
 
 /** For brackets */
@@ -74,6 +102,12 @@ class BracketToken extends Token {
   /** 1 : opening, -1 : closing */
   facing() {
     return bracketValues[this.value];
+  }
+  eval(type) {
+    if (type === 'any') return this.value;
+    if (type === 'string') return str(this.value);
+    if (isNumericType(type)) return Complex.NaN();
+    castingError(this, type);
   }
   adjacentMultiply(obj) {
     if (this.facing() === -1) {
@@ -94,8 +128,14 @@ class OperatorToken extends Token {
     super(tstring, op);
     if (operators[op] === undefined) throw new Error(`new OperatorToken() : '${op}' is not an operator`);
   }
+  /** Either 1) cast to type (1 arg) or 2) evaluate as operators (2 args) */
   eval(a, b) {
-    return operators[this.value].fn(a, b);
+    if (arguments.length === 1) { // Cast
+      if (a === 'any' || a === 'string') return this.value;
+      if (isNumericType(a)) return Complex.NaN();
+      castingError(this, a);
+    }
+    return operators[this.value].fn(a, b); // Evaluate as 
   }
   priority() {
     return +operators[this.value].precedence;
@@ -110,8 +150,8 @@ class VariableToken extends Token {
   constructor(tstring, vname) {
     super(tstring, vname);
   }
-  eval(isFinal) {
-    return this.tstr.env.var(this.value)?.eval(isFinal);
+  eval(type) {
+    return this.tstr.env.var(this.value)?.eval(type);
   }
   exists() {
     return this.tstr.env.var(this.value) !== undefined;
@@ -133,12 +173,16 @@ class FunctionToken extends Token {
     let rargs = this.raw.split(',').filter(a => a.length !== 0);
     this.args = rargs.map(a => new TokenString(tstring.env, a));
   }
+  /** Evaluate as a function (non-casting) */
   eval() {
-    let fn = this.tstr.env.func(this.value);
+    const fn = this.tstr.env.func(this.value);
     if (fn === undefined) throw new Error(`Name Error: name '${this.value}' is not a function`);
-    let args = this.args;
-    for (let i = 0; i < fn.evalState; i++) args = args.map(a => a.eval()); // Evaluate as many times as stated
-    return fn.eval(args);
+    // Args are given as TokenString[], so reduce to Token[]
+    let args = this.args.map(a => a == undefined ? undefined : a.eval());
+    // Reduce from Token[] to object[]?
+    if (fn.processArgs) args = fn.extractArgs(args);
+    const ret = fn.eval(args);
+    return ret;
   }
   exists() {
     return this.tstr.env.func(this.value) === undefined;
@@ -162,8 +206,10 @@ class FunctionRefToken extends Token {
   getFn() {
     return this.tstr.env.func(this.value);
   }
-  eval(isFinal = false) {
-    return isFinal ? this.toString() : NaN;
+  eval(type) {
+    if (type === 'any' || type === 'string') return this.toString();
+    if (isNumericType(type)) return Complex.NaN();
+    castingError(this, type);
   }
 
   toString() {
@@ -171,6 +217,8 @@ class FunctionRefToken extends Token {
   }
 }
 
+
+/** Take input as a string. Use TokenString#parse() to transform into array of tokens */
 class TokenString {
   constructor(env, string) {
     this.env = env;
@@ -333,7 +381,7 @@ class TokenString {
       if (T[i] instanceof NumberToken || T[i] instanceof NonNumericalToken) {
         stack.push(T[i]);
       } else if (T[i] instanceof FunctionToken) {
-        const val = T[i].eval();
+        const val = T[i].eval('any');
         const t = Complex.is(val) === false ? new NonNumericalToken(this, val) : new NumberToken(this, val);
         stack.push(t);
       } else if (T[i] instanceof VariableToken) {
@@ -346,7 +394,7 @@ class TokenString {
         const info = T[i].info();
         if (stack.length < info.args) throw new Error(`Syntax Error: unexpected operator '${T[i]}' (SIG_STACK_UNDERFLOW while evaluating)`);
         let args = [];
-        for (let i = 0; i < info.args; i++) args.unshift(stack.pop().eval()); // if stack is [a, b] pass in fn(a, b)
+        for (let i = 0; i < info.args; i++) args.unshift(stack.pop().eval('complex')); // if stack is [a, b] pass in fn(a, b)
         try {
           const val = T[i].eval(...args);
           const t = Complex.is(val) === false ? new NonNumericalToken(this, val) : new NumberToken(this, val);
@@ -400,4 +448,7 @@ class TokenString {
   }
 }
 
-module.exports = { Token, NumberToken, NonNumericalToken, BracketToken, VariableToken, OperatorToken, FunctionToken, FunctionRefToken, TokenString };
+module.exports = {
+  Token, NumberToken, NonNumericalToken, BracketToken, VariableToken, OperatorToken, FunctionToken, FunctionRefToken,
+  TokenString,
+};

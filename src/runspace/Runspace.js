@@ -1,11 +1,12 @@
-const Complex = require("./Complex");
-const { EnvUserFunction, EnvBuiltinFunction, EnvVariable } = require("./env-classes");
-const operators = require("./operators");
-const { TokenString, VariableToken, NumberToken, NonNumericalToken, Token } = require("./token");
-const { peek } = require("./utils");
-const { parseFunction, parseVariable, parseOperator } = require("./parse");
+const Complex = require("../maths/Complex");
+const { RunspaceUserFunction, RunspaceBuiltinFunction } = require("./Function");
+const RunspaceVariable = require("./Variable");
+const operators = require("../evaluation/operators");
+const { TokenString, VariableToken, NumberToken, NonNumericalToken, Token } = require("../evaluation/tokens");
+const { peek } = require("../utils");
+const { parseFunction, parseVariable, parseOperator } = require("../evaluation/parse");
 
-class Environment {
+class Runspace {
   constructor(storeAns = true) {
     this._vars = [{}]; // { variable: EnvVariable }[]
     this._funcs = {}; // { fn_name: EnvFunction }
@@ -23,10 +24,10 @@ class Environment {
       }
     } else if (value !== undefined) {
       let obj;
-      if (value instanceof Token) obj = new EnvVariable(name, value, desc);
-      else if (value instanceof EnvVariable) obj = value.copy();
-      else if (Complex.is(value) !== false) obj = new EnvVariable(name, new NumberToken(undefined, value), desc);
-      else obj = new EnvVariable(name, new NonNumericalToken(undefined, value), desc);
+      if (value instanceof Token) obj = new RunspaceVariable(name, value, desc);
+      else if (value instanceof RunspaceVariable) obj = value.copy();
+      else if (Complex.is(value) !== false) obj = new RunspaceVariable(name, new NumberToken(undefined, value), desc);
+      else obj = new RunspaceVariable(name, new NonNumericalToken(undefined, value), desc);
 
       peek(this._vars)[name] = obj; // Insert into top-level scope
     }
@@ -46,7 +47,7 @@ class Environment {
   _assignVarGetObjValue(tstr, obj) {
     let value;
     if (obj instanceof VariableToken) {
-      let v = obj.eval(true), isc = Complex.is(v);
+      let v = obj.eval('any'), isc = Complex.is(v);
       value = isc === false ? new NonNumericalToken(tstr, v) : new NumberToken(tstr, isc);
     } else {
       value = obj;
@@ -104,13 +105,13 @@ class Environment {
     if (parts.length === 1) {
       const ts = new TokenString(this, parts[0]);
       let obj = ts.eval(); // Intermediate value
-      if (this._storeAns) this._vars[0].ans = new EnvVariable('ans', this._assignVarGetObjValue(ts, obj), 'value returned by previous statement');
-      return obj.eval(true); // Return raw value
+      if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', this._assignVarGetObjValue(ts, obj), 'value returned by previous statement');
+      return obj.eval('any'); // Return raw value
     } else {
       let fname = parseFunction(parts[0]);
       if (fname != null && parts[0][fname.length] === '(') { // FUNCTION DEFINITION
         if (this.var(fname) !== undefined) throw new Error(`Syntax Error: Invalid syntax - symbol '${fname}' is a variable but treated as a function`);
-        if (this.func(fname) instanceof EnvBuiltinFunction) throw new Error(`Cannot redefine built-in function ${fname}`);
+        if (this.func(fname) instanceof RunspaceBuiltinFunction) throw new Error(`Cannot redefine built-in function ${fname}`);
 
         let charEnd = parts[0][parts[0].length - 1];
         if (charEnd !== ')') throw new Error(`Syntax Error: expected closing parenthesis, got '${charEnd}'`);
@@ -123,7 +124,7 @@ class Environment {
           fargs.push(symbol);
         }
         const ts = new TokenString(this, parts[1]);
-        const fn = new EnvUserFunction(this, fname, fargs, ts, ts.comment || undefined);
+        const fn = new RunspaceUserFunction(this, fname, fargs, ts, ts.comment || undefined);
         this.define(fn);
       } else {
         let vname = parseVariable(parts[0]);
@@ -136,7 +137,7 @@ class Environment {
           const obj = ts.eval(), // Intermediate
             varObj = this.var(vname, this._assignVarGetObjValue(ts, obj));
           if (ts.comment.length !== 0) varObj.desc = ts.comment;
-          return obj.eval(true);
+          return obj.eval('any');
         } else {
           throw new Error(`Syntax Error: Invalid syntax "${parts[0]}"`);
         }
@@ -145,4 +146,4 @@ class Environment {
   }
 }
 
-module.exports = Environment;
+module.exports = Runspace;

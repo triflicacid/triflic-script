@@ -1,4 +1,4 @@
-const Complex = require("./Complex");
+const Complex = require("./maths/Complex");
 const readline = require("readline");
 
 const STDIN = process.stdin, STDOUT = process.stdout;
@@ -22,17 +22,37 @@ function print(...args) {
   console.log(...args);
 }
 
+const consoleColours = {
+  Reset: "\x1b[0m",
+  Bright: "\x1b[1m",
+  Dim: "\x1b[2m",
+  Underscore: "\x1b[4m",
+  Blink: "\x1b[5m",
+  Reverse: "\x1b[7m",
+  Hidden: "\x1b[8m",
+
+  FgBlack: "\x1b[30m",
+  FgRed: "\x1b[31m",
+  FgGreen: "\x1b[32m",
+  FgYellow: "\x1b[33m",
+  FgBlue: "\x1b[34m",
+  FgMagenta: "\x1b[35m",
+  FgCyan: "\x1b[36m",
+  FgWhite: "\x1b[37m",
+
+  BgBlack: "\x1b[40m",
+  BgRed: "\x1b[41m",
+  BgGreen: "\x1b[42m",
+  BgYellow: "\x1b[43m",
+  BgBlue: "\x1b[44m",
+  BgMagenta: "\x1b[45m",
+  BgCyan: "\x1b[46m",
+  BgWhite: "\x1b[47m",
+};
+
 const isDigit = x => x >= "0" && x <= "9";
 
 const peek = a => a[a.length - 1];
-
-function factorial(n) {
-  if (n === 0) return 1; // 0! = 1
-  if (n < 1 || Math.floor(n) !== n) throw new Error(`Argument Error: factorial expects a positive integer, got ${n}`);
-  let x = n--;
-  for (; n > 1; n--) x *= n;
-  return x;
-}
 
 /** Check that all input variables are real */
 function assertReal(...args) {
@@ -42,64 +62,8 @@ function assertReal(...args) {
   }
 }
 
-/** Determine if the argument is prime */
-function isPrime(n) {
-  if (n === 1 || n === 0 || (n % 2 === 0 && Math.abs(n) > 2)) return false;
-  const lim = Math.floor(Math.sqrt(n));
-  for (let i = 3; i < lim; i += 2) {
-    if (n % i === 0) return false;
-  }
-  return true;
-}
-
-/** Return LCF of the two numbers */
-function LCF(n1, n2) {
-  while (n1 !== n2) {
-    if (n1 > n2) {
-      n1 = n1 - n2;
-    } else {
-      n2 = n2 - n1;
-    }
-  }
-  return n1;
-}
-
-/** Generate prime factors of n */
-function primeFactors(n) {
-  let i = 2, factors = [];
-  while (i * i <= n) {
-    if (n % i) {
-      i++;
-    } else {
-      n = Math.floor(n / i);
-      factors.push(i);
-    }
-  }
-  if (n > 1) factors.push(n);
-  return factors;
-}
-
 function prefixLines(str, prefix) {
   return str.split('\n').map(x => prefix + x).join('\n');
-}
-
-function generatePrimes(limit) {
-  const marks = new Array(limit + 1).fill(false);
-  for (let i = 2; i * i <= limit; i++) {
-    if (!marks[i]) { // If not prime...
-      // Mark all multiples as non-prime
-      for (let j = i * i; j <= limit; j += i) {
-        marks[j] = true;
-      }
-    }
-  }
-  const primes = [];
-  for (let i = 0; i <= limit; i++) {
-    if (i > 1 && !marks[i]) {
-      primes.push(i);
-    }
-  }
-  return primes;
 }
 
 /** Return boolean value of an argv argument */
@@ -109,7 +73,26 @@ function getArgvBool(argv, arg, defaultValue = true) {
   return !!argv[arg];
 }
 
+function createEnum(obj) {
+  const enumeration = {};
+  for (let prop in obj) {
+    if (obj.hasOwnProperty(prop)) {
+      enumeration[prop] = obj[prop];
+      enumeration[obj[prop]] = prop;
+    }
+  }
+  return enumeration;
+}
+
+const str = x => {
+  try {
+    return x.toString();
+  } catch (e) {
+    return String(x);
+  }
+};
+const bool = x => !!x;
+
 module.exports = {
-  input, print, peek, isDigit, factorial, prefixLines, getArgvBool, assertReal,
-  isPrime, LCF, primeFactors, generatePrimes,
+  input, print, peek, isDigit, prefixLines, getArgvBool, assertReal, consoleColours, createEnum, str, bool,
 };

@@ -1,11 +1,10 @@
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
-const Environment = require("./src/env");
+const Runspace = require("./src/runspace/Runspace");
 const { define } = require("./src/def");
-const { input, print, getArgvBool } = require("./src/utils");
-const { FgRed, Reset, Bright, } = require("./src/console-colours");
-const { parseOperator } = require('./src/parse');
+const { input, print, getArgvBool, consoleColours } = require("./src/utils");
 
+// PARSE ARGV
 const argv = yargs(hideBin(process.argv)).argv;
 const opts = {
   defineVars: getArgvBool(argv, "defineVars"),
@@ -15,16 +14,14 @@ const opts = {
   niceErrors: getArgvBool(argv, "nice-errors", true),
   ans: getArgvBool(argv, "ans", true),
 };
-const env = new Environment(opts.ans);
+const env = new Runspace(opts.ans);
 define(env, opts.defineVars, opts.defineFuncs);
-
-console.log(parseOperator("+"));
 
 function attempt(fn) {
   try {
     return fn();
   } catch (e) {
-    e.toString().split('\n').forEach(line => print(`${Bright}${FgRed}[!] ${Reset}${line}`));
+    e.toString().split('\n').forEach(line => print(`${consoleColours.Bright}${consoleColours.FgRed}[!] ${consoleColours.Reset}${line}`));
   }
 }
 

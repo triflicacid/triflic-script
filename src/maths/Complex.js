@@ -348,7 +348,8 @@ class Complex {
 }
 
 /** The imaginary number i */
-Complex.I = Object.freeze(new Complex(0, 1));
+Complex.I = () => new Complex(0, 1);
+Complex.NaN = () => new Complex(NaN, NaN);
 
 /** Make sure input is Complex. Return value, or error. */
 Complex.assert = function (z) {
@@ -364,7 +365,7 @@ Complex.is = function (value) {
   } catch (e) {
     return false;
   }
-}
+};
 
 // Apply a function to a complex number
 function _zapply(z, fn) {
