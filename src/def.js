@@ -5,29 +5,31 @@ const { OperatorToken, VariableToken, NumberToken, NonNumericalToken, FunctionRe
 const { operators, print, isPrime, LCF, primeFactors, assertReal, factorial, generatePrimes, parseVariable } = require("./utils");
 
 /** Base definitions for an Environment */
-function define(env) {
+function define(env, defVariables = true, defFuncs = true) {
   /****************** VARIABLES */
-  env.var('pi', Math.PI, 'pi is equal to the circumference of any circle divided by its diameter'); // pi
-  env.var('π', env.var('pi'));
-  env.var('e', Math.E); // e
-  env.var('omega', 0.56714329040978387299997, 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
-  env.var('Ω', env.var('omega'));
-  env.var('phi', 1.618033988749895, 'Phi, the golden ratio, approx (1 + √5)/2'); // phi, golden ratio
-  env.var('φ', env.var('phi'));
-  env.var('tau', 2 * Math.PI, 'A constant representing the ratio between circumference and radius of a circle'); // tau
-  env.var('τ', env.var('tau'));
-  env.var('i', Complex.I.copy(), '√(-1)'); // i
+  if (defVariables) {
+    env.var('pi', Math.PI, 'pi is equal to the circumference of any circle divided by its diameter'); // pi
+    env.var('π', env.var('pi'));
+    env.var('e', Math.E); // e
+    env.var('omega', 0.56714329040978387299997, 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
+    env.var('Ω', env.var('omega'));
+    env.var('phi', 1.618033988749895, 'Phi, the golden ratio, approx (1 + √5)/2'); // phi, golden ratio
+    env.var('φ', env.var('phi'));
+    env.var('tau', 2 * Math.PI, 'A constant representing the ratio between circumference and radius of a circle'); // tau
+    env.var('τ', env.var('tau'));
+    env.var('i', Complex.I.copy(), '√(-1)'); // i
 
-  env.var('ln2', Math.LN2, 'Natural logarithm of 2');
-  env.var('ln10', Math.LN10, 'Natural logarithm of 10');
-  env.var('log2e', Math.LOG2E, 'Base-2 logarithm of e');
-  env.var('log10e', Math.LOG10E, 'Base-10 logarithm of e');
-  env.var('sqrt1_2', Math.SQRT1_2, 'Square root of 0.5');
-  env.var('sqrt2', Math.SQRT2, 'Square root of 2');
+    env.var('ln2', Math.LN2, 'Natural logarithm of 2');
+    env.var('ln10', Math.LN10, 'Natural logarithm of 10');
+    env.var('log2e', Math.LOG2E, 'Base-2 logarithm of e');
+    env.var('log10e', Math.LOG10E, 'Base-10 logarithm of e');
+    env.var('sqrt1_2', Math.SQRT1_2, 'Square root of 0.5');
+    env.var('sqrt2', Math.SQRT2, 'Square root of 2');
 
-  env.var('nan', NaN, 'Value representing Not A Number');
-  env.var('inf', Infinity, 'Value representing Infinity');
-  env.var('∞', env.var('inf'));
+    env.var('nan', NaN, 'Value representing Not A Number');
+    env.var('inf', Infinity, 'Value representing Infinity');
+    env.var('∞', env.var('inf'));
+  }
 
   /****************** CORE FUNCTIONS */
   env.define(new EnvBuiltinFunction(env, 'help', ['?item'], ({ item }) => {
@@ -137,135 +139,142 @@ function define(env) {
   }, 'View or enable/disable logical mode. Logical mode changes the behaviour of some operators to be logical (e.g. "!" factorial <-> logical not'));
 
   /****************** MATHS FUNCTIONS */
-  env.define(new EnvBuiltinFunction(env, 'abs', ['x'], ({ x }) => Complex.abs(x), 'calculate absolute value of x')); // abs
-  env.define(new EnvBuiltinFunction(env, 'arccos', ['x'], ({ x }) => Complex.arccos(x), 'return arccosine of x')); // arccosine
-  env.define(new EnvBuiltinFunction(env, 'arccosh', ['x'], ({ x }) => Complex.arccosh(x), 'return hyperbolic arccosine of x')); // hyperbolic arccosine
-  env.define(new EnvBuiltinFunction(env, 'arcsin', ['x'], ({ x }) => Complex.arcsin(x), 'return arcsine of x')); // arcsine
-  env.define(new EnvBuiltinFunction(env, 'arcsinh', ['x'], ({ x }) => Complex.arcsinh(x), 'return hyperbolic arcsine of x')); // hyperbolic arcsine
-  env.define(new EnvBuiltinFunction(env, 'arctan', ['x'], ({ x }) => Complex.arctan(x), 'return arctangent of x')); // arctangent
-  env.define(new EnvBuiltinFunction(env, 'arctanh', ['x'], ({ x }) => Complex.arctanh(x), 'return hyperbolic arctangent of x')); // hyperbolic arctangent
-  env.define(new EnvBuiltinFunction(env, 'arg', ['z'], ({ z }) => z.arg(), 'return the argument of z'));
-  env.define(new EnvBuiltinFunction(env, 'cbrt', ['x'], ({ x }) => Complex.cbrt(x), 'return cube root of x')); // cube root
-  env.funcAlias('cbrt', '∛');
-  env.define(new EnvBuiltinFunction(env, 'ceil', ['x'], ({ x }) => Complex.ceil(x), 'round x up to the nearest integer')); // ceiling (round up)
-  env.define(new EnvBuiltinFunction(env, 'conj', ['z'], ({ z }) => Complex.assert(z).conjugate(), 'return z* (the configate) of z'));
-  env.define(new EnvBuiltinFunction(env, 'cos', ['x'], ({ x }) => Complex.cos(x), 'return cosine of x')); // cosine
-  env.define(new EnvBuiltinFunction(env, 'cosh', ['x'], ({ x }) => Complex.cosh(x), 'return hyperbolic cosine of x')); // hyperbolic cosine
-  env.define(new EnvBuiltinFunction(env, 'time', [], () => Date.now(), 'returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC'));
-  env.define(new EnvBuiltinFunction(env, 'exp', ['x'], ({ x }) => Complex.exp(x), 'return e^x')); // raise e to the x
-  env.define(new EnvBuiltinFunction(env, 'floor', ['x'], ({ x }) => Complex.floor(x), 'round x down to the nearest integer')); // floor (round down)
-  env.define(new EnvBuiltinFunction(env, 'isnan', ['x'], ({ x }) => +Complex.isNaN(x), 'return 0 or 1 depending on is x is NaN'));
-  env.define(new EnvBuiltinFunction(env, 'isinf', ['x'], ({ x }) => Complex.isFinite(x) ? 0 : 1, 'return 0 or 1 depending on is x is infinite'));
-  env.define(new EnvBuiltinFunction(env, 'isprime', ['x'], ({ x }) => {
-    assertReal(x);
-    return +isPrime(x.a);
-  }, 'return 0 or 1 depending on if x is prime'));
-  env.define(new EnvBuiltinFunction(env, 'primes', ['limit'], ({ limit }) => {
-    assertReal(limit);
-    return generatePrimes(limit.a);
-  }, 'generate list of primes 0..limit'));
+  if (defFuncs) {
+    env.define(new EnvBuiltinFunction(env, 'abs', ['x'], ({ x }) => Complex.abs(x), 'calculate absolute value of x')); // abs
+    env.define(new EnvBuiltinFunction(env, 'arccos', ['x'], ({ x }) => Complex.arccos(x), 'return arccosine of x')); // arccosine
+    env.define(new EnvBuiltinFunction(env, 'arccosh', ['x'], ({ x }) => Complex.arccosh(x), 'return hyperbolic arccosine of x')); // hyperbolic arccosine
+    env.define(new EnvBuiltinFunction(env, 'arcsin', ['x'], ({ x }) => Complex.arcsin(x), 'return arcsine of x')); // arcsine
+    env.define(new EnvBuiltinFunction(env, 'arcsinh', ['x'], ({ x }) => Complex.arcsinh(x), 'return hyperbolic arcsine of x')); // hyperbolic arcsine
+    env.define(new EnvBuiltinFunction(env, 'arctan', ['x'], ({ x }) => Complex.arctan(x), 'return arctangent of x')); // arctangent
+    env.define(new EnvBuiltinFunction(env, 'arctanh', ['x'], ({ x }) => Complex.arctanh(x), 'return hyperbolic arctangent of x')); // hyperbolic arctangent
+    env.define(new EnvBuiltinFunction(env, 'arg', ['z'], ({ z }) => z.arg(), 'return the argument of z'));
+    env.define(new EnvBuiltinFunction(env, 'cbrt', ['x'], ({ x }) => Complex.cbrt(x), 'return cube root of x')); // cube root
+    env.funcAlias('cbrt', '∛');
+    env.define(new EnvBuiltinFunction(env, 'ceil', ['x'], ({ x }) => Complex.ceil(x), 'round x up to the nearest integer')); // ceiling (round up)
+    env.define(new EnvBuiltinFunction(env, 'conj', ['z'], ({ z }) => Complex.assert(z).conjugate(), 'return z* (the configate) of z'));
+    env.define(new EnvBuiltinFunction(env, 'cos', ['x'], ({ x }) => Complex.cos(x), 'return cosine of x')); // cosine
+    env.define(new EnvBuiltinFunction(env, 'cosh', ['x'], ({ x }) => Complex.cosh(x), 'return hyperbolic cosine of x')); // hyperbolic cosine
+    env.define(new EnvBuiltinFunction(env, 'time', [], () => Date.now(), 'returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC'));
+    env.define(new EnvBuiltinFunction(env, 'exp', ['x'], ({ x }) => Complex.exp(x), 'return e^x')); // raise e to the x
+    env.define(new EnvBuiltinFunction(env, 'floor', ['x'], ({ x }) => Complex.floor(x), 'round x down to the nearest integer')); // floor (round down)
+    env.define(new EnvBuiltinFunction(env, 'isnan', ['x'], ({ x }) => +Complex.isNaN(x), 'return 0 or 1 depending on is x is NaN'));
+    env.define(new EnvBuiltinFunction(env, 'isinf', ['x'], ({ x }) => Complex.isFinite(x) ? 0 : 1, 'return 0 or 1 depending on is x is infinite'));
+    env.define(new EnvBuiltinFunction(env, 'isprime', ['x'], ({ x }) => {
+      assertReal(x);
+      return +isPrime(x.a);
+    }, 'return 0 or 1 depending on if x is prime'));
+    env.define(new EnvBuiltinFunction(env, 'primes', ['limit'], ({ limit }) => {
+      assertReal(limit);
+      return generatePrimes(limit.a);
+    }, 'generate list of primes 0..limit'));
 
-  env.define(new EnvBuiltinFunction(env, 'factors', ['x'], ({ x }) => {
-    assertReal(x);
-    let f = primeFactors(x.a);
-    return f.length === 0 ? '[none]' : f.join(' * ');
-  }, 'return prime factors of x'));
-  env.define(new EnvBuiltinFunction(env, 'factorial', ['x'], ({ x }) => {
-    assertReal(x);
-    return new Complex(factorial(x.a));
-  }, 'calculate the factorial of x'));
-  env.define(new EnvBuiltinFunction(env, 'len', ['list'], ({ list }) => {
-    if (list instanceof NonNumericalToken) {
-      if (Array.isArray(list.value) || typeof list.value === 'string') return list.value.length;
-    }
-    return NaN;
-  }, 'return length of argument', 1));
-  env.define(new EnvBuiltinFunction(env, 'ln', ['x'], ({ x }) => Complex.log(x), 'calculate the natural logarithm of x')); // natural logarithm
-  env.define(new EnvBuiltinFunction(env, 'log', ['a', '?b'], ({ a, b }) => {
-    return b === undefined ?
-      Complex.div(Complex.log(a), Math.LN10) :// log base 10 of <a>
-      Complex.div(Complex.log(a), Complex.log(b));// log base <a> of <b>
-  }, 'return log base <a> of <b>. If b is not provided, return log base 10 of <a>'));
-  env.define(new EnvBuiltinFunction(env, 'lcf', ['a', 'b'], ({ a, b }) => {
-    assertReal(a, b);
-    return LCF(a.a, b.a);
-  }, 'return the lowest common factor of a and b'));
-  env.define(new EnvBuiltinFunction(env, 'random', ['?a', '?b'], ({ a, b }) => {
-    if (a !== undefined && b === undefined) { assertReal(a); return Math.random() * a.a; } // random(max)
-    if (a !== undefined && b !== undefined) { assertReal(a, b); return (Math.random() * (b.a - a.a)) + a.a; } // random(min, max)
-    return Math.random();
-  }, 'return a pseudo-random decimal number. Range: 0 arguments: 0-1. 1 argument: 0-a. 2 arguments: a-b'));
-  env.define(new EnvBuiltinFunction(env, 'nPr', ['n', 'r'], ({ n, r }) => {
-    assertReal(n); assertReal(r);
-    if (r.a > n.a) throw new Error(`Argument Error: invalid argument size relationship: n=${n.a} and r=${r.a}`);
-    return factorial(n.a) / factorial(n.a - r.a);
-  }, 'Return the probability of selecting an ordered set of <r> objects from a group of <n> number of objects'));
-  env.define(new EnvBuiltinFunction(env, 'nCr', ['n', 'r'], ({ n, r }) => {
-    assertReal(n); assertReal(r);
-    if (r.a > n.a) throw new Error(`Argument Error: invalid argument size relationship: n=${n.a} and r=${r.a}`);
-    return factorial(n.a) / (factorial(r.a) * factorial(n.a - r.a));
-  }, 'Represents the selection of objects from a group of objects where order of objects does not matter'));
-  env.define(new EnvBuiltinFunction(env, 'round', ['x', '?dp'], ({ x, dp }) => {
-    if (dp === undefined) return Complex.round(x);
-    assertReal(dp);
-    return Complex.roundDp(x, Math.floor(dp.a));
-  }, 'round x to the nearest integer, or to <dp> decimal places')); // round
-  env.define(new EnvBuiltinFunction(env, 'isreal', ['x'], ({ x }) => +x.isReal(), 'return 0 or 1 depending on if z is real'));
-  env.define(new EnvBuiltinFunction(env, 'Re', ['x'], ({ x }) => x.a, 'return real component of x'));
-  env.define(new EnvBuiltinFunction(env, 'Im', ['x'], ({ x }) => x.b, 'return imaginary component of x'));
-  env.define(new EnvBuiltinFunction(env, 'sin', ['x'], ({ x }) => Complex.sin(x), 'return sine of x')); // sine
-  env.define(new EnvBuiltinFunction(env, 'sinh', ['x'], ({ x }) => Complex.sinh(x), 'return hyperbolic sine of x')); // hyperbolic sine
-  env.define(new EnvBuiltinFunction(env, 'sqrt', ['x'], ({ x }) => Complex.sqrt(x), 'return square root of x')); // cube root
-  env.funcAlias('sqrt', '√');
-  env.define(new EnvBuiltinFunction(env, 'summation', ['start', 'limit', 'action', '?svar'], ({ start, limit, action, svar }) => {
-    let sumVar = 'x', sum = new Complex(0);
-    start = start.eval(); assertReal(start);
-    limit = limit.eval(); assertReal(limit);
-    if (svar !== undefined) {
-      if (svar instanceof NonNumericalToken) {
-        sumVar = svar.value;
-        let extract = parseVariable(sumVar);
-        if (sumVar !== extract) throw new Error(`Argument Error: Invalid variable provided '${sumVar}'`);
-      } else throw new Error(`Argument Error: Invalid value for <svar>: ${svar}`);
-    }
-    if (action instanceof FunctionRefToken) { // Execute action as a function
-      const fn = action.getFn();
-      for (let i = start; i <= limit; i++) {
-        try {
-          sum.add(fn.eval([i]));
-        } catch (e) {
-          throw new Error(`${fn.defString()}:\n${e}`);
+    env.define(new EnvBuiltinFunction(env, 'factors', ['x'], ({ x }) => {
+      assertReal(x);
+      let f = primeFactors(x.a);
+      return f.length === 0 ? '[none]' : f.join(' * ');
+    }, 'return prime factors of x'));
+    env.define(new EnvBuiltinFunction(env, 'factorial', ['x'], ({ x }) => {
+      assertReal(x);
+      return new Complex(factorial(x.a));
+    }, 'calculate the factorial of x'));
+    env.define(new EnvBuiltinFunction(env, 'len', ['o'], ({ o }) => {
+      if (o instanceof VariableToken) o = o.getVar().value;
+      if (o instanceof NonNumericalToken) {
+        if (Array.isArray(o.value) || typeof o.value === 'string') {
+          return o.value.length;
         }
       }
-    } else if (action instanceof NumberToken || action instanceof VariableToken) { // Stored value
-      sum = Complex.mult(action.eval(), Complex.sub(limit, start).add(1));
-    } else if (action instanceof NonNumericalToken) { // Evaluate action as a TokenString
-      let ts;
-      try {
-        ts = new TokenString(env, action.value);
-      } catch (e) {
-        throw new Error(`Summation action: ${action.value}:\n${e}`);
+      return NaN;
+    }, 'return length of argument', 1));
+    env.define(new EnvBuiltinFunction(env, 'ln', ['x'], ({ x }) => Complex.log(x), 'calculate the natural logarithm of x')); // natural logarithm
+    env.define(new EnvBuiltinFunction(env, 'log', ['a', '?b'], ({ a, b }) => {
+      return b === undefined ?
+        Complex.div(Complex.log(a), Math.LN10) :// log base 10 of <a>
+        Complex.div(Complex.log(a), Complex.log(b));// log base <a> of <b>
+    }, 'return log base <a> of <b>. If b is not provided, return log base 10 of <a>'));
+    env.define(new EnvBuiltinFunction(env, 'lcf', ['a', 'b'], ({ a, b }) => {
+      assertReal(a, b);
+      return LCF(a.a, b.a);
+    }, 'return the lowest common factor of a and b'));
+    env.define(new EnvBuiltinFunction(env, 'random', ['?a', '?b'], ({ a, b }) => {
+      if (a !== undefined && b === undefined) { assertReal(a); return Math.random() * a.a; } // random(max)
+      if (a !== undefined && b !== undefined) { assertReal(a, b); return (Math.random() * (b.a - a.a)) + a.a; } // random(min, max)
+      return Math.random();
+    }, 'return a pseudo-random decimal number. Range: 0 arguments: 0-1. 1 argument: 0-a. 2 arguments: a-b'));
+    env.define(new EnvBuiltinFunction(env, 'nPr', ['n', 'r'], ({ n, r }) => {
+      assertReal(n); assertReal(r);
+      if (r.a > n.a) throw new Error(`Argument Error: invalid argument size relationship: n=${n.a} and r=${r.a}`);
+      return factorial(n.a) / factorial(n.a - r.a);
+    }, 'Return the probability of selecting an ordered set of <r> objects from a group of <n> number of objects'));
+    env.define(new EnvBuiltinFunction(env, 'nCr', ['n', 'r'], ({ n, r }) => {
+      assertReal(n); assertReal(r);
+      if (r.a > n.a) throw new Error(`Argument Error: invalid argument size relationship: n=${n.a} and r=${r.a}`);
+      return factorial(n.a) / (factorial(r.a) * factorial(n.a - r.a));
+    }, 'Represents the selection of objects from a group of objects where order of objects does not matter'));
+    env.define(new EnvBuiltinFunction(env, 'round', ['x', '?dp'], ({ x, dp }) => {
+      if (dp === undefined) return Complex.round(x);
+      assertReal(dp);
+      return Complex.roundDp(x, Math.floor(dp.a));
+    }, 'round x to the nearest integer, or to <dp> decimal places')); // round
+    env.define(new EnvBuiltinFunction(env, 'isreal', ['x'], ({ x }) => +x.isReal(), 'return 0 or 1 depending on if z is real'));
+    env.define(new EnvBuiltinFunction(env, 'Re', ['x'], ({ x }) => x.a, 'return real component of x'));
+    env.define(new EnvBuiltinFunction(env, 'Im', ['x'], ({ x }) => x.b, 'return imaginary component of x'));
+    env.define(new EnvBuiltinFunction(env, 'sin', ['x'], ({ x }) => Complex.sin(x), 'return sine of x')); // sine
+    env.define(new EnvBuiltinFunction(env, 'sinh', ['x'], ({ x }) => Complex.sinh(x), 'return hyperbolic sine of x')); // hyperbolic sine
+    env.define(new EnvBuiltinFunction(env, 'sqrt', ['x'], ({ x }) => Complex.sqrt(x), 'return square root of x')); // cube root
+    env.funcAlias('sqrt', '√');
+    env.define(new EnvBuiltinFunction(env, 'summation', ['start', 'limit', 'action', '?svar'], ({ start, limit, action, svar }) => {
+      let sumVar = 'x', sum = new Complex(0);
+      start = start.eval(); assertReal(start);
+      limit = limit.eval(); assertReal(limit);
+      if (svar !== undefined) {
+        if (svar instanceof NonNumericalToken) {
+          sumVar = svar.value;
+          let extract = parseVariable(sumVar);
+          if (sumVar !== extract) throw new Error(`Argument Error: Invalid variable provided '${sumVar}'`);
+        } else throw new Error(`Argument Error: Invalid value for <svar>: ${svar}`);
       }
-
-      ts.env.pushScope();
-      for (let i = start; i <= limit; i++) {
-        try {
-          ts.env.var(sumVar, i);
-          sum.add(ts.eval().eval());
-        } catch (e) {
-          throw new Error(`${action.value} when ${sumVar} = ${i}:\n${e}`);
+      if (action instanceof FunctionRefToken) { // Execute action as a function
+        const fn = action.getFn();
+        for (let i = start; i <= limit; i++) {
+          try {
+            sum.add(fn.eval([i]));
+          } catch (e) {
+            throw new Error(`${fn.defString()}:\n${e}`);
+          }
         }
+      } else if (action instanceof NumberToken || action instanceof VariableToken) { // Stored value
+        sum = Complex.mult(action.eval(), Complex.sub(limit, start).add(1));
+      } else if (action instanceof NonNumericalToken) { // Evaluate action as a TokenString
+        let ts;
+        try {
+          ts = new TokenString(env, action.value);
+        } catch (e) {
+          throw new Error(`Summation action: ${action.value}:\n${e}`);
+        }
+
+        ts.env.pushScope();
+        for (let i = start; i <= limit; i++) {
+          try {
+            ts.env.var(sumVar, i);
+            sum.add(ts.eval().eval());
+          } catch (e) {
+            throw new Error(`${action.value} when ${sumVar} = ${i}:\n${e}`);
+          }
+        }
+        ts.env.popScope();
+      } else {
+        throw new Error(`Argument Error: invalid summation action`);
       }
-      ts.env.popScope();
-    } else {
-      throw new Error(`Argument Error: invalid summation action`);
-    }
-    return sum;
-  }, 'Calculate a summation series between <start> and <limit>, executing <action> (may be constant, function or string). Use variable <svar> as counter.', 1));
-  env.funcAlias('summation', '∑');
-  env.define(new EnvBuiltinFunction(env, 'tan', ['x'], ({ x }) => Complex.tan(x), 'return tangent of x')); // tangent
-  env.define(new EnvBuiltinFunction(env, 'tanh', ['x'], ({ x }) => Complex.tanh(x), 'return hyperbolic tangent of x')); // hyperbolic tangent
-  env.define(new EnvBuiltinFunction(env, 'W', ['z', '?k', '?tol'], ({ z, k, tol }) => lambertw(z, k, tol), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
+      return sum;
+    }, 'Calculate a summation series between <start> and <limit>, executing <action> (may be constant, function or string). Use variable <svar> as counter.', 1));
+    env.funcAlias('summation', '∑');
+    env.define(new EnvBuiltinFunction(env, 'tan', ['x'], ({ x }) => Complex.tan(x), 'return tangent of x')); // tangent
+    env.define(new EnvBuiltinFunction(env, 'tanh', ['x'], ({ x }) => Complex.tanh(x), 'return hyperbolic tangent of x')); // hyperbolic tangent
+    env.define(new EnvBuiltinFunction(env, 'W', ['z', '?k', '?tol'], ({ z, k, tol }) => lambertw(z, k, tol), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
+  }
+
+  return env;
 }
 
 module.exports = { define };

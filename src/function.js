@@ -109,11 +109,11 @@ class EnvBuiltinFunction extends EnvFunction {
 class EnvVariable {
   constructor(name, value, desc = undefined) {
     this.name = name;
-    this.value = Complex.assert(value);
+    this.value = value;
     this.desc = desc ?? '[no information]';
   }
 
-  eval() { return this.value; }
+  eval(isFinal) { return this.value.eval(isFinal); }
   copy() { return new EnvVariable(this.name, this.value, this.desc); }
 }
 

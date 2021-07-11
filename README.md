@@ -4,9 +4,19 @@ A simple maths interpreter for the console
 Input maths problems to be solved. Supports dynamic operators, variables and functions.
 
 ## Execution Methods
-- `cli.js` - prompt a console-based CLI
+- `cli.js` - prompt a console-based CLI. Takes command line arguments.
 - `discord.js` - connect to a discord bot and listens on a particular channel (defined as `BOT_TOKEN` and `CHANNEL` in `.env`)
   Type `!start` to start the maths environment. Everything after this point will be fed into the engine. Type `!close` to close session.
+
+## CLI - Command-line Arguments
+All of these arguments are in format `--<name> <value>` or `--<name>=<value>`
+
+- `define-vars` : `boolean`. Whether or not to define common variables such as `pi` and `e`.
+- `define-funcs` : `boolean`. Whether or not to define in-built functions such as `sin` and `summation`. Note that core functions such as `exit` are still defined.
+- `prompt` : `string`. What prompt to display for input.
+- `intro` : `boolean`. Whether or not to print welcome prompt.
+- `nice-errors` : `boolean`. Whether or not to catch errors and prinpt nicely to the screen, or to crash the program.
+- `ans` : `boolean`. Whether or not to provide the `ans` variable.
 
 ## Implicit Multiplication
 Multiplication operations are inserted automatically between tokens in the following cases:

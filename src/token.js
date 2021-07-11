@@ -109,11 +109,14 @@ class VariableToken extends Token {
   constructor(tstring, vname) {
     super(tstring, vname);
   }
-  eval() {
-    return this.tstr.env.var(this.value)?.eval();
+  eval(isFinal) {
+    return this.tstr.env.var(this.value)?.eval(isFinal);
   }
   exists() {
     return this.tstr.env.var(this.value) !== undefined;
+  }
+  getVar() {
+    return this.tstr.env.var(this.value);
   }
   adjacentMultiply(obj) {
     return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);

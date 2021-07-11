@@ -457,8 +457,15 @@ function generatePrimes(limit) {
   return primes;
 }
 
+/** Return boolean value of an argv argument */
+function getArgvBool(argv, arg, defaultValue = true) {
+  if (argv[arg] === undefined) return defaultValue;
+  if (argv[arg] === "false" || argv[arg] === "0") return false;
+  return !!argv[arg];
+}
+
 module.exports = {
-  input, print, getMatchingBracket, peek, factorial, prefixLines,
+  input, print, getMatchingBracket, peek, factorial, prefixLines, getArgvBool,
   operators, bracketMap, bracketValues,
   parseNumber, parseOperator, parseVariable, parseFunction, assertReal,
   isPrime, LCF, primeFactors, generatePrimes,

@@ -1,5 +1,6 @@
+const Complex = require("./Complex");
 const { EnvUserFunction, EnvBuiltinFunction, EnvVariable } = require("./function");
-const { TokenString } = require("./token");
+const { TokenString, VariableToken, NumberToken, NonNumericalToken, Token } = require("./token");
 const { peek, operators, parseFunction, parseVariable, parseOperator } = require("./utils");
 
 class Environment {
@@ -19,7 +20,12 @@ class Environment {
         }
       }
     } else if (value !== undefined) {
-      let obj = value instanceof EnvVariable ? value.copy() : new EnvVariable(name, value, desc);
+      let obj;
+      if (value instanceof Token) obj = new EnvVariable(name, value, desc);
+      else if (value instanceof EnvVariable) obj = value.copy();
+      else if (Complex.is(value) !== false) obj = new EnvVariable(name, new NumberToken(undefined, value), desc);
+      else obj = new EnvVariable(name, new NonNumericalToken(undefined, value), desc);
+
       peek(this._vars)[name] = obj; // Insert into top-level scope
     }
     for (let i = this._vars.length - 1; i >= 0; i--) {
@@ -32,6 +38,18 @@ class Environment {
     this._storeAns = !!v;
     this.var('ans', this._storeAns ? 0 : null);
     return this._storeAns;
+  }
+
+  /** Create a new EnvVariable; get object to provide as value of Variable from <obj> */
+  _assignVarGetObjValue(tstr, obj) {
+    let value;
+    if (obj instanceof VariableToken) {
+      let v = obj.eval(true), isc = Complex.is(v);
+      value = isc === false ? new NonNumericalToken(tstr, v) : new NumberToken(tstr, isc);
+    } else {
+      value = obj;
+    }
+    return value;
   }
 
   /** Push new variable scope */
@@ -83,9 +101,9 @@ class Environment {
 
     if (parts.length === 1) {
       const ts = new TokenString(this, parts[0]);
-      const tmp = ts.eval();
-      if (this._storeAns) this._vars[0].ans = new EnvVariable('ans', tmp.eval());
-      return tmp.eval(true); // Return raw value
+      let obj = ts.eval(); // Intermediate value
+      if (this._storeAns) this._vars[0].ans = new EnvVariable('ans', this._assignVarGetObjValue(ts, obj), 'value returned by previous statement');
+      return obj.eval(true); // Return raw value
     } else {
       let fname = parseFunction(parts[0]);
       if (fname != null && parts[0][fname.length] === '(') { // FUNCTION DEFINITION
@@ -113,9 +131,10 @@ class Environment {
         if (vname === parts[0]) { // VARIABLE DEFINITION
           if (this.func(vname) !== undefined) throw new Error(`Syntax Error: Invalid syntax - symbol '${vname}' is a function but treated as a variable`);
           const ts = new TokenString(this, assigOp === null ? parts[1] : `${vname} ${assigOp} ${parts[1]}`);
-          const value = ts.eval().eval(), varObj = this.var(vname, value);
+          const obj = ts.eval(), // Intermediate
+            varObj = this.var(vname, this._assignVarGetObjValue(ts, obj));
           if (ts.comment.length !== 0) varObj.desc = ts.comment;
-          return value;
+          return obj.eval(true);
         } else {
           throw new Error(`Syntax Error: Invalid syntax "${parts[0]}"`);
         }
