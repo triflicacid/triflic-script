@@ -1,7 +1,9 @@
 const Complex = require("./Complex");
-const { EnvUserFunction, EnvBuiltinFunction, EnvVariable } = require("./function");
+const { EnvUserFunction, EnvBuiltinFunction, EnvVariable } = require("./env-classes");
+const operators = require("./operators");
 const { TokenString, VariableToken, NumberToken, NonNumericalToken, Token } = require("./token");
-const { peek, operators, parseFunction, parseVariable, parseOperator } = require("./utils");
+const { peek } = require("./utils");
+const { parseFunction, parseVariable, parseOperator } = require("./parse");
 
 class Environment {
   constructor(storeAns = true) {

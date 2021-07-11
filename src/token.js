@@ -1,6 +1,7 @@
 const Complex = require("./Complex");
-const { parseNumber, parseOperator, getMatchingBracket, peek, operators, parseFunction, parseVariable, bracketValues, bracketMap, prefixLines } = require("./utils");
-
+const operators = require("./operators");
+const { peek, prefixLines } = require("./utils");
+const { parseNumber, parseOperator, getMatchingBracket, parseFunction, parseVariable, bracketValues, bracketMap, } = require("./parse");
 
 class Token {
   constructor(tstring, v) {

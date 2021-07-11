@@ -1,8 +1,10 @@
 const Complex = require("./Complex");
-const { EnvBuiltinFunction } = require("./function");
+const { EnvBuiltinFunction } = require("./env-classes");
 const lambertw = require("./lambertw");
+const operators = require("./operators");
+const { parseVariable } = require("./parse");
 const { OperatorToken, VariableToken, NumberToken, NonNumericalToken, FunctionRefToken, TokenString } = require("./token");
-const { operators, print, isPrime, LCF, primeFactors, assertReal, factorial, generatePrimes, parseVariable } = require("./utils");
+const { print, isPrime, LCF, primeFactors, assertReal, factorial, generatePrimes } = require("./utils");
 
 /** Base definitions for an Environment */
 function define(env, defVariables = true, defFuncs = true) {

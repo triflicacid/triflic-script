@@ -1,4 +1,3 @@
-const Complex = require("./Complex");
 const { TokenString } = require("./token");
 
 class EnvFunction {

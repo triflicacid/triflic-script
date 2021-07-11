@@ -1,12 +1,12 @@
-const yargs = require('yargs/yargs')
-const { hideBin } = require('yargs/helpers')
-const argv = yargs(hideBin(process.argv)).argv;
-
+const yargs = require('yargs/yargs');
+const { hideBin } = require('yargs/helpers');
 const Environment = require("./src/env");
 const { define } = require("./src/def");
 const { input, print, getArgvBool } = require("./src/utils");
 const { FgRed, Reset, Bright, } = require("./src/console-colours");
+const { parseOperator } = require('./src/parse');
 
+const argv = yargs(hideBin(process.argv)).argv;
 const opts = {
   defineVars: getArgvBool(argv, "defineVars"),
   defineFuncs: getArgvBool(argv, "defineFuncs"),
@@ -17,6 +17,8 @@ const opts = {
 };
 const env = new Environment(opts.ans);
 define(env, opts.defineVars, opts.defineFuncs);
+
+console.log(parseOperator("+"));
 
 function attempt(fn) {
   try {
