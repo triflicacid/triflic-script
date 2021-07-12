@@ -132,7 +132,7 @@ class Complex {
       if (this.b >= 0 && this.a !== 0) str += '+';
       if (this.b === -1) str += '-';
       else if (this.b !== 1) str += this.b;
-      str += 'i';
+      str += Complex.imagLetter;
     }
     return str;
   }
@@ -347,7 +347,9 @@ class Complex {
   }
 }
 
-/** The imaginary number i */
+/** What letter to use for the imaginary component? */
+Complex.imagLetter = 'i';
+
 Complex.I = () => new Complex(0, 1);
 Complex.NaN = () => new Complex(NaN, NaN);
 

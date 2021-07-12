@@ -18,6 +18,7 @@ class RunspaceFunction {
     this.name = name;
     this.desc = desc === undefined ? '[no information]' : desc;
     this.processArgs = processArgs;
+    this.constant = false;
 
     let metOptn = false;
     for (let arg in args) {
@@ -77,10 +78,11 @@ class RunspaceUserFunction extends RunspaceFunction {
    * @param {string[]} args Array of string arguments
    * @param {TokenString} body 
    */
-  constructor(rs, name, args, body, desc = 'user-defined') {
+  constructor(rs, name, args, body, desc = 'user-defined', constant = false) {
     const argObj = args.reduce((o, k) => ({ ...o, [k]: 'any' }), {});
     super(rs, name, argObj, desc);
     this.tstr = body;
+    this.constant = constant;
   }
 
   clone() {
@@ -122,6 +124,7 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
   constructor(rs, name, args, fn, desc = '[built-in function]', processArgs = true) {
     super(rs, name, args, desc, processArgs);
     this.fn = fn;
+    this.constant = true;
   }
 
   clone() {

@@ -7,15 +7,16 @@ const { peek } = require("../utils");
 const { parseFunction, parseVariable, parseOperator } = require("../evaluation/parse");
 
 class Runspace {
-  constructor(storeAns = true) {
+  constructor(strict = false, storeAns = true) {
     this._vars = [{}]; // { variable: EnvVariable }[]
     this._funcs = {}; // { fn_name: EnvFunction }
 
     this.logical = false; // Changes behaviour of some operators to be logical
+    this.strict = strict;
     this.storeAns(storeAns);
   }
 
-  var(name, value = undefined, desc = undefined) {
+  var(name, value = undefined, desc = undefined, constant = false) {
     if (value === null) { // Delete variable
       for (let i = this._vars.length - 1; i >= 0; i--) {
         if (this._vars[i].hasOwnProperty(name)) {
@@ -24,10 +25,10 @@ class Runspace {
       }
     } else if (value !== undefined) {
       let obj;
-      if (value instanceof Token) obj = new RunspaceVariable(name, value, desc);
+      if (value instanceof Token) obj = new RunspaceVariable(name, value, desc, constant);
       else if (value instanceof RunspaceVariable) obj = value.copy();
-      else if (Complex.is(value) !== false) obj = new RunspaceVariable(name, new NumberToken(undefined, value), desc);
-      else obj = new RunspaceVariable(name, new NonNumericalToken(undefined, value), desc);
+      else if (Complex.is(value) !== false) obj = new RunspaceVariable(name, new NumberToken(undefined, value), desc, constant);
+      else obj = new RunspaceVariable(name, new NonNumericalToken(undefined, value), desc, constant);
 
       peek(this._vars)[name] = obj; // Insert into top-level scope
     }
@@ -95,11 +96,20 @@ class Runspace {
   }
 
   eval(string) {
+    const ts = new TokenString(this, string);
+    let obj = ts.eval(); // Intermediate value
+    if (this._storeAns && ts.setAns) this._vars[0].ans = new RunspaceVariable('ans', this._assignVarGetObjValue(ts, obj), 'value returned by previous statement');
+    return obj.eval('any'); // Return raw value
+  }
+
+  _eval(string) {
     let parts = string.split(/\=(.+)/);
     if (parts[parts.length - 1] === '') parts.pop(); // Remove empty string '' from end
     if (parts.length === 0) return;
-    if (operators[parts[0][parts[0].length - 1].trimEnd() + '='] !== undefined) parts[0] += '=' + parts.pop(); // Preserve operator containing '='
-    else if (parts[1] && operators['=' + parts[1][0]] !== undefined) parts[0] += '=' + parts.pop(); // Preserve operator containing '='
+    if (parts.length > 1) {
+      if (operators[parts[0][parts[0].length - 1].trimEnd() + '='] !== undefined) parts[0] += '=' + parts.pop(); // Preserve operator containing '='
+      else if (parts[1] && operators['=' + parts[1][0]] !== undefined) parts[0] += '=' + parts.pop(); // Preserve operator containing '='
+    }
     parts = parts.map(x => x.trim()); // Now finished processing, remove trailing whitespace
 
     if (parts.length === 1) {

@@ -1,16 +1,19 @@
 require("dotenv").config();
 const Discord = require("discord.js");
-const { define } = require("./src/def");
+const { define } = require("./src/init/def");
 const Runspace = require("./src/runspace/Runspace");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
+const { parseArgString } = require("./src/init/args");
 
 const client = new Discord.Client();
 client.login(process.env.BOT_TOKEN);
 
 /** Create new runspace */
-function createRunspace(defStd) {
-  const rs = new Runspace();
-  if (defStd) define(rs);
+function createRunspace(argString = '') {
+  const opts = parseArgString(argString, false);
+  const rs = new Runspace(opts.strict, opts.ans); // Create object
+  if (opts.imag !== undefined) Complex.imagLetter = opts.imag; // Change imaginary unit
+  define(rs, opts.defineVars, opts.defineFuncs); // Define pre-defined things
   rs.define(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
     if (rs.discordLatestMsg) {
       if (c === undefined) c = 0;
@@ -21,7 +24,7 @@ function createRunspace(defStd) {
       throw new Error(`Fatal Error: could not end session. Please type '!close'.`);
     }
   }, 'End the discord maths session'));
-  rs.func('clear', null);
+  rs.func('clear', null); // Remove function 'clear'
   return rs;
 }
 
@@ -38,7 +41,7 @@ client.on('message', async msg => {
   // Listening on this channel? Not a bot?
   if (!msg.author.bot && msg.channel.id === process.env.CHANNEL) {
     if (msg.content.startsWith('!start')) {
-      await sessionStart(msg);
+      await sessionStart(msg, msg.content.substr(6));
     } else if (msg.content === '!close') {
       await sessionEnd(msg);
     } else {
@@ -56,8 +59,8 @@ client.on('message', async msg => {
   }
 });
 
-async function sessionStart(msg) {
-  envSessions[msg.author.id] = createRunspace(!msg.content.includes('blank'));
+async function sessionStart(msg, argString = '') {
+  envSessions[msg.author.id] = createRunspace(argString);
   console.log(`> Created session for ${msg.author.username} (#${msg.author.id})`);
   await msg.reply(`✅ Created new session`);
 }

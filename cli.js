@@ -1,21 +1,14 @@
-const yargs = require('yargs/yargs');
-const { hideBin } = require('yargs/helpers');
 const Runspace = require("./src/runspace/Runspace");
-const { define } = require("./src/def");
-const { input, print, getArgvBool, consoleColours } = require("./src/utils");
+const { define } = require("./src/init/def");
+const { input, print, consoleColours } = require("./src/utils");
+const Complex = require('./src/maths/Complex');
+const { parseArgString } = require("./src/init/args");
 
 // PARSE ARGV
-const argv = yargs(hideBin(process.argv)).argv;
-const opts = {
-  defineVars: getArgvBool(argv, "defineVars"),
-  defineFuncs: getArgvBool(argv, "defineFuncs"),
-  prompt: argv.prompt === undefined ? '>>> ' : argv.prompt.toString(),
-  intro: getArgvBool(argv, "intro", false),
-  niceErrors: getArgvBool(argv, "nice-errors", true),
-  ans: getArgvBool(argv, "ans", true),
-};
-const env = new Runspace(opts.ans);
-define(env, opts.defineVars, opts.defineFuncs);
+const opts = parseArgString(process.argv, true);
+const rs = new Runspace(opts.strict, opts.ans);
+if (opts.imag !== undefined) Complex.imagLetter = opts.imag;
+define(rs, opts.defineVars, opts.defineFuncs);
 
 function attempt(fn) {
   try {
@@ -28,11 +21,21 @@ function attempt(fn) {
 // env.eval('f(x) = log(log(x, 2x), 3x)');
 
 (async function () {
-  if (opts.intro) print(`${__filename} - JS Maths CLI\nType help() for basic help\n`);
+  if (opts.intro) {
+    print(`${__filename} - JS Maths CLI\nType help() for basic help`);
+    let notes = [];
+    if (opts.strict) notes.push("strict mode is enabled");
+    if (!opts.niceErrors) notes.push("fatal errors are enabled");
+    if (!opts.defineVars) notes.push("pre-defined variables were not defined");
+    if (!opts.defineFuncs) notes.push("pre-defined functions were not defined");
+    if (!opts.ans) notes.push("variable ans is not defined");
+    notes.forEach(note => print(`${consoleColours.Bright}${consoleColours.FgWhite}${consoleColours.Reverse}Note${consoleColours.Reset} ${note}`));
+    print();
+  }
   let inp;
   while (true) {
     inp = await input(opts.prompt);
-    let out = opts.niceErrors ? attempt(() => env.eval(inp)) : env.eval(inp);
+    let out = opts.niceErrors ? attempt(() => rs.eval(inp)) : rs.eval(inp);
     if (out !== undefined) print(out.toString());
   }
 })();
