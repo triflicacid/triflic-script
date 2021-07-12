@@ -333,9 +333,11 @@ class TokenString {
             const pobj = createTokenStringParseObj(string.substr(i), obj.pos, obj.depth + 1, bracketMap[openingBracket.value]);
             try {
               this._parse(pobj); // Parse
-              const ts = new TokenString(this.env, string.substr(i, pobj.pos - obj.pos));
-              ts.tokens = pobj.tokens;
-              argTokens.push(ts);
+              if (pobj.tokens.length !== 0) { // Not Empty
+                const ts = new TokenString(this.env, string.substr(i, pobj.pos - obj.pos));
+                ts.tokens = pobj.tokens;
+                argTokens.push(ts);
+              }
 
               // Increment position
               i += (pobj.pos - obj.pos) + 1;

@@ -1,19 +1,28 @@
 require("dotenv").config();
 const Discord = require("discord.js");
 const { define } = require("./src/def");
-const Environment = require("./src/env");
-const { EnvBuiltinFunction } = require("./src/function");
+const Runspace = require("./src/runspace/Runspace");
+const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 
 const client = new Discord.Client();
 client.login(process.env.BOT_TOKEN);
 
-/** Create new environment */
-function createEnvironment(defStd) {
-  const env = new Environment();
-  if (defStd) define(env);
-  env.define(new EnvBuiltinFunction(env, 'exit', [], () => 'Discord: type !close to end session', 'exit maths session'));
-  env.func('clear', null);
-  return env;
+/** Create new runspace */
+function createRunspace(defStd) {
+  const rs = new Runspace();
+  if (defStd) define(rs);
+  rs.define(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
+    if (rs.discordLatestMsg) {
+      if (c === undefined) c = 0;
+      rs.discordLatestMsg.reply(`Terminating with exit code ${c}`);
+      sessionEnd(rs.discordLatestMsg);
+      return c;
+    } else {
+      throw new Error(`Fatal Error: could not end session. Please type '!close'.`);
+    }
+  }, 'End the discord maths session'));
+  rs.func('clear', null);
+  return rs;
 }
 
 /* LOGGED IN */
@@ -29,15 +38,12 @@ client.on('message', async msg => {
   // Listening on this channel? Not a bot?
   if (!msg.author.bot && msg.channel.id === process.env.CHANNEL) {
     if (msg.content.startsWith('!start')) {
-      envSessions[msg.author.id] = createEnvironment(!msg.content.includes('blank'));
-      console.log(`> Created session for ${msg.author.username} (#${msg.author.id})`);
-      await msg.reply(`✅ Created new session`);
+      await sessionStart(msg);
     } else if (msg.content === '!close') {
-      delete envSessions[msg.author.id];
-      console.log(`< Discarded session for ${msg.author.username} (#${msg.author.id})`);
-      await msg.reply(`🚮 Destroyed session`);
+      await sessionEnd(msg);
     } else {
       if (envSessions[msg.author.id]) {
+        envSessions[msg.author.id].discordLatestMsg = msg;
         try {
           let out = envSessions[msg.author.id].eval(msg.content);
           if (out !== undefined) await msg.reply('`' + out.toString() + '`');
@@ -49,3 +55,15 @@ client.on('message', async msg => {
     }
   }
 });
+
+async function sessionStart(msg) {
+  envSessions[msg.author.id] = createRunspace(!msg.content.includes('blank'));
+  console.log(`> Created session for ${msg.author.username} (#${msg.author.id})`);
+  await msg.reply(`✅ Created new session`);
+}
+
+async function sessionEnd(msg) {
+  delete envSessions[msg.author.id];
+  console.log(`< Discarded session for ${msg.author.username} (#${msg.author.id})`);
+  await msg.reply(`🚮 Destroyed session`);
+}
