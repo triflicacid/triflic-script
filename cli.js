@@ -18,7 +18,7 @@ function attempt(fn) {
   }
 }
 
-// env.eval('f(x) = log(log(x, 2x), 3x)');
+rs.eval('arr = range(10)');
 
 (async function () {
   if (opts.intro) {

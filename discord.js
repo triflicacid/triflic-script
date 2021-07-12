@@ -4,6 +4,7 @@ const { define } = require("./src/init/def");
 const Runspace = require("./src/runspace/Runspace");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 const { parseArgString } = require("./src/init/args");
+const Complex = require("./src/maths/Complex");
 
 const client = new Discord.Client();
 client.login(process.env.BOT_TOKEN);

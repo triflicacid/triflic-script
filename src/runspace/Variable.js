@@ -5,7 +5,6 @@ class RunspaceVariable {
     this.desc = desc ?? '[no information]';
     this.constant = constant;
   }
-
   eval(type) { return this.value.eval(type); }
   copy() { return new RunspaceVariable(this.name, this.value, this.desc); }
 }

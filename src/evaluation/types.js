@@ -7,7 +7,9 @@ const types = {
   real: 3, // Real number 'a + 0i'
   real_int: 4, // Real number where {a} is an integer
   string: 5,
-  list: 6,
+  bool: 6,
+  array: 7,
+  func: 8,
 };
 
 const isNumericType = t => t === 'complex' || t === 'complex_int' || t === 'real' || t === 'real_int';
@@ -18,4 +20,11 @@ function castingError(obj, type) {
   throw new Error(`Type Error: unknown type '${type}'`);
 }
 
-module.exports = { types, enum: createEnum(types), isNumericType, isIntType, castingError };
+function typeOf(arg) {
+  if (typeof arg.type === 'function') return arg.type();
+  if (arg === undefined) return 'undefined';
+  if (arg === null) return 'null';
+  return 'unknown';
+}
+
+module.exports = { types, enum: createEnum(types), isNumericType, isIntType, castingError, typeOf };

@@ -2,19 +2,26 @@ const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const operators = require("../evaluation/operators");
 const { parseVariable } = require("../evaluation/parse");
-const { OperatorToken, VariableToken, NumberToken, NonNumericalToken, FunctionRefToken, TokenString } = require("../evaluation/tokens");
+const { OperatorToken, VariableToken, NumberToken, FunctionRefToken, TokenString, StringToken, ArrayToken, primitiveToTypeToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorial, generatePrimes } = require("../maths/functions");
 const { print } = require("../utils");
+const { typeOf } = require("../evaluation/types");
 
 
 /** Base definitions for an Environment */
 function define(rs, defVariables = true, defFuncs = true) {
+  /****************** CORE VARIABLES */
+  rs.var('NaN', NaN, 'Value representing Not A Number', true);
+  rs.var('inf', Infinity, 'Value representing Infinity', true);
+  rs.var('true', true, '\'true\' is a boolean value that represents mathematical and logical truth', true);
+  rs.var('false', false, '\'false\' is a boolean value that is used when the result of a logical statement is false', true);
+
   /****************** VARIABLES */
   if (defVariables) {
     rs.var('pi', Math.PI, 'pi is equal to the circumference of any circle divided by its diameter', true); // pi
     rs.var('π', rs.var('pi'));
     rs.var('e', Math.E, 'Euler\'s constant', true); // e
-    rs.var('omega', 0.56714329040978387299997, 'Principle solution to xe^x = 1 (= W(1))', true); // W(1, 0)
+    rs.var('omega', 0.5671432904097838, 'Principle solution to xe^x = 1 (= W(1))', true); // W(1, 0)
     rs.var('Ω', rs.var('omega'));
     rs.var('phi', 1.618033988749895, 'Phi, the golden ratio, approx (1 + √5)/2', true); // phi, golden ratio
     rs.var('φ', rs.var('phi'));
@@ -28,9 +35,6 @@ function define(rs, defVariables = true, defFuncs = true) {
     rs.var('log10e', Math.LOG10E, 'Base-10 logarithm of e');
     rs.var('sqrt1_2', Math.SQRT1_2, 'Square root of 0.5');
     rs.var('sqrt2', Math.SQRT2, 'Square root of 2');
-
-    rs.var('NaN', NaN, 'Value representing Not A Number', true);
-    rs.var('inf', Infinity, 'Value representing Infinity', true);
   }
 
   /****************** CORE FUNCTIONS */
@@ -52,18 +56,14 @@ function define(rs, defVariables = true, defFuncs = true) {
       }
     } else if (item instanceof VariableToken) {
       let v = rs.var(item);
-      help = `Type: variable${v.constant ? ' (constant)' : ''}\nDesc: ${v.desc}\nValue: ${v.eval('any')}`;
+      help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.eval('string')}`;
     } else if (item instanceof NumberToken) {
       help = `Type: number\nValue: ${item.eval('complex')}`;
-    } else if (item instanceof NonNumericalToken) {
-      if (operators[item.value] === undefined) {
-        help = `Type: non-numerical (${typeof item.value})\nRaw Value: ${item.eval("any")}\nNum Value: ${item.eval("complex")}`;
-      } else {
-        const info = operators[item.value];
-        return `Type: operator\nDesc: ${info.desc}\nArgs: (${info.args.length}) ${info.args.join(', ')}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
-      }
+    } else if (item instanceof StringToken && operators[item.value] !== undefined) {
+      const info = operators[item.value];
+      return `Type: string (operator)\nDesc: ${info.desc}\nArgs: (${info.args.length}) ${info.args.join(', ')}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
     } else {
-      throw new Error(`Cannot retrieve help on given argument`);
+      return `Type: ${item.type()}\nValue: ${item.eval("string")}`;
     }
     return help;
   }, 'Get general help or help on a provided argument', false));
@@ -97,6 +97,12 @@ function define(rs, defVariables = true, defFuncs = true) {
     process.exit(0);
   }, 'exit application with given code'));
   rs.define(new RunspaceBuiltinFunction(rs, 'clear', {}, () => +process.stdout.write('\033c'), 'clears the screen'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'print', { o: 'any', newline: '?bool' }, ({ o, newline }) => {
+    if (newline instanceof VariableToken) newline = newline.getVar().value;
+    newline = newline?.eval('bool') ?? true;
+    process.stdout.write(o.eval('string') + (newline ? '\n' : ''));
+    return o.eval('any');
+  }, 'print item to screen', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'funcs', {}, () => {
     let output = '';
     for (let func in rs._funcs) {
@@ -137,15 +143,95 @@ function define(rs, defVariables = true, defFuncs = true) {
     return output.substr(0, output.length - 1); // Remove final '\n'
   }, 'list all available operators (<h>: show headers?)'));
   rs.define(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.eval(type.eval("string")), 'attempt a direct cast from object <o> to type <type>', false));
+  rs.define(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => typeOf(o), 'attempt a direct cast from object <o> to type <type>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new Complex(a, b), 'create a complex number'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'array', {}, () => ([]), 'create empty array'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
+    let start, end, step;
+    if (b === undefined) { start = 0; end = a; step = 1; }
+    else if (c === undefined) { start = a; end = b; step = 1; }
+    else { start = a; end = b; step = c; }
+    if (isNaN(start) || isNaN(end) || isNaN(step) || !isFinite(start) || !isFinite(end) || !isFinite(step) || Math.sign(end - start) !== Math.sign(step)) throw new Error(`Argument Error: range is infinite given arguments`);
+    const range = [];
+    for (let n = start; n < end; n += step) range.push(n);
+    return range;
+  }, 'Return array populated with numbers between <a>-<b> step <c>. 1 arg=range(0,<a>,1); 2 args=range(<a>,<b>,1); 3 args=range(<a>,<b>,<c>)'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'len', { o: 'any' }, ({ o }) => {
+    const length = o.len?.();
+    if (rs.strict && length === undefined) throw new Error(`Strict Mode: argument has no len()`);
+    return length === undefined ? NaN : length;
+  }, 'return length of argument', false));
+  rs.define(new RunspaceBuiltinFunction(rs, 'get', { arg: 'any', i: 'real_int' }, ({ arg, i }) => {
+    let value;
+    if (arg instanceof VariableToken) arg = arg.getVar().value;
+    if (arg instanceof ArrayToken) value = arg.value?.[i]?.eval("any");
+    else if (arg instanceof StringToken) value = arg.value?.[i];
+    if (value != undefined) return value;
+    throw new Error(`Argument Error: unable to retrieve index ${i} of type ${arg.type()}`);
+  }, 'get item at <i> in <arg>', false));
+  rs.define(new RunspaceBuiltinFunction(rs, 'set', { arr: 'array', i: 'real_int', item: 'any' }, ({ arr, i, item }) => {
+    if (arr instanceof VariableToken) arr = arr.getVar().value;
+    if (arr instanceof ArrayToken) {
+      arr.value[i] = item;
+      return arr.value.length;
+    }
+    throw new Error(`Argument Error: unable to set index ${i} of type ${arr.type()}`);
+  }, 'set item at <i> in array <arr> to <item>', false));
+  rs.define(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }) => {
+    if (arr instanceof VariableToken) arr = arr.getVar().value;
+    if (arr instanceof ArrayToken) return arr.value.push(item);
+    throw new Error(`Argument Error: expected array`);
+  }, 'push item <item> to array <arr>', false));
+  rs.define(new RunspaceBuiltinFunction(rs, 'pop', { arr: 'array' }, ({ arr }) => {
+    if (arr instanceof VariableToken) arr = arr.getVar().value;
+    if (arr instanceof ArrayToken) return arr.value.pop();
+    throw new Error(`Argument Error: expected array`);
+  }, 'pop item from array <arr>', false));
+  rs.define(new RunspaceBuiltinFunction(rs, 'reverse', { arg: 'any' }, ({ arg }) => {
+    if (arg instanceof VariableToken) arg = arg.getVar().value;
+    if (arg instanceof ArrayToken) arg.value.reverse();
+    else if (arg instanceof StringToken) arg.value = arg.value.split('').reverse().join('');
+    else throw new Error(`Argument Error: unable to reverse object of type ${arg.type()}`);
+    return arg.eval('any');
+  }, 'reverse argument <arg>', false));
+  rs.define(new RunspaceBuiltinFunction(rs, 'apply', { arr: 'array', action: 'any' }, ({ arr, action }) => {
+    if (arr instanceof VariableToken) arr = arr.getVar().value;
+    if (!(arr instanceof ArrayToken)) throw new Error(`Argument Error: expected array`);
+
+    if (action instanceof StringToken && operators[action.value] !== undefined) {
+      const op = operators[action.value];
+      if (op.args.length === 1) {
+        for (let i = 0; i < arr.value.length; i++) arr.value[i] = primitiveToTypeToken(op.fn(arr.value[i].eval(op.args[0])));
+        return arr.value;
+      } else if (op.args.length === 2) {
+        let acc = new Complex(0);
+        for (let i = 0; i < arr.value.length; i++) acc = op.fn(primitiveToTypeToken(acc).eval(op.args[0]), arr.value[i].eval(op.args[1]));
+        return acc;
+      } else {
+        throw new Error(`Argument Error: cannot apply operator '${action.value}' to array`);
+      }
+    } else if (action instanceof FunctionRefToken) {
+      const fn = action.getFn(), args = Object.entries(fn.args);
+      for (let i = 0, ans; i < arr.value.length; i++) {
+        try {
+          if (args.length === 1) ans = fn.eval([arr.value[i].eval(args[0][1])]);
+          else if (args.length === 2) ans = fn.eval([arr.value[i].eval(args[0][1]), primitiveToTypeToken(i).eval(args[1][1])]);
+          else if (args.length === 3) ans = fn.eval([arr.value[i].eval(args[0][1]), primitiveToTypeToken(i).eval(args[1][1]), arr.eval(args[2][1])]);
+          else throw new Error(`Argument Error: cannot apply ${action} to array: unsupported argument count ${args.length}`);
+          arr.value[i] = primitiveToTypeToken(ans);
+        } catch (e) {
+          throw new Error(`${fn.defString()}:\n${e}`);
+        }
+      }
+      return arr.value;
+    } else {
+      for (let i = 0; i < arr.value.length; i++) {
+        arr.value[i] = action;
+      }
+      return arr.value;
+    }
+  }, 'Apply <action> to an array: operator, function [f(<item>) or f(<item>,<index>) or f(<item>,<index>,<array>)]. Else, eveything in array is set to <action>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.eval(str), 'evaluate an input'));
-  // env.define(new RunspaceBuiltinFunction(env, 'logical', ['?v'], ({ v }) => {
-  //   if (v !== undefined) {
-  //     assertReal(v);
-  //     env.logical = !!v.a;
-  //   }
-  //   return `Logical Mode: ${env.v ? 'On' : 'Off'}`;
-  // }, 'View or enable/disable logical mode. Logical mode changes the behaviour of some operators to be logical (e.g. "!" factorial <-> logical not'));
 
   /****************** MATHS FUNCTIONS */
   if (defFuncs) {
@@ -173,21 +259,6 @@ function define(rs, defVariables = true, defFuncs = true) {
 
     rs.define(new RunspaceBuiltinFunction(rs, 'factors', { x: 'real' }, ({ x }) => primeFactors(x), 'return prime factors of x'));
     rs.define(new RunspaceBuiltinFunction(rs, 'factorial', { x: 'real' }, ({ x }) => factorial(x), 'calculate the factorial of x'));
-    rs.define(new RunspaceBuiltinFunction(rs, 'len', { o: 'any' }, ({ o }) => {
-      if (o instanceof VariableToken) o = o.getVar().value;
-      if (o instanceof NonNumericalToken) {
-        if (Array.isArray(o.value) || typeof o.value === 'string') {
-          return o.value.length;
-        }
-      }
-      if (rs.strict) throw new Error(`Strict Mode: argument has no len()`);
-      return NaN;
-    }, 'return length of argument', false));
-    rs.define(new RunspaceBuiltinFunction(rs, 'get', { list: 'list', i: 'real_int' }, ({ list, i }) => {
-      if (list instanceof VariableToken) list = list.getVar().value;
-      if (list instanceof NonNumericalToken && Array.isArray(list.value)) return list.value[i] ?? NaN;
-      throw new Error(`Argument Error: argument is not a list`);
-    }, 'get item at <i> in list <list>', false));
     rs.define(new RunspaceBuiltinFunction(rs, 'ln', { z: 'complex' }, ({ z }) => Complex.log(z), 'calculate the natural logarithm of x')); // natural logarithm
     rs.define(new RunspaceBuiltinFunction(rs, 'log', { a: 'complex', b: '?complex' }, ({ a, b }) => {
       return b === undefined ?
@@ -224,8 +295,8 @@ function define(rs, defVariables = true, defFuncs = true) {
       start = start.eval('real_int');
       limit = limit.eval('real_int');
       if (svar !== undefined) {
-        if (svar instanceof NonNumericalToken) {
-          sumVar = svar.value;
+        if (svar instanceof StringToken) {
+          sumVar = svar.eval("string");
           let extract = parseVariable(sumVar);
           if (sumVar !== extract) throw new Error(`Argument Error: Invalid variable provided '${sumVar}'`);
         } else throw new Error(`Argument Error: Invalid value for <svar>: ${svar}`);
@@ -241,7 +312,7 @@ function define(rs, defVariables = true, defFuncs = true) {
         }
       } else if (action instanceof NumberToken || action instanceof VariableToken) { // Stored value
         sum = Complex.mult(action.eval(), Complex.sub(limit, start).add(1));
-      } else if (action instanceof NonNumericalToken) { // Evaluate action as a TokenString
+      } else if (action instanceof StringToken) { // Evaluate action as a TokenString
         let ts;
         try {
           ts = new TokenString(rs, action.value);

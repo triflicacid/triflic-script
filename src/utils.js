@@ -91,7 +91,10 @@ const str = x => {
     return String(x);
   }
 };
-const bool = x => !!x;
+const bool = x => {
+  if (x === "false" || x === "0") return false;
+  return !!x;
+};
 
 const createTokenStringParseObj = (str, pos, depth, terminateClosing = null) => ({
   string: str,
