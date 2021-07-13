@@ -6,7 +6,7 @@ const { parseArgString } = require("./src/init/args");
 
 // PARSE ARGV
 const opts = parseArgString(process.argv, true);
-const rs = new Runspace(opts.strict, opts.ans);
+const rs = new Runspace(opts.strict, opts.ans, opts.bidmas);
 if (opts.imag !== undefined) Complex.imagLetter = opts.imag;
 define(rs, opts.defineVars, opts.defineFuncs);
 
@@ -18,13 +18,12 @@ function attempt(fn) {
   }
 }
 
-rs.eval('arr = range(10)');
-
 (async function () {
   if (opts.intro) {
     print(`${__filename} - JS Maths CLI\nType help() for basic help`);
     let notes = [];
     if (opts.strict) notes.push("strict mode is enabled");
+    if (!opts.bidmas) notes.push("BIDMAS is being ignored");
     if (!opts.niceErrors) notes.push("fatal errors are enabled");
     if (!opts.defineVars) notes.push("pre-defined variables were not defined");
     if (!opts.defineFuncs) notes.push("pre-defined functions were not defined");

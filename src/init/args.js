@@ -13,6 +13,7 @@ function parseArgString(args, doHideBin = true) {
     niceErrors: getArgvBool(argv, "nice-errors", true),
     ans: getArgvBool(argv, "ans", true),
     imag: argv.imag,
+    bidmas: getArgvBool(argv, "bidmas", true),
   };
 }
 

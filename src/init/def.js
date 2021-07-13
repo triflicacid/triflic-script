@@ -61,7 +61,7 @@ function define(rs, defVariables = true, defFuncs = true) {
       help = `Type: number\nValue: ${item.eval('complex')}`;
     } else if (item instanceof StringToken && operators[item.value] !== undefined) {
       const info = operators[item.value];
-      return `Type: string (operator)\nDesc: ${info.desc}\nArgs: (${info.args.length}) ${info.args.join(', ')}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
+      return `Type: string (operator)\nDesc: ${info.desc}\nArgs: ${info.args}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
     } else {
       return `Type: ${item.type()}\nValue: ${item.eval("string")}`;
     }
@@ -98,8 +98,8 @@ function define(rs, defVariables = true, defFuncs = true) {
   }, 'exit application with given code'));
   rs.define(new RunspaceBuiltinFunction(rs, 'clear', {}, () => +process.stdout.write('\033c'), 'clears the screen'));
   rs.define(new RunspaceBuiltinFunction(rs, 'print', { o: 'any', newline: '?bool' }, ({ o, newline }) => {
-    if (newline instanceof VariableToken) newline = newline.getVar().value;
-    newline = newline?.eval('bool') ?? true;
+    if (newline instanceof VariableToken) newline = newline.getVar();
+    newline = newline?.eval?.('bool') ?? true;
     process.stdout.write(o.eval('string') + (newline ? '\n' : ''));
     return o.eval('any');
   }, 'print item to screen', false));
@@ -266,6 +266,13 @@ function define(rs, defVariables = true, defFuncs = true) {
         Complex.div(Complex.log(b), Complex.log(a));// log base <a> of <b>
     }, 'return log base <a> of <b>. If b is not provided, return log base 10 of <a>'));
     rs.define(new RunspaceBuiltinFunction(rs, 'lcf', { a: 'real', b: 'real' }, ({ a, b }) => LCF(a, b), 'return the lowest common factor of a and b'));
+    rs.define(new RunspaceBuiltinFunction(rs, 'mean', { arr: 'array' }, ({ arr }) => {
+      if (!Array.isArray(arr)) throw new Error(`Argument Error: expected array`);
+      const m = new Complex(0);
+      arr.forEach(x => m.add(x.eval('complex')));
+      m.div(arr.length);
+      return m;
+    }, 'calculate mean value in an array'));
     rs.define(new RunspaceBuiltinFunction(rs, 'random', { a: '?real', b: '?real' }, ({ a, b }) => {
       if (a !== undefined && b === undefined) return Math.random() * a; // random(max)
       if (a !== undefined && b !== undefined) return (Math.random() * (b - a)) + a; // random(min, max)

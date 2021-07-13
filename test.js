@@ -1,8 +1,5 @@
 /** FILE FOR TEST SCRIPTS */
 
-const str = x => String(x);
+const Complex = require("./src/maths/Complex");
 
-console.log(str("Hi"));
-console.log(str(3.14));
-console.log(str(null));
-console.log(str(undefined));
+Complex.assert(true);

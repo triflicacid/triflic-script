@@ -14,6 +14,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `discord.js` - Arguments proceed `!start`
 
 - `strict` : `boolean`. Strict mode? (actions are more tightly controlled).
+- `bidmas` : `boolean`. Should expressions obey BIDMAS (order of operations)?
 - `define-vars` : `boolean`. Whether or not to define common variables such as `pi` and `e`.
 - `define-funcs` : `boolean`. Whether or not to define in-built functions such as `sin` and `summation`. Note that core functions such as `exit` are still defined.
 - `prompt` : `string`. What prompt to display for input.
@@ -46,7 +47,7 @@ The input will be pre-processed in the `eval()` method itself before being parse
 
 Input may be an assignment; either `<var> = ...` or `<function>(<args>...) = ...`.
 
-Comments may be includes as `// ...`. Enything after `//` will be ignored. If a comment is included in a function/variable definition, the contents of this comment will be displayed when `help(<thing>)` is called.
+Comments may be includes as `# ...`. Enything after `#` will be ignored. If a comment is included in a function/variable definition, the contents of this comment will be displayed when `help(<thing>)` is called.
 
 Strings are marcked by `"..."`.
 

@@ -7,12 +7,13 @@ const { peek } = require("../utils");
 const { parseFunction, parseVariable, parseOperator } = require("../evaluation/parse");
 
 class Runspace {
-  constructor(strict = false, storeAns = true) {
+  constructor(strict = false, storeAns = true, doBidmas = true) {
     this._vars = [{}]; // { variable: EnvVariable }[]
     this._funcs = {}; // { fn_name: EnvFunction }
 
     this.logical = false; // Changes behaviour of some operators to be logical
-    this.strict = strict;
+    this.strict = !!strict;
+    this.bidmas = !!doBidmas;
     this.storeAns(storeAns);
   }
 

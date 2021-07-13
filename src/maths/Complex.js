@@ -9,8 +9,8 @@ class Complex {
    * Build a complex number in form 'a + bi', where a and b are real
    */
   constructor(a = 0, b = 0) {
-    this.a = a;
-    this.b = b;
+    this.a = +a;
+    this.b = +b;
   }
 
   /** Do we only have a real component? */
@@ -356,7 +356,7 @@ Complex.NaN = () => new Complex(NaN, NaN);
 /** Make sure input is Complex. Return value, or error. */
 Complex.assert = function (z) {
   if (z instanceof Complex) return z;
-  if (typeof z === 'number') return new Complex(z, 0);
+  if (typeof z === 'number' || typeof z === 'boolean') return new Complex(z, 0);
   throw new TypeError(`Expected Complex, got ${typeof z} ${z}`);
 };
 

@@ -40,7 +40,11 @@ class NumberToken extends Token {
     if (type === 'real') return this.value.a;
     if (type === 'real_int') return Math.floor(this.value.a);
     if (type === 'string') return this.value.toString();
-    if (type === 'bool') return !!this.value.a && !!this.value.b;
+    if (type === 'bool') {
+      if (this.value.b === 0) return !!this.value.a;
+      if (this.value.a === 0) return !!this.value.b;
+      return true;
+    }
     castingError(this, type);
   }
   adjacentMultiply(obj) {
@@ -94,15 +98,23 @@ class ArrayToken extends Token {
 }
 
 /** For brackets */
-class BracketToken extends StringToken {
+class BracketToken extends Token {
   constructor(tstring, x, pos) {
     super(tstring, x, pos);
     if (bracketValues[x] === undefined) throw new Error(`new BracketToken() : '${x}' is not a bracket`);
   }
+  type() { return "string"; }
   priority() { return 0; }
   /** 1 : opening, -1 : closing */
   facing() {
     return bracketValues[this.value];
+  }
+  len() { return this.value.length; }
+  eval(type) {
+    if (type === 'any' || type === 'string') return this.value;
+    if (type === 'bool') return false;
+    if (isNumericType(type)) return Complex.NaN();
+    castingError(this, type);
   }
   adjacentMultiply(obj) {
     if (this.facing() === -1) {
@@ -126,7 +138,9 @@ class OperatorToken extends Token {
   type() { return "string"; }
   /** Eval as operators */
   eval(...args) {
-    return operators[this.value].fn(...args);
+    const r = operators[this.value].fn(...args);
+    if (r === undefined) throw new Error(`Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
+    return r;
   }
   priority() {
     return +operators[this.value].precedence;
@@ -288,7 +302,7 @@ class TokenString {
       }
 
       // Comment? (only recognise in depth=0)
-      if (obj.depth === 0 && string[i] === '/' && string[i + 1] === '/') {
+      if (obj.depth === 0 && string[i] === '#') {
         obj.comment = string.substr(i + 2).trim();
         break;
       }
@@ -506,7 +520,7 @@ class TokenString {
       }
     }
 
-    const T = this._toRPN(this.tokens), stack = []; // STACK SHOULD ONLY CONTAIN COMPLEX()
+    const T = this._toRPN(this.tokens, this.env.bidmas), stack = []; // STACK SHOULD ONLY CONTAIN COMPLEX()
     for (let i = 0; i < T.length; i++) {
       if (T[i] instanceof NumberToken || T[i] instanceof StringToken || T[i] instanceof BoolToken || T[i] instanceof ArrayToken) {
         stack.push(T[i]);
@@ -522,16 +536,12 @@ class TokenString {
         stack.push(T[i]);
       } else if (T[i] instanceof OperatorToken) {
         const info = T[i].info();
-        if (stack.length < info.args.length) throw new Error(`Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} (SIG_STACK_UNDERFLOW while evaluating)`);
+        if (stack.length < info.args) throw new Error(`Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} (SIG_STACK_UNDERFLOW while evaluating)`);
         let args = [];
-        for (let i = 0; i < info.args.length; i++) args.unshift(stack.pop().eval(info.args[i])); // if stack is [a, b] pass in fn(a, b)
-        try {
-          const val = T[i].eval(...args);
-          const t = primitiveToTypeToken(val);
-          stack.push(t);
-        } catch (e) {
-          throw new Error(`Applying [ ${T[i]} ] to { ${args.join(', ')} }:\n${e}`);
-        }
+        for (let i = 0; i < info.args; i++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
+        const val = T[i].eval(...args);
+        const t = primitiveToTypeToken(val);
+        stack.push(t);
       } else {
         throw new Error(`Syntax Error: invalid syntax at position ${T[i].pos}: ${T[i]}`);
       }
@@ -546,7 +556,7 @@ class TokenString {
   }
 
   /** Token array from infix to postfix */
-  _toRPN(tokens) {
+  _toRPN(tokens, bidmas = true) {
     const stack = [], output = [];
     for (let i = 0; i < tokens.length; i++) {
       if (tokens[i] instanceof NumberToken || tokens[i] instanceof VariableToken || tokens[i] instanceof FunctionToken || tokens[i] instanceof FunctionRefToken || tokens[i] instanceof StringToken || tokens[i] instanceof BoolToken || tokens[i] instanceof ArrayToken) {
@@ -559,14 +569,10 @@ class TokenString {
         }
         stack.pop(); // Remove ) from stack
       } else if (tokens[i] instanceof OperatorToken) {
-        if (tokens[i].value === '^') {
-          while (stack.length !== 0 && tokens[i].priority() <= peek(stack).priority()) {
-            output.push(stack.pop());
-          }
+        if (bidmas) {
+          while (stack.length !== 0 && tokens[i].priority() < peek(stack).priority()) output.push(stack.pop());
         } else {
-          while (stack.length !== 0 && tokens[i].priority() < peek(stack).priority()) {
-            output.push(stack.pop());
-          }
+          while (stack.length !== 0) output.push(stack.pop());
         }
         stack.push(tokens[i]);
       } else {

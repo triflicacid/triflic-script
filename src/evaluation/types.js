@@ -12,7 +12,7 @@ const types = {
   func: 8,
 };
 
-const isNumericType = t => t === 'complex' || t === 'complex_int' || t === 'real' || t === 'real_int';
+const isNumericType = t => t === 'complex' || t === 'complex_int' || t === 'real' || t === 'real_int' || t === 'bool';
 const isIntType = t => t === 'real_int' || t === 'complex_int';
 
 function castingError(obj, type) {
