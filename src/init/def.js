@@ -4,7 +4,7 @@ const operators = require("../evaluation/operators");
 const { parseVariable } = require("../evaluation/parse");
 const { OperatorToken, VariableToken, NumberToken, FunctionRefToken, TokenString, StringToken, ArrayToken, primitiveToTypeToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorial, generatePrimes } = require("../maths/functions");
-const { print } = require("../utils");
+const { print, consoleColours } = require("../utils");
 const { typeOf } = require("../evaluation/types");
 
 
@@ -200,12 +200,17 @@ function define(rs, defVariables = true, defFuncs = true) {
 
     if (action instanceof StringToken && operators[action.value] !== undefined) {
       const op = operators[action.value];
-      if (op.args.length === 1) {
-        for (let i = 0; i < arr.value.length; i++) arr.value[i] = primitiveToTypeToken(op.fn(arr.value[i].eval(op.args[0])));
+      if (op.args === 1) {
+        for (let i = 0; i < arr.value.length; i++) {
+          let tmp = op.fn(arr.value[i]);
+          if (tmp === undefined) throw new Error(`Syntax Error: no operator overload for '${action.value}' for { <${arr.value[i].type()}> ${arr.value[i].eval('string')} }`);
+          console.log(tmp, primitiveToTypeToken(tmp));
+          arr.value[i] = primitiveToTypeToken(tmp);
+        }
         return arr.value;
-      } else if (op.args.length === 2) {
+      } else if (op.args === 2) {
         let acc = new Complex(0);
-        for (let i = 0; i < arr.value.length; i++) acc = op.fn(primitiveToTypeToken(acc).eval(op.args[0]), arr.value[i].eval(op.args[1]));
+        for (let i = 0; i < arr.value.length; i++) acc = op.fn(primitiveToTypeToken(acc), arr.value[i]);
         return acc;
       } else {
         throw new Error(`Argument Error: cannot apply operator '${action.value}' to array`);

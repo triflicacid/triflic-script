@@ -51,6 +51,8 @@ Comments may be includes as `# ...`. Enything after `#` will be ignored. If a co
 
 Strings are marcked by `"..."`.
 
+Arrays are marked by `[...]`.
+
 ### Variables
 Variables store values in memory. There are some predefined variables (assuming `--define-vars` is truthy).
 

@@ -240,6 +240,7 @@ class FunctionRefToken extends Token {
 
 /** Convert primitive value to type token */
 function primitiveToTypeToken(primitive) {
+  if (primitive instanceof Token) return primitive;
   if (typeof primitive === 'boolean') return new BoolToken(undefined, primitive);
   const c = Complex.is(primitive);
   if (c !== false) return new NumberToken(undefined, c);
@@ -313,12 +314,12 @@ class TokenString {
       }
 
       // Bracket Group?
-      if (string[i] === '(' || string[i] === ')') {
-        const t = new BracketToken(this, string[i], obj.pos);
+      if (string[i] in bracketValues) {
+        let t = new BracketToken(this, string[i], obj.pos);
 
         if (string[i] === '(') {
           brackets.push(t);
-        } else if (string[i] === ')') {
+        } else if (bracketValues[string[i]] === -1) {
           const lastOpened = peek(brackets);
           if (lastOpened === undefined) {
             if (string[i] === obj.terminateClosing) {
@@ -333,6 +334,21 @@ class TokenString {
               throw new Error(`Syntax Error: unexpected token '${string[i]}'. Expected '${bracketMap[lastOpened.value]}' following '${lastOpened.value}' at position ${lastOpened.pos}.`);
             }
           }
+        } else if (string[i] === '[') {
+          i++;
+          obj.pos++;
+
+          const itemTokens = [];
+          const [done, endPos] = this._parseCommaSeperated(itemTokens, string.substr(i), obj.pos, obj.depth, ']');
+          if (!done) throw new Error(`Syntax Error: expected '${bracketMap[t.value]}' after array declaration following '${t.value}' (position ${t.pos})`);
+
+          const argStr = string.substr(i, (endPos - obj.pos) - 1);
+          obj.pos += argStr.length;
+          i += argStr.length;
+
+          t = new ArrayToken(this, itemTokens.map(ts => ts.eval()), t.pos); // Assemble array
+        } else {
+          throw new Error(`SYntax Error: unexpected token '${string[i]}' at position ${obj.pos}`);
         }
 
         obj.tokens.push(t);
@@ -379,31 +395,13 @@ class TokenString {
           i++;
           obj.pos++;
 
-          let argStrStart = i, done = false, argTokens = []; // Array of array of tokens for function args
-          while (!done && i < string.length) { // Keep parsing args until ending ")" is found
-            const pobj = createTokenStringParseObj(string.substr(i), obj.pos, obj.depth + 1, bracketMap[openingBracket.value]);
-            try {
-              this._parse(pobj); // Parse
-              if (pobj.tokens.length !== 0) { // Not Empty
-                const ts = new TokenString(this.env, string.substr(i, pobj.pos - obj.pos));
-                ts.tokens = pobj.tokens;
-                argTokens.push(ts);
-              }
-
-              // Increment position
-              i += (pobj.pos - obj.pos) + 1;
-              obj.pos = pobj.pos + 1;
-
-              // Was terminating bracket met?
-              if (pobj.terminateClosing === true) {
-                done = true;
-              }
-            } catch (e) {
-              throw new Error(`${string}:\n${e}`);
-            }
-          }
+          const argTokens = [];
+          const [done, endPos] = this._parseCommaSeperated(argTokens, string.substr(i), obj.pos, obj.depth, bracketMap[openingBracket.value]);
           if (!done) throw new Error(`Syntax Error: expected '${bracketMap[openingBracket.value]}' after <function ${fname}> invocation following '${openingBracket.value}' (position ${openingBracket.pos})`);
-          const argStr = string.substr(argStrStart, i - 1);
+
+          const argStr = string.substr(i, (endPos - obj.pos) - 1);
+          obj.pos = endPos;
+          i += argStr.length + 1;
 
           t = new FunctionToken(this, fname, argStr, argTokens, declPos);
           t.isDeclaration = isDeclaration;
@@ -450,9 +448,9 @@ class TokenString {
     const newTokens = [];
     for (let i = 0; i < obj.tokens.length; i++) {
       newTokens.push(obj.tokens[i]);
-      if (obj.tokens[i + 1]?.is(OperatorToken, '=') && !obj.tokens[i].isDeclaration) {
+      if (obj.tokens[i + 1] instanceof OperatorToken && obj.tokens[i + 1].value === '=' && !obj.tokens[i].isDeclaration) {
         obj.tokens[i].isDeclaration = 1;
-      } else if (obj.tokens[i + 1] instanceof Token && obj.tokens[i].adjacentMultiply(obj.tokens[i + 1])) {
+      } else if (obj.tokens[i + 1] instanceof Token && obj.tokens[i] instanceof Token && obj.tokens[i].adjacentMultiply(obj.tokens[i + 1])) {
         newTokens.push(new OperatorToken(this, '!*', obj.tokens[i].pos)); // High-precedence multiplication
       }
     }
@@ -460,6 +458,33 @@ class TokenString {
     obj.tokens.length = 0;
     newTokens.forEach(i => obj.tokens.push(i));
     return;
+  }
+
+  _parseCommaSeperated(argTokens, string, pos, depth, closingSymbol) {
+    let i = 0, done = false;
+    while (!done && i < string.length) { // Keep parsing args until ending thing is found
+      const pobj = createTokenStringParseObj(string.substr(i), pos, depth + 1, closingSymbol);
+      try {
+        this._parse(pobj); // Parse
+        if (pobj.tokens.length !== 0) { // Not Empty
+          const ts = new TokenString(this.env, string.substr(i, pobj.pos - pos));
+          ts.tokens = pobj.tokens;
+          argTokens.push(ts);
+        }
+
+        // Increment position
+        i += (pobj.pos - pos) + 1;
+        pos = pobj.pos + 1;
+
+        // Was terminating bracket met?
+        if (pobj.terminateClosing === true) {
+          done = true;
+        }
+      } catch (e) {
+        throw new Error(`${string}:\n${e}`);
+      }
+    }
+    return [done, pos];
   }
 
   eval() {

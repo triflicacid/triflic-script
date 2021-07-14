@@ -3,6 +3,8 @@ const { define } = require("./src/init/def");
 const { input, print, consoleColours } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
+const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
+const { VariableToken } = require("./src/evaluation/tokens");
 
 // PARSE ARGV
 const opts = parseArgString(process.argv, true);
@@ -17,6 +19,15 @@ function attempt(fn) {
     e.toString().split('\n').forEach(line => print(`${consoleColours.Bright}${consoleColours.FgRed}[!] ${consoleColours.Reset}${line}`));
   }
 }
+
+rs.define(new RunspaceBuiltinFunction(rs, 'printr', { arg: 'any' }, ({ arg }) => {
+  if (arg instanceof VariableToken) arg = arg.getVar().value;
+  console.log(arg);
+  return arg.value;
+}, 'Print raw object :INTERNAL:', false));
+
+rs.eval("let A(x) = x ** x");
+rs.eval("let arr = apply(range(10), A)");
 
 (async function () {
   if (opts.intro) {
