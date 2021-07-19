@@ -1,6 +1,8 @@
 const { factorial } = require("../maths/functions");
 const Complex = require("../maths/Complex");
 const { isNumericType } = require("./types");
+const { arraysEqual } = require("../utils");
+const { equal } = require("./values");
 
 const operators = {
   "deg": { // !CUSTOM; degrees to radians
@@ -162,20 +164,14 @@ const operators = {
   "==": {
     precedence: 11,
     args: 2,
-    fn: (a, b) => {
-      const ta = a.type(), tb = b.type();
-      if (isNumericType(ta) && isNumericType(tb)) return a.eval('complex').equals(b.eval('complex'));
-    },
+    fn: equal,
     desc: `a equal to b`,
     syntax: 'a == b',
   },
   "!=": {
     precedence: 11,
     args: 2,
-    fn: (a, b) => {
-      const ta = a.type(), tb = b.type();
-      if (isNumericType(ta) && isNumericType(tb)) return !a.eval('complex').equals(b.eval('complex'));
-    },
+    fn: (a, b) => !equal(a, b),
     desc: `a not equal to b`,
     syntax: 'a != b',
   },

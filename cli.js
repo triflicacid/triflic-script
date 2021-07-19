@@ -1,5 +1,5 @@
 const Runspace = require("./src/runspace/Runspace");
-const { define } = require("./src/init/def");
+const { define, defineVars, defineFuncs } = require("./src/init/def");
 const { input, print, consoleColours } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
@@ -10,7 +10,9 @@ const { VariableToken } = require("./src/evaluation/tokens");
 const opts = parseArgString(process.argv, true);
 const rs = new Runspace(opts.strict, opts.ans, opts.bidmas);
 if (opts.imag !== undefined) Complex.imagLetter = opts.imag;
-define(rs, opts.defineVars, opts.defineFuncs);
+define(rs);
+if (opts.defineVars) defineVars(rs);
+if (opts.defineFuncs) defineFuncs(rs);
 
 function attempt(fn) {
   try {
@@ -25,9 +27,6 @@ rs.define(new RunspaceBuiltinFunction(rs, 'printr', { arg: 'any' }, ({ arg }) =>
   console.log(arg);
   return arg.value;
 }, 'Print raw object :INTERNAL:', false));
-
-// rs.eval("let A(x) = x ** x");
-// rs.eval("let arr = apply(range(10), A)");
 
 (async function () {
   if (opts.intro) {

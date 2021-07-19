@@ -1,6 +1,6 @@
 require("dotenv").config();
 const Discord = require("discord.js");
-const { define } = require("./src/init/def");
+const { define, defineVars, defineFuncs } = require("./src/init/def");
 const Runspace = require("./src/runspace/Runspace");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 const { parseArgString } = require("./src/init/args");
@@ -14,7 +14,9 @@ function createRunspace(argString = '') {
   const opts = parseArgString(argString, false);
   const rs = new Runspace(opts.strict, opts.ans, opts.bidmas); // Create object
   if (opts.imag !== undefined) Complex.imagLetter = opts.imag; // Change imaginary unit
-  define(rs, opts.defineVars, opts.defineFuncs); // Define pre-defined things
+  define(rs);
+  if (opts.defineVars) defineVars(rs);
+  if (opts.defineFuncs) defineFuncs(rs);
   rs.define(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
     if (rs.discordLatestMsg) {
       if (c === undefined) c = 0;

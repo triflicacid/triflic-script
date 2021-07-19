@@ -128,4 +128,20 @@ function primitiveToValueClass(runspace, primitive) {
   return new StringValue(undefined, primitive);
 }
 
-module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, FunctionRefValue, primitiveToValueClass };
+function equal(a, b) {
+  const basic = a === b;
+  if (basic) return basic;
+
+  const ta = a.type(), tb = b.type();
+  if (isNumericType(ta) && isNumericType(tb)) return a.eval('complex').equals(b.eval('complex'));
+  if (ta === 'string' && ta === 'string') return a.value === b.value;
+  if (ta === 'array' && tb === 'array') {
+    a = a.eval('array');
+    b = b.eval('array');
+    let lim = Math.max(a.value.length, b.value.length);
+    for (let i = 0; i < lim; i++) if (!equal(a.value[i], b.value[i])) return false;
+    return true;
+  }
+}
+
+module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, FunctionRefValue, primitiveToValueClass, equal };

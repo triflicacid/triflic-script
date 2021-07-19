@@ -105,6 +105,32 @@ const createTokenStringParseObj = (str, pos, depth, terminateClosing = null) => 
   terminateClosing, // When depth>0 and this closing bracket is found (assuming brackets.length==0) break from the function
 });
 
+function arraysEqual(a1, a2) {
+  let len = Math.max(a1.length, a2.length);
+  for (let i = 0; i < len; i++) {
+    if (a1[i] !== a2[i]) return false;
+  }
+  return true;
+}
+
+const sum = arr => arr.reduce((a, x) => a.add(x), new Complex(0));
+const sort = arr => [...arr].sort((a, b) => a - b);
+const mean = arr => sum(arr) / arr.length;
+const PMCC = (x, y) => {
+  if (x.length !== y.length) throw new Error(`Argument Error: input arrays must be same size`);
+  const n = x.length;
+  
+  const ux = sum(x), uy = sum(y);
+  const vx = sum(x.map(a => a * a)), vy = sum(y.map(a => a * a));
+  const wxy = sum(x.map((_, i) => x[i] * y[i]));
+  
+  return (n * wxy - ux * uy) / Math.sqrt((n * vx - ux * ux) * (n * vy - uy * uy));
+};
+const variance = arr => {
+  const m = mean(arr);
+  return sum(arr.map(x => Math.pow(x - m, 2))) / arr.length;
+};
+
 module.exports = {
-  input, print, peek, isDigit, prefixLines, getArgvBool, assertReal, consoleColours, createEnum, str, bool, createTokenStringParseObj,
+  input, print, peek, isDigit, prefixLines, getArgvBool, assertReal, consoleColours, createEnum, str, bool, createTokenStringParseObj, arraysEqual, PMCC, mean, sort, variance,
 };
