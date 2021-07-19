@@ -1,17 +1,13 @@
-const Complex = require("../maths/Complex");
-const { RunspaceUserFunction, RunspaceBuiltinFunction } = require("./Function");
 const RunspaceVariable = require("./Variable");
-const operators = require("../evaluation/operators");
-const { TokenString, VariableToken, NumberToken, Token, primitiveToTypeToken } = require("../evaluation/tokens");
+const { TokenString, VariableToken, Token } = require("../evaluation/tokens");
 const { peek } = require("../utils");
-const { parseFunction, parseVariable, parseOperator } = require("../evaluation/parse");
+const { primitiveToValueClass } = require("../evaluation/values");
 
 class Runspace {
   constructor(strict = false, storeAns = true, doBidmas = true) {
     this._vars = [{}]; // { variable: EnvVariable }[]
     this._funcs = {}; // { fn_name: EnvFunction }
 
-    this.logical = false; // Changes behaviour of some operators to be logical
     this.strict = !!strict;
     this.bidmas = !!doBidmas;
     this.storeAns(storeAns);
@@ -28,7 +24,7 @@ class Runspace {
       let obj;
       if (value instanceof Token) obj = new RunspaceVariable(name, value, desc, constant);
       else if (value instanceof RunspaceVariable) obj = value.copy();
-      else obj = new RunspaceVariable(name, primitiveToTypeToken(value), desc, constant);
+      else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
 
       peek(this._vars)[name] = obj; // Insert into top-level scope
     }
@@ -48,7 +44,7 @@ class Runspace {
   _assignVarGetObjValue(tstr, obj) {
     let value;
     if (obj instanceof VariableToken) {
-      value = primitiveToTypeToken(obj.eval("any"));
+      value = primitiveToValueClass(this, obj.eval("any"));
       value.tstr = tstr;
     } else {
       value = obj;

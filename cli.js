@@ -26,8 +26,8 @@ rs.define(new RunspaceBuiltinFunction(rs, 'printr', { arg: 'any' }, ({ arg }) =>
   return arg.value;
 }, 'Print raw object :INTERNAL:', false));
 
-rs.eval("let A(x) = x ** x");
-rs.eval("let arr = apply(range(10), A)");
+// rs.eval("let A(x) = x ** x");
+// rs.eval("let arr = apply(range(10), A)");
 
 (async function () {
   if (opts.intro) {

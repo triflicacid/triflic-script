@@ -1,18 +1,15 @@
-const Complex = require("../maths/Complex");
 const operators = require("../evaluation/operators");
-const { peek, str, createTokenStringParseObj, bool } = require("../utils");
+const { peek, str, createTokenStringParseObj } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseFunction, parseVariable } = require("./parse");
-const { isNumericType, isIntType, castingError } = require("./types");
 const { RunspaceUserFunction, RunspaceBuiltinFunction } = require("../runspace/Function");
+const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, primitiveToValueClass } = require("./values");
+const { isNumericType } = require("./types");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
     this.tstr = tstring;
     this.value = v;
     this.pos = pos; // Definition position
-  }
-  type() {
-    throw new Error(`Overload Required`);
   }
   eval(type) {
     throw new Error(`Overload Required (type provided: ${type})`);
@@ -28,72 +25,18 @@ class Token {
   }
 }
 
-/** For numerical values e.g. '3.1519' */
-class NumberToken extends Token {
-  constructor(tstring, n, pos) {
-    super(tstring, Complex.assert(n), pos);
+/** Token which refers to a Value class. */
+class ValueToken extends Token {
+  constructor(tstring, value, pos) {
+    super(tstring, value, pos);
   }
-  type() { return this.value.isReal() ? "real" : "complex"; }
-  eval(type) {
-    if (type === 'any' || type === 'complex') return this.value;
-    if (type === 'complex_int') return Complex.floor(this.value);
-    if (type === 'real') return this.value.a;
-    if (type === 'real_int') return Math.floor(this.value.a);
-    if (type === 'string') return this.value.toString();
-    if (type === 'bool') {
-      if (this.value.b === 0) return !!this.value.a;
-      if (this.value.a === 0) return !!this.value.b;
-      return true;
-    }
-    castingError(this, type);
-  }
+
+  eval(type) { return this.value.eval(type); }
+
   adjacentMultiply(obj) {
-    return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
-  }
-}
-
-class StringToken extends Token {
-  constructor(tstring, string, pos) {
-    super(tstring, str(string), pos);
-  }
-  type() { return "string"; }
-  len() { return this.value.length; }
-  eval(type) {
-    if (type === 'any' || type === 'string') return this.value;
-    if (type === 'bool') return bool(this.value);
-    if (isNumericType(type)) {
-      let n = +this.value;
-      if (isIntType(type)) n = Math.floor(n);
-      return Complex.assert(n);
-    }
-    castingError(this, type);
-  }
-}
-
-class BoolToken extends Token {
-  constructor(tstring, bool, pos) {
-    super(tstring, !!bool, pos);
-  }
-  type() { return "bool"; }
-  eval(type) {
-    if (type === "any" || type === "bool") return this.value;
-    if (isNumericType(type)) return Complex.assert(+this.value);
-    if (type === 'string') return this.value.toString();
-    castingError(this, type);
-  }
-}
-
-class ArrayToken extends Token {
-  constructor(tstring, items, pos) {
-    super(tstring, items, pos);
-  }
-  type() { return "array"; }
-  len() { return this.value.length; }
-  eval(type) {
-    if (type === 'any' || type === 'array') return this.value;
-    if (type === 'string') return "[" + this.value.map(t => t.eval("string")).join(',') + "]";
-    if (isNumericType(type)) return Complex.NaN();
-    castingError(this, type);
+    const t = this.value.type();
+    if (isNumericType(t)) return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
+    return false;
   }
 }
 
@@ -103,29 +46,19 @@ class BracketToken extends Token {
     super(tstring, x, pos);
     if (bracketValues[x] === undefined) throw new Error(`new BracketToken() : '${x}' is not a bracket`);
   }
-  type() { return "string"; }
   priority() { return 0; }
+
   /** 1 : opening, -1 : closing */
   facing() {
     return bracketValues[this.value];
   }
-  len() { return this.value.length; }
-  eval(type) {
-    if (type === 'any' || type === 'string') return this.value;
-    if (type === 'bool') return false;
-    if (isNumericType(type)) return Complex.NaN();
-    castingError(this, type);
-  }
+
   adjacentMultiply(obj) {
     if (this.facing() === -1) {
       if (obj instanceof BracketToken && bracketMap[this.value] === obj.value) return true; // Matching brackets e.g. ')(' or ']['
       return obj instanceof FunctionToken || obj instanceof VariableToken || obj instanceof NumberToken;
     }
     return false;
-  }
-  static isGrammar(x) {
-    const array = ["(", ")", "[", "]", "{", "}"];
-    return array.includes(x);
   }
 }
 
@@ -135,16 +68,18 @@ class OperatorToken extends Token {
     super(tstring, op, pos);
     if (operators[op] === undefined) throw new Error(`new OperatorToken() : '${op}' is not an operator`);
   }
-  type() { return "string"; }
+
   /** Eval as operators */
   eval(...args) {
     const r = operators[this.value].fn(...args);
     if (r === undefined) throw new Error(`Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
     return r;
   }
+
   priority() {
     return +operators[this.value].precedence;
   }
+
   info() {
     return operators[this.value];
   }
@@ -160,16 +95,16 @@ class VariableToken extends Token {
     return str(this.getVar()?.value.type());
   }
   len() {
-    return str(this.getVar()?.value.len());
+    return this.getVar()?.value.len();
   }
   eval(type) {
-    return this.tstr.env.var(this.value)?.eval(type);
+    return this.tstr.rs.var(this.value)?.eval(type);
   }
   exists() {
-    return this.tstr.env.var(this.value) !== undefined;
+    return this.tstr.rs.var(this.value) !== undefined;
   }
   getVar() {
-    return this.tstr.env.var(this.value);
+    return this.tstr.rs.var(this.value);
   }
   adjacentMultiply(obj) {
     return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
@@ -190,9 +125,10 @@ class FunctionToken extends Token {
     this.isDeclaration = false; // Is this token on the RHS of assignment?
   }
   type() { return "func"; }
+
   /** Evaluate as a function (non-casting) */
   eval() {
-    const fn = this.tstr.env.func(this.value);
+    const fn = this.tstr.rs.func(this.value);
     if (fn === undefined) throw new Error(`Name Error: name '${this.value}' is not a function`);
     // Check arg count
     fn.checkArgCount(this.args);
@@ -203,60 +139,29 @@ class FunctionToken extends Token {
     const ret = fn.eval(args);
     return ret;
   }
+
   exists() {
-    return this.tstr.env.func(this.value) === undefined;
+    return this.tstr.rs.func(this.value) === undefined;
   }
+
   adjacentMultiply(obj) {
     return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
   }
+
   toString() {
     return `${this.value}(${this.raw})`;
   }
 }
 
-/** Reference to function without calling */
-class FunctionRefToken extends Token {
-  constructor(tstring, fname, pos) {
-    super(tstring, fname, pos);
-  }
-  type() { return "func"; }
-  exists() {
-    return this.tstr.env.func(this.value) !== undefined;
-  }
-  getFn() {
-    return this.tstr.env.func(this.value);
-  }
-  eval(type) {
-    if (type === 'any' || type === 'string') return this.toString();
-    if (type === 'func') return this.value;
-    if (isNumericType(type)) return Complex.NaN();
-    castingError(this, type);
-  }
-
-  toString() {
-    return `<function ${this.value}>`;
-  }
-}
-
-/** Convert primitive value to type token */
-function primitiveToTypeToken(primitive) {
-  if (primitive instanceof Token) return primitive;
-  if (typeof primitive === 'boolean') return new BoolToken(undefined, primitive);
-  const c = Complex.is(primitive);
-  if (c !== false) return new NumberToken(undefined, c);
-  if (Array.isArray(primitive)) return new ArrayToken(undefined, primitive.map(x => primitiveToTypeToken(x)));
-  return new StringToken(undefined, primitive);
-}
-
 
 /** Take input as a string. Use TokenString#parse() to transform into array of tokens */
 class TokenString {
-  constructor(env, string) {
-    this.env = env;
+  constructor(runspace, string) {
+    this.rs = runspace;
     this.string = string;
     this.tokens = []; // Array of token objects
     this.comment = '';
-    this.setAns = true; // Used by Runspace; use value produced as 'ans' variable?
+    // this.setAns = true; // Used by Runspace; use value produced as 'ans' variable?
     if (string) this.parse();
   }
 
@@ -276,7 +181,7 @@ class TokenString {
       // Start/End string?
       if (string[i] === '"') {
         if (inString) {
-          const t = new StringToken(this, str, obj.pos);
+          const t = new ValueToken(this, new StringValue(this.rs, str), obj.pos);
           obj.tokens.push(t);
           str = '';
         } else {
@@ -346,7 +251,8 @@ class TokenString {
           obj.pos += argStr.length;
           i += argStr.length;
 
-          t = new ArrayToken(this, itemTokens.map(ts => ts.eval()), t.pos); // Assemble array
+          let array = new ArrayValue(this.rs, itemTokens.map(ts => ts.eval()));
+          t = new ValueToken(this, array, obj.pos);
         } else {
           throw new Error(`SYntax Error: unexpected token '${string[i]}' at position ${obj.pos}`);
         }
@@ -375,7 +281,7 @@ class TokenString {
       // Number?
       let o = parseNumber(string.substr(i));
       if (o.nStr.length !== 0) {
-        const t = new NumberToken(this, o.n, obj.pos);
+        const t = new ValueToken(this, new NumberValue(this.rs, o.n), obj.pos);
         obj.tokens.push(t);
         i += o.pos;
         obj.pos += o.pos;
@@ -384,7 +290,8 @@ class TokenString {
 
       // Function?
       let fname = parseFunction(string.substr(i));
-      functionParseBlock: if (fname !== null && (isDeclaration || this.env.func(fname) !== undefined)) {
+      functionParseBlock:
+      if (fname !== null && (isDeclaration || this.rs.func(fname) !== undefined)) {
         const declPos = obj.pos; // Position where function name was enountered
         i += fname.length;
         obj.pos += fname.length;
@@ -412,7 +319,7 @@ class TokenString {
             obj.pos = declPos;
             break functionParseBlock;
           }
-          t = new FunctionRefToken(this, fname, obj.pos);
+          t = new ValueToken(this, new FunctionRefValue(this.rs, fname), obj.pos);
         }
         obj.tokens.push(t);
         continue;
@@ -454,7 +361,7 @@ class TokenString {
         newTokens.push(new OperatorToken(this, '!*', obj.tokens[i].pos)); // High-precedence multiplication
       }
     }
-
+    
     obj.tokens.length = 0;
     newTokens.forEach(i => obj.tokens.push(i));
     return;
@@ -467,7 +374,7 @@ class TokenString {
       try {
         this._parse(pobj); // Parse
         if (pobj.tokens.length !== 0) { // Not Empty
-          const ts = new TokenString(this.env, string.substr(i, pobj.pos - pos));
+          const ts = new TokenString(this.rs, string.substr(i, pobj.pos - pos));
           ts.tokens = pobj.tokens;
           argTokens.push(ts);
         }
@@ -491,6 +398,7 @@ class TokenString {
     try {
       return this._eval();
     } catch (e) {
+throw e      
       throw new Error(`${this.string}:\n${e}`);
     }
   }
@@ -505,22 +413,22 @@ class TokenString {
 
         if (this.tokens[0] instanceof VariableToken) {
           let name = this.tokens[0].value;
-          if (this.env.func(name)) throw new Error(`Syntax Error: Invalid syntax - symbol '${name}' is a function but treated as a variable at position ${this.tokens[0].pos}`);
-          if (this.env.var(name)?.constant) throw new Error(`Syntax Error: Assignment to constant variable ${name} (position ${this.tokens[1].pos})`);
+          if (this.rs.func(name)) throw new Error(`Syntax Error: Invalid syntax - symbol '${name}' is a function but treated as a variable at position ${this.tokens[0].pos}`);
+          if (this.rs.var(name)?.constant) throw new Error(`Syntax Error: Assignment to constant variable ${name} (position ${this.tokens[1].pos})`);
           // Setup TokenString
-          let ts = new TokenString(this.env, '');
+          let ts = new TokenString(this.rs, '');
           ts.tokens = defTokens;
           // Evaluate
           const obj = ts.eval(); // Intermediate
-          const varObj = this.env.var(name, this.env._assignVarGetObjValue(ts, obj));
+          const varObj = this.rs.var(name, this.rs._assignVarGetObjValue(ts, obj));
           if (this.tokens[0].isDeclaration === 2) varObj.constant = true;
           if (this.comment) varObj.desc = this.comment;
           return obj;
         } else if (this.tokens[0] instanceof FunctionToken) {
           let name = this.tokens[0].value;
-          if (this.env.var(name)) throw new Error(`Syntax Error: Invalid syntax - symbol '${name}' is a variable but treated as a function at position ${this.tokens[0].pos}`);
-          if (this.env.strict && this.env.func(name) instanceof RunspaceBuiltinFunction) throw new Error(`Strict Mode: cannot redefine built-in function ${name}`);
-          if (this.env.func(name)?.constant) throw new Error(`Syntax Error: Assignment to constant function ${name} (position ${this.tokens[1].pos})`);
+          if (this.rs.var(name)) throw new Error(`Syntax Error: Invalid syntax - symbol '${name}' is a variable but treated as a function at position ${this.tokens[0].pos}`);
+          if (this.rs.strict && this.rs.func(name) instanceof RunspaceBuiltinFunction) throw new Error(`Strict Mode: cannot redefine built-in function ${name}`);
+          if (this.rs.func(name)?.constant) throw new Error(`Syntax Error: Assignment to constant function ${name} (position ${this.tokens[1].pos})`);
           // Extract function arguments - each TokenString in FunctionToken#args should contain ONE symbol
           let fargs = [], a = 0;
           for (let argts of this.tokens[0].args) {
@@ -530,13 +438,13 @@ class TokenString {
             a++;
           }
           // Setup TokenString
-          let ts = new TokenString(this.env, '');
+          let ts = new TokenString(this.rs, '');
           ts.tokens = defTokens;
           // Define function
-          const fn = new RunspaceUserFunction(this.env, name, fargs, ts, this.comment || undefined);
+          const fn = new RunspaceUserFunction(this.rs, name, fargs, ts, this.comment || undefined);
           if (this.tokens[0].isDeclaration === 2) fn.constant = true;
-          this.env.define(fn);
-          return new FunctionRefToken(this, name, this.tokens[0].pos);
+          this.rs.define(fn);
+          return new FunctionRefValue(this.rs, name);
         } else {
           throw new Error(`Syntax Error: invalid assignment at position ${this.tokens[0].pos}: cannot assign to ${typeof this.tokens[0]} ${this.tokens[0]}`);
         }
@@ -545,18 +453,22 @@ class TokenString {
       }
     }
 
-    const T = this._toRPN(this.tokens, this.env.bidmas), stack = []; // STACK SHOULD ONLY CONTAIN COMPLEX()
+    for (let i = 0; i < this.tokens.length; i++) {
+      if (this.tokens[i] instanceof ValueToken) this.tokens[i] = this.tokens[i].value;
+    }
+    
+    const T = this._toRPN(this.tokens, this.rs.bidmas), stack = []; // STACK SHOULD ONLY CONTAIN COMPLEX()
     for (let i = 0; i < T.length; i++) {
-      if (T[i] instanceof NumberToken || T[i] instanceof StringToken || T[i] instanceof BoolToken || T[i] instanceof ArrayToken) {
+      if (T[i] instanceof Value) {
         stack.push(T[i]);
       } else if (T[i] instanceof FunctionToken) {
         const val = T[i].eval('any');
-        const t = primitiveToTypeToken(val);
+        const t = primitiveToValueClass(this.rs, val);
         stack.push(t);
       } else if (T[i] instanceof VariableToken) {
         if (!T[i].exists()) throw new Error(`Name Error: name '${T[i]}' does not exist (position ${T[i].pos})`);
         stack.push(T[i]);
-      } else if (T[i] instanceof FunctionRefToken) {
+      } else if (T[i] instanceof FunctionRefValue) {
         if (!T[i].exists()) throw new Error(`Reference Error: null reference ${T[i]} (position ${T[i].pos})`);
         stack.push(T[i]);
       } else if (T[i] instanceof OperatorToken) {
@@ -565,13 +477,13 @@ class TokenString {
         let args = [];
         for (let i = 0; i < info.args; i++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
         const val = T[i].eval(...args);
-        const t = primitiveToTypeToken(val);
+        const t = primitiveToValueClass(this.rs, val);
         stack.push(t);
       } else {
         throw new Error(`Syntax Error: invalid syntax at position ${T[i].pos}: ${T[i]}`);
       }
     }
-    if (stack.length === 0) return new NumberToken(this, 0);
+    if (stack.length === 0) return new NumberValue(this.rs, 0);
     if (stack.length !== 1) throw new Error(`Syntax Error: Invalid syntax (evaluation failed to reduce expression to single number)`);
     return stack[0];
   }
@@ -584,7 +496,7 @@ class TokenString {
   _toRPN(tokens, bidmas = true) {
     const stack = [], output = [];
     for (let i = 0; i < tokens.length; i++) {
-      if (tokens[i] instanceof NumberToken || tokens[i] instanceof VariableToken || tokens[i] instanceof FunctionToken || tokens[i] instanceof FunctionRefToken || tokens[i] instanceof StringToken || tokens[i] instanceof BoolToken || tokens[i] instanceof ArrayToken) {
+      if (tokens[i] instanceof ValueToken || tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof FunctionToken) {
         output.push(tokens[i]);
       } else if (tokens[i].is(BracketToken, '(')) {
         stack.push(tokens[i]);
@@ -609,8 +521,4 @@ class TokenString {
   }
 }
 
-module.exports = {
-  Token, NumberToken, StringToken, BoolToken, ArrayToken, BracketToken, VariableToken, OperatorToken, FunctionToken, FunctionRefToken,
-  primitiveToTypeToken,
-  TokenString,
-};
+module.exports = { Token, BracketToken, VariableToken, OperatorToken, FunctionToken, TokenString };

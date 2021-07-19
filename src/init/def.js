@@ -2,10 +2,11 @@ const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const operators = require("../evaluation/operators");
 const { parseVariable } = require("../evaluation/parse");
-const { OperatorToken, VariableToken, NumberToken, FunctionRefToken, TokenString, StringToken, ArrayToken, primitiveToTypeToken } = require("../evaluation/tokens");
+const { OperatorToken, VariableToken, TokenString } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorial, generatePrimes } = require("../maths/functions");
-const { print, consoleColours } = require("../utils");
+const { print } = require("../utils");
 const { typeOf } = require("../evaluation/types");
+const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue } = require("../evaluation/values");
 
 
 /** Base definitions for an Environment */
@@ -46,7 +47,7 @@ function define(rs, defVariables = true, defFuncs = true) {
     } else if (item instanceof OperatorToken) {
       let info = operators[item];
       help = `Type: operator\nDesc: ${info.desc}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
-    } else if (item instanceof FunctionRefToken) {
+    } else if (item instanceof FunctionRefValue) {
       let fn = item.getFn();
       if (fn === undefined) {
         throw new Error(`Reference Error: null reference ${item} - unable to retrieve help`);
@@ -57,13 +58,13 @@ function define(rs, defVariables = true, defFuncs = true) {
     } else if (item instanceof VariableToken) {
       let v = rs.var(item);
       help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.eval('string')}`;
-    } else if (item instanceof NumberToken) {
-      help = `Type: number\nValue: ${item.eval('complex')}`;
-    } else if (item instanceof StringToken && operators[item.value] !== undefined) {
+    } else if (item instanceof StringValue && operators[item.value] !== undefined) {
       const info = operators[item.value];
       return `Type: string (operator)\nDesc: ${info.desc}\nArgs: ${info.args}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
+    } else if (item instanceof Value) {
+      return `Type: ${item.type()}\nNumeric: ${item.eval('complex')}\nValue: ${item.eval('string')}`;
     } else {
-      return `Type: ${item.type()}\nValue: ${item.eval("string")}`;
+      if (rs.strict) throw new Error(`Cannot get help on given argument`);
     }
     return help;
   }, 'Get general help or help on a provided argument', false));
@@ -75,12 +76,8 @@ function define(rs, defVariables = true, defFuncs = true) {
         return 0;
       }
       return +rs.var(item.value, null);
-    } else if (item instanceof FunctionRefToken) {
+    } else if (item instanceof FunctionRefValue) {
       let fn = item.getFn();
-      if (fn instanceof RunspaceBuiltinFunction) {
-        if (rs.strict) throw new Error(`Argument Error: cannot delete built-in ${item}`);
-        return 0;
-      }
       if (fn.constant) {
         if (rs.strict) throw new Error(`Argument Error: cannot delete constant function ${item}`);
         return 0;
@@ -164,14 +161,14 @@ function define(rs, defVariables = true, defFuncs = true) {
   rs.define(new RunspaceBuiltinFunction(rs, 'get', { arg: 'any', i: 'real_int' }, ({ arg, i }) => {
     let value;
     if (arg instanceof VariableToken) arg = arg.getVar().value;
-    if (arg instanceof ArrayToken) value = arg.value?.[i]?.eval("any");
-    else if (arg instanceof StringToken) value = arg.value?.[i];
+    if (arg instanceof ArrayValue) value = arg.value?.[i]?.eval("any");
+    else if (arg instanceof StringValue) value = arg.value?.[i];
     if (value != undefined) return value;
     throw new Error(`Argument Error: unable to retrieve index ${i} of type ${arg.type()}`);
   }, 'get item at <i> in <arg>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'set', { arr: 'array', i: 'real_int', item: 'any' }, ({ arr, i, item }) => {
     if (arr instanceof VariableToken) arr = arr.getVar().value;
-    if (arr instanceof ArrayToken) {
+    if (arr instanceof ArrayValue) {
       arr.value[i] = item;
       return arr.value.length;
     }
@@ -179,51 +176,51 @@ function define(rs, defVariables = true, defFuncs = true) {
   }, 'set item at <i> in array <arr> to <item>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }) => {
     if (arr instanceof VariableToken) arr = arr.getVar().value;
-    if (arr instanceof ArrayToken) return arr.value.push(item);
+    if (arr instanceof ArrayValue) return arr.value.push(item);
     throw new Error(`Argument Error: expected array`);
   }, 'push item <item> to array <arr>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'pop', { arr: 'array' }, ({ arr }) => {
     if (arr instanceof VariableToken) arr = arr.getVar().value;
-    if (arr instanceof ArrayToken) return arr.value.pop();
+    if (arr instanceof ArrayValue) return arr.value.pop();
     throw new Error(`Argument Error: expected array`);
   }, 'pop item from array <arr>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'reverse', { arg: 'any' }, ({ arg }) => {
     if (arg instanceof VariableToken) arg = arg.getVar().value;
-    if (arg instanceof ArrayToken) arg.value.reverse();
-    else if (arg instanceof StringToken) arg.value = arg.value.split('').reverse().join('');
+    if (arg instanceof ArrayValue) arg.value.reverse();
+    else if (arg instanceof StringValue) arg.value = arg.value.split('').reverse().join('');
     else throw new Error(`Argument Error: unable to reverse object of type ${arg.type()}`);
     return arg.eval('any');
   }, 'reverse argument <arg>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'apply', { arr: 'array', action: 'any' }, ({ arr, action }) => {
     if (arr instanceof VariableToken) arr = arr.getVar().value;
-    if (!(arr instanceof ArrayToken)) throw new Error(`Argument Error: expected array`);
+    if (!(arr instanceof ArrayValue)) throw new Error(`Argument Error: expected array`);
 
-    if (action instanceof StringToken && operators[action.value] !== undefined) {
+    if (action instanceof StringValue && operators[action.value] !== undefined) {
       const op = operators[action.value];
       if (op.args === 1) {
         for (let i = 0; i < arr.value.length; i++) {
           let tmp = op.fn(arr.value[i]);
           if (tmp === undefined) throw new Error(`Syntax Error: no operator overload for '${action.value}' for { <${arr.value[i].type()}> ${arr.value[i].eval('string')} }`);
-          console.log(tmp, primitiveToTypeToken(tmp));
-          arr.value[i] = primitiveToTypeToken(tmp);
+          console.log(tmp, primitiveToValueClass(rs, tmp));
+          arr.value[i] = primitiveToValueClass(rs, tmp);
         }
         return arr.value;
       } else if (op.args === 2) {
         let acc = new Complex(0);
-        for (let i = 0; i < arr.value.length; i++) acc = op.fn(primitiveToTypeToken(acc), arr.value[i]);
+        for (let i = 0; i < arr.value.length; i++) acc = op.fn(primitiveToValueClass(rs, acc), arr.value[i]);
         return acc;
       } else {
         throw new Error(`Argument Error: cannot apply operator '${action.value}' to array`);
       }
-    } else if (action instanceof FunctionRefToken) {
+    } else if (action instanceof FunctionRefValue) {
       const fn = action.getFn(), args = Object.entries(fn.args);
       for (let i = 0, ans; i < arr.value.length; i++) {
         try {
           if (args.length === 1) ans = fn.eval([arr.value[i].eval(args[0][1])]);
-          else if (args.length === 2) ans = fn.eval([arr.value[i].eval(args[0][1]), primitiveToTypeToken(i).eval(args[1][1])]);
-          else if (args.length === 3) ans = fn.eval([arr.value[i].eval(args[0][1]), primitiveToTypeToken(i).eval(args[1][1]), arr.eval(args[2][1])]);
+          else if (args.length === 2) ans = fn.eval([arr.value[i].eval(args[0][1]), primitiveToValueClass(rs, i).eval(args[1][1])]);
+          else if (args.length === 3) ans = fn.eval([arr.value[i].eval(args[0][1]), primitiveToValueClass(rs, i).eval(args[1][1]), arr.eval(args[2][1])]);
           else throw new Error(`Argument Error: cannot apply ${action} to array: unsupported argument count ${args.length}`);
-          arr.value[i] = primitiveToTypeToken(ans);
+          arr.value[i] = primitiveToValueClass(rs, ans);
         } catch (e) {
           throw new Error(`${fn.defString()}:\n${e}`);
         }
@@ -307,13 +304,13 @@ function define(rs, defVariables = true, defFuncs = true) {
       start = start.eval('real_int');
       limit = limit.eval('real_int');
       if (svar !== undefined) {
-        if (svar instanceof StringToken) {
+        if (svar instanceof StringValue) {
           sumVar = svar.eval("string");
           let extract = parseVariable(sumVar);
           if (sumVar !== extract) throw new Error(`Argument Error: Invalid variable provided '${sumVar}'`);
         } else throw new Error(`Argument Error: Invalid value for <svar>: ${svar}`);
       }
-      if (action instanceof FunctionRefToken) { // Execute action as a function
+      if (action instanceof FunctionRefValue) { // Execute action as a function
         const fn = action.getFn();
         for (let i = start; i <= limit; i++) {
           try {
@@ -322,9 +319,9 @@ function define(rs, defVariables = true, defFuncs = true) {
             throw new Error(`${fn.defString()}:\n${e}`);
           }
         }
-      } else if (action instanceof NumberToken || action instanceof VariableToken) { // Stored value
-        sum = Complex.mult(action.eval(), Complex.sub(limit, start).add(1));
-      } else if (action instanceof StringToken) { // Evaluate action as a TokenString
+      } else if (action instanceof NumberValue || action instanceof VariableToken) { // Stored value
+        sum = Complex.mult(action.eval('complex'), Complex.sub(limit, start).add(1));
+      } else if (action instanceof StringValue) { // Evaluate action as a TokenString
         let ts;
         try {
           ts = new TokenString(rs, action.value);
@@ -332,16 +329,16 @@ function define(rs, defVariables = true, defFuncs = true) {
           throw new Error(`Summation action: ${action.value}:\n${e}`);
         }
 
-        ts.env.pushScope();
+        ts.rs.pushScope();
         for (let i = start; i <= limit; i++) {
           try {
-            ts.env.var(sumVar, i);
+            ts.rs.var(sumVar, i);
             sum.add(ts.eval().eval('complex'));
           } catch (e) {
             throw new Error(`${action.value} when ${sumVar} = ${i}:\n${e}`);
           }
         }
-        ts.env.popScope();
+        ts.rs.popScope();
       } else {
         throw new Error(`Argument Error: invalid summation action`);
       }

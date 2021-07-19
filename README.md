@@ -12,7 +12,6 @@ Input maths problems to be solved. Supports dynamic operators, variables and fun
 All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. They are all optional.
 - `cli.js` - Arguments proceed `node cli.js`
 - `discord.js` - Arguments proceed `!start`
-
 - `strict` : `boolean`. Strict mode? (actions are more tightly controlled).
 - `bidmas` : `boolean`. Should expressions obey BIDMAS (order of operations)?
 - `define-vars` : `boolean`. Whether or not to define common variables such as `pi` and `e`.
