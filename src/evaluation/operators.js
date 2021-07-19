@@ -79,25 +79,30 @@ const operators = {
   },
   "+": {
     precedence: 14,
-    args: 2,
-    fn: (a, b) => {
+    args: [2, 1],
+    fn2: (a, b) => {
       const ta = a.type(), tb = b.type();
       if (isNumericType(ta) && isNumericType(tb)) return Complex.add(a.eval('complex'), b.eval('complex'));
       if (ta === 'array' && tb === 'array') return [...a.eval('array'), ...b.eval('array')];
+      if (ta === 'set' && tb === 'set') return new Set([...a.eval('array'), ...b.eval('array')]);
       if (ta === 'string' && (tb === 'string' || isNumericType(tb))) return a.eval('string') + b.eval('string');
       if (ta === 'array') return [...a.eval('array'), b.eval('any')];
+      if (ta === 'set') return new Set([...a.eval('array'), b.eval('any')]);
       if (tb === 'array') return [a.eval('any'), ...b.eval('array')];
+      if (tb === 'set') return new Set([a.eval('any'), ...b.eval('array')]);
     },
+    fn1: n => n.eval('complex'),
     desc: `a + b`,
     syntax: 'a + b',
   },
   "-": {
     precedence: 14,
-    args: 2,
-    fn: (a, b) => {
+    args: [2, 1],
+    fn2: (a, b) => {
       const ta = a.type(), tb = b.type();
       if (isNumericType(ta) && isNumericType(tb)) return Complex.sub(a.eval('complex'), b.eval('complex'));
     },
+    fn1: n => Complex.mult(n.eval('complex'), -1),
     desc: `a - b`,
     syntax: 'a - b',
   },

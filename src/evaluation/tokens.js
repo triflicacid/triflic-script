@@ -2,7 +2,7 @@ const operators = require("../evaluation/operators");
 const { peek, str, createTokenStringParseObj } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseFunction, parseVariable } = require("./parse");
 const { RunspaceUserFunction, RunspaceBuiltinFunction } = require("../runspace/Function");
-const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, primitiveToValueClass } = require("./values");
+const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, primitiveToValueClass, SetValue } = require("./values");
 const { isNumericType } = require("./types");
 
 class Token {
@@ -71,7 +71,9 @@ class OperatorToken extends Token {
 
   /** Eval as operators */
   eval(...args) {
-    const r = operators[this.value].fn(...args);
+    let fn = Array.isArray(operators[this.value].args) ? operators[this.value]['fn' + args.length] : operators[this.value].fn;
+    if (typeof fn !== 'function') throw new Error(`Internal Error: operator function for ${this.value} with ${args.length} args is undefined`);
+    let r = fn(...args);
     if (r === undefined) throw new Error(`Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
     return r;
   }
@@ -239,20 +241,21 @@ class TokenString {
               throw new Error(`Syntax Error: unexpected token '${string[i]}'. Expected '${bracketMap[lastOpened.value]}' following '${lastOpened.value}' at position ${lastOpened.pos}.`);
             }
           }
-        } else if (string[i] === '[') {
+        } else if (string[i] === '[' || string[i] === '{') {
           i++;
           obj.pos++;
 
           const itemTokens = [];
-          const [done, endPos] = this._parseCommaSeperated(itemTokens, string.substr(i), obj.pos, obj.depth, ']');
+          const [done, endPos] = this._parseCommaSeperated(itemTokens, string.substr(i), obj.pos, obj.depth, bracketMap[t.value]);
           if (!done) throw new Error(`Syntax Error: expected '${bracketMap[t.value]}' after array declaration following '${t.value}' (position ${t.pos})`);
 
           const argStr = string.substr(i, (endPos - obj.pos) - 1);
           obj.pos += argStr.length;
           i += argStr.length;
 
-          let array = new ArrayValue(this.rs, itemTokens.map(ts => ts.eval()));
-          t = new ValueToken(this, array, obj.pos);
+          const Klass = t.value === '{' ? SetValue : ArrayValue;
+          let value = new Klass(this.rs, itemTokens.map(ts => ts.eval()));
+          t = new ValueToken(this, value, obj.pos);
         } else {
           throw new Error(`SYntax Error: unexpected token '${string[i]}' at position ${obj.pos}`);
         }
@@ -266,16 +269,12 @@ class TokenString {
       // Operator?
       let op = parseOperator(string.substr(i));
       if (op !== null) {
-        let top = peek(obj.tokens);
-        if ((op === '-' || op === '+') && (obj.tokens.length === 0 || top instanceof OperatorToken || top instanceof BracketToken)) {
-          // Negative sign for a number, then
-        } else {
-          const t = new OperatorToken(this, op, obj.pos);
-          obj.tokens.push(t);
-          i += op.length;
-          obj.pos += op.length;
-          continue;
-        }
+        const top = peek(obj.tokens);
+        const t = new OperatorToken(this, op, obj.pos);
+        obj.tokens.push(t);
+        i += op.length;
+        obj.pos += op.length;
+        continue;
       }
 
       // Number?
@@ -473,9 +472,20 @@ throw e
         stack.push(T[i]);
       } else if (T[i] instanceof OperatorToken) {
         const info = T[i].info();
-        if (stack.length < info.args) throw new Error(`Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} (SIG_STACK_UNDERFLOW while evaluating)`);
+        let argCount;
+        if (Array.isArray(info.args)) {
+          for (let i = 0; i < info.args.length; i++) {
+            if (info.args[i] <= stack.length) {
+              argCount = info.args[i];
+              break;
+            }
+          }
+        } else {
+          argCount = info.args;
+        }
+        if (argCount === undefined || stack.length < argCount) throw new Error(`Syntax Error: operator '${T[i]}' has no overload for ${argCount} arguments, at position ${T[i].pos} (SIG_STACK_UNDERFLOW while evaluating)`);
         let args = [];
-        for (let i = 0; i < info.args; i++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
+        for (let i = 0; i < argCount; i++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
         const val = T[i].eval(...args);
         const t = primitiveToValueClass(this.rs, val);
         stack.push(t);

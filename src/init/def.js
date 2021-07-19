@@ -6,7 +6,7 @@ const { OperatorToken, VariableToken, TokenString } = require("../evaluation/tok
 const { lambertw, isPrime, LCF, primeFactors, factorial, generatePrimes } = require("../maths/functions");
 const { print, bool, PMCC, mean, sort, variance } = require("../utils");
 const { typeOf } = require("../evaluation/types");
-const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue } = require("../evaluation/values");
+const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue } = require("../evaluation/values");
 
 
 /** Core definitions !REQUIRED! */
@@ -16,6 +16,8 @@ function define(rs) {
   rs.var('inf', Infinity, 'Value representing Infinity', true);
   rs.var('true', true, '\'true\' is a boolean value that represents mathematical and logical truth', true);
   rs.var('false', false, '\'false\' is a boolean value that is used when the result of a logical statement is false', true);
+  rs.var('∅', new SetValue(rs, []), 'Empty set', true);
+  rs.var('ε', new SetValue(rs, []), 'Universal set', false);
 
   /****************** CORE FUNCTIONS */
 
@@ -121,7 +123,8 @@ function define(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.eval(type.eval("string")), 'attempt a direct cast from object <o> to type <type>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => typeOf(o), 'attempt a direct cast from object <o> to type <type>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new Complex(a, b), 'create a complex number'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'array', {}, () => ([]), 'create empty array'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => String.fromCharCode(n), 'return character with ASCII code <n>'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => chr.charCodeAt(0), 'return character code of <chr>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
     let start, end, step;
     if (b === undefined) { start = 0; end = a; step = 1; }
@@ -145,7 +148,7 @@ function define(rs) {
     if (value != undefined) return value;
     throw new Error(`Argument Error: unable to retrieve index ${i} of type ${arg.type()}`);
   }, 'get item at <i> in <arg>', false));
-  rs.define(new RunspaceBuiltinFunction(rs, 'set', { arr: 'array', i: 'real_int', item: 'any' }, ({ arr, i, item }) => {
+  rs.define(new RunspaceBuiltinFunction(rs, 'arrSet', { arr: 'array', i: 'real_int', item: 'any' }, ({ arr, i, item }) => {
     if (arr instanceof VariableToken) arr = arr.getVar().value;
     if (arr instanceof ArrayValue) {
       arr.value[i] = item;
@@ -156,11 +159,12 @@ function define(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }) => {
     if (arr instanceof VariableToken) arr = arr.getVar().value;
     if (arr instanceof ArrayValue) return arr.value.push(item);
+    if (arr instanceof SetValue) { arr.run(() => arr.value.push(item)); return arr.value.length; }
     throw new Error(`Argument Error: expected array`);
   }, 'push item <item> to array <arr>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'pop', { arr: 'array' }, ({ arr }) => {
     if (arr instanceof VariableToken) arr = arr.getVar().value;
-    if (arr instanceof ArrayValue) return arr.value.pop();
+    if (arr instanceof ArrayValue || arr instanceof SetValue) return arr.value.pop();
     throw new Error(`Argument Error: expected array`);
   }, 'pop item from array <arr>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'reverse', { arg: 'any' }, ({ arg }) => {
@@ -172,8 +176,12 @@ function define(rs) {
   }, 'reverse argument <arg>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'sort', { arr: 'array' }, ({ arr }) => {
     return sort(arr.map((v, i) => {
-      if (v.type() !== 'real') throw new Error(`Type Error: expected array of real numbers, got ${v.type()} at index ${i}`);
-      return v.eval('real');
+      if (v instanceof Value) {
+        if (v.type() !== 'real') throw new Error(`Type Error: expected array of real numbers, got ${v.type()} at index ${i}`);
+        return v.eval('real');
+      } else {
+        return +v;
+      }
     }));
   }, 'sort array numerically'));
   rs.define(new RunspaceBuiltinFunction(rs, 'apply', { arr: 'array', action: 'any' }, ({ arr, action }) => {

@@ -53,6 +53,7 @@ class StringValue extends Value {
       return Complex.assert(n);
     }
     if (type === 'array') return this.value.split('');
+    if (type === 'set') return new Set(this.value.split(''));
     castingError(this, type);
   }
 }
@@ -83,9 +84,41 @@ class ArrayValue extends Value {
   
   eval(type) {
     if (type === 'any' || type === 'array') return this.value;
+    if (type === 'set') return new Set(this.value);
     if (type === 'string') return "[" + this.value.map(t => t.eval("string")).join(',') + "]";
     if (isNumericType(type)) return Complex.NaN();
     castingError(this, type);
+  }
+}
+
+class SetValue extends Value {
+  constructor(runspace, items) {
+    super(runspace, items);
+    this.check();
+  }
+
+  /** Remove duplicate values */
+  check() {
+    this.value = removeDuplicates(this.value);
+  }
+
+  type() { return "set"; }
+  
+  len() { return this.value.length; }
+  
+  eval(type) {
+    if (type === 'any' || type === 'set') return new Set(this.value);
+    if (type === 'array') return this.value;
+    if (type === 'string') return "{" + this.value.map(t => t.eval("string")).join(',') + "}";
+    if (isNumericType(type)) return Complex.NaN();
+    castingError(this, type);
+  }
+
+  /** Run and return fn() */
+  run(fn) {
+    let tmp = fn(this);
+    this.check();
+    return tmp;
   }
 }
 
@@ -123,6 +156,7 @@ function primitiveToValueClass(runspace, primitive) {
   if (typeof primitive === 'boolean') return new BoolValue(runspace, primitive);
   const c = Complex.is(primitive);
   if (c !== false) return new NumberValue(runspace, c);
+  if (primitive instanceof Set) return new SetValue(runspace, Array.from(primitive).map(p => primitiveToValueClass(runspace, p)));
   if (Array.isArray(primitive)) return new ArrayValue(runspace, primitive.map(p => primitiveToValueClass(runspace, p)));
   if (runspace.func(primitive) !== undefined) return new FunctionRefValue(runspace, primitive);
   return new StringValue(undefined, primitive);
@@ -144,4 +178,20 @@ function equal(a, b) {
   }
 }
 
-module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, FunctionRefValue, primitiveToValueClass, equal };
+/** Remove duplicate values from array  */
+function removeDuplicates(arr) {
+  let set = [];
+  for (let i = 0; i < arr.length; i++) {
+    let found = false;
+    for (let j = 0; j < set.length; j++) {
+      if (equal(arr[i], set[j])) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) set.push(arr[i]);
+  }
+  return set;
+}
+
+module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, FunctionRefValue, primitiveToValueClass, equal, removeDuplicates };
