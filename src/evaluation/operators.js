@@ -183,10 +183,7 @@ const operators = {
   "&&": {
     precedence: 7,
     args: 2,
-    fn: (a, b) => {
-      const ta = a.type(), tb = b.type();
-      if ((ta === 'real' || ta === 'bool') && (tb === 'real' || tb === 'bool')) return a.eval('bool') && b.eval('bool');
-    },
+    fn: (a, b) => a.eval('bool') && b.eval('bool') ? b : false,
     desc: `Logical AND`,
     syntax: 'a && b',
   },
@@ -214,8 +211,9 @@ const operators = {
     precedence: 6,
     args: 2,
     fn: (a, b) => {
-      const ta = a.type(), tb = b.type();
-      if ((ta === 'real' || ta === 'bool') && (tb === 'real' || tb === 'bool')) return a.eval('bool') || b.eval('bool');
+      if (a.eval('bool')) return a;
+      if (b.eval('bool')) return b;
+      return false;
     },
     desc: `Logical OR`,
     syntax: 'a || b',

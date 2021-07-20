@@ -44,13 +44,15 @@ Lines may be inputted and process by using `Environment#eval()`.
 
 The input will be pre-processed in the `eval()` method itself before being parsed as a `TokenString` and evaluated/stored.
 
-Input may be an assignment; either `<var> = ...` or `<function>(<args>...) = ...`.
+### General Syntax
 
 Comments may be includes as `# ...`. Enything after `#` will be ignored. If a comment is included in a function/variable definition, the contents of this comment will be displayed when `help(<thing>)` is called.
 
-Strings are marcked by `"..."`.
+Strings are marked by `"..."`.
 
 Arrays are marked by `[...]`.
+
+Sets are marked by `{...}`.
 
 ### Variables
 Variables store values in memory. There are some predefined variables (assuming `--define-vars` is truthy).

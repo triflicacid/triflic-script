@@ -46,7 +46,7 @@ class StringValue extends Value {
   
   eval(type) {
     if (type === 'any' || type === 'string') return this.value;
-    if (type === 'bool') return bool(this.value);
+    if (type === 'bool') return !!this.value;
     if (isNumericType(type)) {
       let n = +this.value;
       if (isIntType(type)) n = Math.floor(n);
@@ -86,6 +86,7 @@ class ArrayValue extends Value {
     if (type === 'any' || type === 'array') return this.value;
     if (type === 'set') return new Set(this.value);
     if (type === 'string') return "[" + this.value.map(t => t.eval("string")).join(',') + "]";
+    if (type === 'bool') return !!this.value;
     if (isNumericType(type)) return Complex.NaN();
     castingError(this, type);
   }
@@ -110,6 +111,7 @@ class SetValue extends Value {
     if (type === 'any' || type === 'set') return new Set(this.value);
     if (type === 'array') return this.value;
     if (type === 'string') return "{" + this.value.map(t => t.eval("string")).join(',') + "}";
+    if (type === 'bool') return !!this.value;
     if (isNumericType(type)) return Complex.NaN();
     castingError(this, type);
   }

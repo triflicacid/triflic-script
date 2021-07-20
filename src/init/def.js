@@ -41,7 +41,8 @@ function define(rs) {
       help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.eval('string')}`;
     } else if (item instanceof StringValue && operators[item.value] !== undefined) {
       const info = operators[item.value];
-      return `Type: string (operator)\nDesc: ${info.desc}\nArgs: ${info.args}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
+      const argStr = Array.isArray(info.args) ? `${info.args.join(' or ')} (${info.args.length} overloads)` : info.args;
+      return `Type: string (operator)\nDesc: ${info.desc}\nArgs: ${argStr}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
     } else if (item instanceof Value) {
       return `Type: ${item.type()}\nNumeric: ${item.eval('complex')}\nValue: ${item.eval('string')}`;
     } else {
@@ -292,7 +293,6 @@ function defineFuncs(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'arctanh', { z: 'complex' }, ({ z }) => Complex.arctanh(z), 'return hyperbolic arctangent of z')); // hyperbolic arctangent
   rs.define(new RunspaceBuiltinFunction(rs, 'arg', { z: 'complex' }, ({ z }) => z.arg(), 'return the argument of z'));
   rs.define(new RunspaceBuiltinFunction(rs, 'cbrt', { z: 'complex' }, ({ z }) => Complex.cbrt(z), 'return cube root of x')); // cube root
-  rs.funcAlias('cbrt', '∛');
   rs.define(new RunspaceBuiltinFunction(rs, 'ceil', { z: 'complex' }, ({ z }) => Complex.ceil(z), 'round x up to the nearest integer')); // ceiling (round up)
   rs.define(new RunspaceBuiltinFunction(rs, 'conj', { z: 'complex' }, ({ z }) => z.conjugate(), 'return z* (the configate) of z'));
   rs.define(new RunspaceBuiltinFunction(rs, 'cos', { z: 'complex' }, ({ z }) => Complex.cos(z), 'return cosine of x')); // cosine
