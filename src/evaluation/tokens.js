@@ -1,4 +1,3 @@
-const operators = require("../evaluation/operators");
 const { peek, str, createTokenStringParseObj } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseFunction, parseVariable } = require("./parse");
 const { RunspaceUserFunction, RunspaceBuiltinFunction } = require("../runspace/Function");
@@ -11,9 +10,7 @@ class Token {
     this.value = v;
     this.pos = pos; // Definition position
   }
-  eval(type) {
-    throw new Error(`Overload Required (type provided: ${type})`);
-  }
+  eval(type) { throw new Error(`Overload Required (type provided: ${type})`); }
   is(klass, val = undefined) {
     return (this instanceof klass && (val != undefined && this.value === val));
   }
@@ -66,12 +63,12 @@ class BracketToken extends Token {
 class OperatorToken extends Token {
   constructor(tstring, op, pos) {
     super(tstring, op, pos);
-    if (operators[op] === undefined) throw new Error(`new OperatorToken() : '${op}' is not an operator`);
+    if (tstring.rs.operators[op] === undefined) throw new Error(`new OperatorToken() : '${op}' is not an operator`);
   }
 
   /** Eval as operators */
   eval(...args) {
-    let fn = Array.isArray(operators[this.value].args) ? operators[this.value]['fn' + args.length] : operators[this.value].fn;
+    let fn = Array.isArray(this.tstr.rs.operators[this.value].args) ? this.tstr.rs.operators[this.value]['fn' + args.length] : this.tstr.rs.operators[this.value].fn;
     if (typeof fn !== 'function') throw new Error(`Internal Error: operator function for ${this.value} with ${args.length} args is undefined`);
     let r = fn(...args);
     if (r === undefined) throw new Error(`Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
@@ -79,11 +76,11 @@ class OperatorToken extends Token {
   }
 
   priority() {
-    return +operators[this.value].precedence;
+    return +this.tstr.rs.operators[this.value].precedence;
   }
 
   info() {
-    return operators[this.value];
+    return this.tstr.rs.operators[this.value];
   }
 }
 
@@ -96,11 +93,11 @@ class VariableToken extends Token {
   type() {
     return str(this.getVar()?.value.type());
   }
-  len() {
-    return this.getVar()?.value.len();
-  }
   eval(type) {
     return this.tstr.rs.var(this.value)?.eval(type);
+  }
+  toPrimitive(type) {
+    return this.tstr.rs.var(this.value)?.toPrimitive(type);
   }
   exists() {
     return this.tstr.rs.var(this.value) !== undefined;
@@ -110,6 +107,9 @@ class VariableToken extends Token {
   }
   adjacentMultiply(obj) {
     return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
+  }
+  toString() {
+    return str(this.getVar()?.value);
   }
 }
 
@@ -267,7 +267,7 @@ class TokenString {
       }
 
       // Operator?
-      let op = parseOperator(string.substr(i));
+      let op = parseOperator(this.rs, string.substr(i));
       if (op !== null) {
         const top = peek(obj.tokens);
         const t = new OperatorToken(this, op, obj.pos);
@@ -419,7 +419,7 @@ throw e
           ts.tokens = defTokens;
           // Evaluate
           const obj = ts.eval(); // Intermediate
-          const varObj = this.rs.var(name, this.rs._assignVarGetObjValue(ts, obj));
+          const varObj = this.rs.var(name, obj);
           if (this.tokens[0].isDeclaration === 2) varObj.constant = true;
           if (this.comment) varObj.desc = this.comment;
           return obj;
@@ -461,11 +461,10 @@ throw e
       if (T[i] instanceof Value) {
         stack.push(T[i]);
       } else if (T[i] instanceof FunctionToken) {
-        const val = T[i].eval('any');
-        const t = primitiveToValueClass(this.rs, val);
-        stack.push(t);
+        const val = T[i].eval();
+        stack.push(val);
       } else if (T[i] instanceof VariableToken) {
-        if (!T[i].exists()) throw new Error(`Name Error: name '${T[i]}' does not exist (position ${T[i].pos})`);
+        if (!T[i].exists()) throw new Error(`Name Error: name '${T[i].value}' does not exist (position ${T[i].pos})`);
         stack.push(T[i]);
       } else if (T[i] instanceof FunctionRefValue) {
         if (!T[i].exists()) throw new Error(`Reference Error: null reference ${T[i]} (position ${T[i].pos})`);
@@ -487,8 +486,7 @@ throw e
         let args = [];
         for (let i = 0; i < argCount; i++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
         const val = T[i].eval(...args);
-        const t = primitiveToValueClass(this.rs, val);
-        stack.push(t);
+        stack.push(val);
       } else {
         throw new Error(`Syntax Error: invalid syntax at position ${T[i].pos}: ${T[i]}`);
       }

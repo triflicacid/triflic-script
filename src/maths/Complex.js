@@ -203,7 +203,7 @@ class Complex {
     // arcsinh(z) = ln[z + |1 + z^2|^0.5 * e^((i/2) * arg(1 + z^2))]
     z = Complex.assert(z);
     let opz2 = Complex.add(1, Complex.mult(z, z)); // 1 + z^2
-    return Complex.log(Complex.add(z, Complex.mult(Complex.pow(Complex.abs(opz2), 0.5), Complex.exp(Complex.div(Complex.I, 2).mult(opz2.arg())))));
+    return Complex.log(Complex.add(z, Complex.mult(Complex.pow(Complex.abs(opz2), 0.5), Complex.exp(Complex.div(Complex.I(), 2).mult(opz2.arg())))));
   }
 
   /** Calculate arcsine of a complex number */
@@ -212,7 +212,7 @@ class Complex {
 
     let sqrt = new Complex(1 - Math.pow(z.a, 2) + Math.pow(z.b, 2), -2 * z.a * z.b).pow(0.5); // sqrt(1 - z^2)
     let ln = Complex.log(new Complex(-z.b + sqrt.a, z.a + sqrt.b)); // ln(iz + <sqrt>)
-    let k = Complex.I.copy().mult(-1); // -i
+    let k = new Complex(0, -1); // -i
     return Complex.mult(k, ln); // <k> * <ln>
   }
 
@@ -234,7 +234,7 @@ class Complex {
     z = Complex.assert(z);
     let sqrt = new Complex(Math.pow(z.a, 2) - Math.pow(z.b, 2) - 1, 2 * z.a * z.b).pow(0.5); // sqrt(z^2 - 1)
     let ln = Complex.log(new Complex(z.a + sqrt.a, z.b + sqrt.b)); // ln(z + <sqrt>)
-    let k = Complex.I.copy().mult(-1); // -i
+    let k = new Complex(0, -1); // -i
     return Complex.mult(k, ln); // <k> * <ln>
   }
 
@@ -245,7 +245,7 @@ class Complex {
     // arccosh(z) = ln[z + |z^2 - 1|^0.5 * e^((i/2) * arg(z^2 - 1))]
     z = Complex.assert(z);
     let z2mo = Complex.sub(Complex.mult(z, z), 1); // z^2 - 1
-    return Complex.log(Complex.add(z, Complex.mult(Complex.pow(Complex.abs(z2mo), 0.5), Complex.exp(Complex.div(Complex.I, 2).mult(z2mo.arg())))));
+    return Complex.log(Complex.add(z, Complex.mult(Complex.pow(Complex.abs(z2mo), 0.5), Complex.exp(Complex.div(Complex.I(), 2).mult(z2mo.arg())))));
   }
 
   /** Calculate tangent of a complex number */
@@ -265,7 +265,7 @@ class Complex {
   static arctan(z) {
     // arctan(z) = 1/(2i) * ln[(1 + iz)/(1 - iz)]
     z = Complex.assert(z);
-    const iz = Complex.mult(Complex.I, z);
+    const iz = Complex.mult(Complex.I(), z);
     return Complex.mult(Complex.div(1, new Complex(0, 2)), Complex.log(Complex.div(Complex.add(1, iz), Complex.sub(1, iz))));
   }
 

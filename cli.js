@@ -22,8 +22,6 @@ function attempt(fn) {
   }
 }
 
-rs.eval('s = {}');
-
 rs.define(new RunspaceBuiltinFunction(rs, 'printr', { arg: 'any' }, ({ arg }) => {
   if (arg instanceof VariableToken) arg = arg.getVar().value;
   console.log(arg);

@@ -2,11 +2,13 @@ const RunspaceVariable = require("./Variable");
 const { TokenString, VariableToken, Token } = require("../evaluation/tokens");
 const { peek } = require("../utils");
 const { primitiveToValueClass } = require("../evaluation/values");
+const { prepareOperators } = require("../evaluation/operators");
 
 class Runspace {
   constructor(strict = false, storeAns = true, doBidmas = true) {
     this._vars = [{}]; // { variable: EnvVariable }[]
     this._funcs = {}; // { fn_name: EnvFunction }
+    this.operators = prepareOperators(this);
 
     this.strict = !!strict;
     this.bidmas = !!doBidmas;
@@ -24,7 +26,7 @@ class Runspace {
       let obj;
       if (value instanceof Token) obj = new RunspaceVariable(name, value, desc, constant);
       else if (value instanceof RunspaceVariable) obj = value.copy();
-      else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
+      else obj = new RunspaceVariable(name, primitiveToValueClass(this, value, true), desc, constant);
 
       peek(this._vars)[name] = obj; // Insert into top-level scope
     }
@@ -38,18 +40,6 @@ class Runspace {
     this._storeAns = !!v;
     this.var('ans', this._storeAns ? 0 : null);
     return this._storeAns;
-  }
-
-  /** Create a new EnvVariable; get object to provide as value of Variable from <obj> */
-  _assignVarGetObjValue(tstr, obj) {
-    let value;
-    if (obj instanceof VariableToken) {
-      value = primitiveToValueClass(this, obj.eval("any"));
-      value.tstr = tstr;
-    } else {
-      value = obj;
-    }
-    return value;
   }
 
   /** Push new variable scope */
@@ -94,8 +84,8 @@ class Runspace {
   eval(string) {
     const ts = new TokenString(this, string);
     let obj = ts.eval(); // Intermediate value
-    if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', this._assignVarGetObjValue(ts, obj), 'value returned by previous statement');
-    return obj.eval('string');
+    if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', obj.eval('any'), 'value returned by previous statement');
+    return obj.toString();
   }
 }
 

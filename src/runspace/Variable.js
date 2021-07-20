@@ -6,6 +6,7 @@ class RunspaceVariable {
     this.constant = constant;
   }
   eval(type) { return this.value.eval(type); }
+  toPrimitive(type) { return this.value.toPrimitive(type); }
   copy() { return new RunspaceVariable(this.name, this.value, this.desc); }
 }
 

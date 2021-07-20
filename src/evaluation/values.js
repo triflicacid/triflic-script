@@ -10,7 +10,12 @@ class Value {
 
     type() { throw new Error(`Requires Overload`); }
     eval() { throw new Error(`Requires Overload`); }
-    toString() { return this.eval('string'); }
+    toPrimitive(type) {
+      const v = this.eval(type).value;
+      if (type.startsWith('real')) return v.a; // Raw number only
+      return v;
+    }
+    toString() { return this.toPrimitive('string'); }
 }
 
 class NumberValue extends Value {
@@ -21,14 +26,14 @@ class NumberValue extends Value {
     type() { return this.value.isReal() ? "real" : "complex"; }
 
     eval(type) {
-        if (type === 'any' || type === 'complex') return this.value;
-        if (type === 'complex_int') return Complex.floor(this.value);
-        if (type === 'real') return this.value.a;
-        if (type === 'real_int') return Math.floor(this.value.a);
-        if (type === 'string') return this.value.toString();
+        if (type === 'any' || type === 'complex') return this;
+        if (type === 'complex_int') return new NumberValue(this.rs, Complex.floor(this.value));
+        if (type === 'real') return new NumberValue(this.rs, this.value.a);
+        if (type === 'real_int') return new NumberValue(this.rs, Math.floor(this.value.a));
+        if (type === 'string') return new StringValue(this.rs, str(this.value));
         if (type === 'bool') {
-            if (this.value.b === 0) return !!this.value.a;
-            if (this.value.a === 0) return !!this.value.b;
+            if (this.value.b === 0) return new BoolValue(this.rs, !!this.value.a);
+            if (this.value.a === 0) return new BoolValue(this.rs, !!this.value.b);
             return true;
         }
         castingError(this, type);
@@ -45,15 +50,15 @@ class StringValue extends Value {
   len() { return this.value.length; }
   
   eval(type) {
-    if (type === 'any' || type === 'string') return this.value;
-    if (type === 'bool') return !!this.value;
+    if (type === 'any' || type === 'string') return this;
+    if (type === 'bool') return new BoolValue(this.rs, !!this.value);
     if (isNumericType(type)) {
       let n = +this.value;
       if (isIntType(type)) n = Math.floor(n);
-      return Complex.assert(n);
+      return new NumberValue(this.rs, n);
     }
-    if (type === 'array') return this.value.split('');
-    if (type === 'set') return new Set(this.value.split(''));
+    if (type === 'array') return new ArrayValue(this.rs, this.value.split(''));
+    if (type === 'set') return new SetValue(this.rs, this.value.split(''));
     castingError(this, type);
   }
 }
@@ -66,9 +71,9 @@ class BoolValue extends Value {
   type() { return "bool"; }
 
   eval(type) {
-    if (type === "any" || type === "bool") return this.value;
-    if (isNumericType(type)) return Complex.assert(+this.value);
-    if (type === 'string') return this.value.toString();
+    if (type === "any" || type === "bool") return this;
+    if (isNumericType(type)) return new NumberValue(this.rs, +this.value);
+    if (type === 'string') return new StringValue(this.rs, str(this.value));
     castingError(this, type);
   }
 }
@@ -83,11 +88,11 @@ class ArrayValue extends Value {
   len() { return this.value.length; }
   
   eval(type) {
-    if (type === 'any' || type === 'array') return this.value;
-    if (type === 'set') return new Set(this.value);
-    if (type === 'string') return "[" + this.value.map(t => t.eval("string")).join(',') + "]";
-    if (type === 'bool') return !!this.value;
-    if (isNumericType(type)) return Complex.NaN();
+    if (type === 'any' || type === 'array') return this;
+    if (type === 'set') return new SetValue(this.rs, this.value);
+    if (type === 'string') return new StringValue(this.rs, "[" + this.value.map(t => t.toString()).join(',') + "]");
+    if (type === 'bool') return new BoolValue(this.rs, !!this.value);
+    if (isNumericType(type)) return new NumberValue(this.rs, Complex.NaN());
     castingError(this, type);
   }
 }
@@ -108,11 +113,11 @@ class SetValue extends Value {
   len() { return this.value.length; }
   
   eval(type) {
-    if (type === 'any' || type === 'set') return new Set(this.value);
-    if (type === 'array') return this.value;
-    if (type === 'string') return "{" + this.value.map(t => t.eval("string")).join(',') + "}";
-    if (type === 'bool') return !!this.value;
-    if (isNumericType(type)) return Complex.NaN();
+    if (type === 'any' || type === 'set') return this;
+    if (type === 'array') return new ArrayValue(this.rs, this.value);
+    if (type === 'string') return new StringValue(this.rs, "{" + this.value.map(t => t.toString()).join(',') + "}");
+    if (type === 'bool') return new BoolValue(this.rs, !!this.value);
+    if (isNumericType(type)) return new NumberValue(this.rs, NaN);
     castingError(this, type);
   }
 
@@ -141,8 +146,8 @@ class FunctionRefValue extends Value {
   }
 
   eval(type) {
-    if (type === 'any' || type === 'string') return this.toString();
-    if (type === 'func') return this.value;
+    if (type === 'any' || type === 'func') return this;
+    if (type === 'string') return new StringValue(this.rs, this.toString());
     castingError(this, type);
   }
 
@@ -153,7 +158,12 @@ class FunctionRefValue extends Value {
 
 
 /** Convert primitive JS value to Value class */
-function primitiveToValueClass(runspace, primitive) {
+function primitiveToValueClass(runspace, primitive, sudo = false) {
+  if (!sudo) {
+    console.log(arguments);
+    throw new Error(`FUNCTION IS DEPRECATED`);
+  }
+
   if (primitive instanceof Value) return primitive;
   if (typeof primitive === 'boolean') return new BoolValue(runspace, primitive);
   const c = Complex.is(primitive);
@@ -169,7 +179,7 @@ function equal(a, b) {
   if (basic) return basic;
 
   const ta = a.type(), tb = b.type();
-  if (isNumericType(ta) && isNumericType(tb)) return a.eval('complex').equals(b.eval('complex'));
+  if (isNumericType(ta) && isNumericType(tb)) return a.toPrimitive('complex').equals(b.toPrimitive('complex'));
   if (ta === 'string' && ta === 'string') return a.value === b.value;
   if (ta === 'array' && tb === 'array') {
     a = a.eval('array');

@@ -102,9 +102,8 @@ class RunspaceUserFunction extends RunspaceFunction {
       }
     }
     const t = this.tstr.eval(); // Return token
-    let x = t.eval('any'); // Reduce Token to raw value
     this.rs.popScope();
-    return x;
+    return t.eval('any'); // Sort out any variables
   }
 
   raw() {
@@ -142,7 +141,7 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
         i++;
       }
     }
-    let ret = this.fn(o); // Returns primitive value
+    let ret = this.fn(o);
     return ret;
   }
 
