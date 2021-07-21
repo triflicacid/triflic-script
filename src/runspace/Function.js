@@ -101,9 +101,9 @@ class RunspaceUserFunction extends RunspaceFunction {
         i++;
       }
     }
-    const t = this.tstr.eval(); // Return token
+    const t = this.tstr.eval().eval('any'); // Return token and sort out any variables
     this.rs.popScope();
-    return t.eval('any'); // Sort out any variables
+    return t;
   }
 
   raw() {
