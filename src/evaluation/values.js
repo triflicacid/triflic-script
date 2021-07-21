@@ -197,7 +197,7 @@ class FunctionRefValue extends Value {
 
   __del__() {
     const f = this.getFn();
-    if (f.constant) throw new Error(`Argument Error: Attempt to delete referemce to constant function ${this.toString()}`);
+    if (f.constant) throw new Error(`Argument Error: Attempt to delete constant reference to ${this.toString()}`);
     this.rs.func(this.value, null);
     return new NumberValue(this.rs, 0);
   }

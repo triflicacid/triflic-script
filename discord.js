@@ -12,7 +12,7 @@ client.login(process.env.BOT_TOKEN);
 /** Create new runspace */
 function createRunspace(argString = '') {
   const opts = parseArgString(argString, false);
-  const rs = new Runspace(opts.strict, opts.ans, opts.bidmas); // Create object
+  const rs = new Runspace(opts); // Create object
   if (opts.imag !== undefined) Complex.imagLetter = opts.imag; // Change imaginary unit
   define(rs);
   if (opts.defineVars) defineVars(rs);

@@ -1,4 +1,4 @@
-const { factorial } = require("../maths/functions");
+const { factorial, factorialReal } = require("../maths/functions");
 const Complex = require("../maths/Complex");
 const { isNumericType } = require("./types");
 const { NumberValue, StringValue, ArrayValue, SetValue, BoolValue } = require("./values");
@@ -308,7 +308,11 @@ const prepareOperators = rs => {
       args: 1,
       fn: n => {
         const tx = n.type();
-        if (tx === 'real') return new NumberValue(rs, factorial(n.value.a));
+        if (rs.opts.gammaFactorial) {
+          if (isNumericType(tx)) return new NumberValue(rs, factorial(n.toPrimitive('complex')));
+        } else {
+          if (tx === 'real') return new NumberValue(rs, factorialReal(n.toPrimitive('real')));
+        }
       },
       desc: `Calculate factorial of n. n must be a real, positive integer.`,
       syntax: 'a!',

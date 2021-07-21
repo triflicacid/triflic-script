@@ -16,7 +16,8 @@ function lambertw(z, k = 0, tol = 1e-8) {
   return lambertw_scalar(z, k.a, tol.a);
 }
 
-function factorial(n) {
+/** Find the factorial of a REAL INTEGER using the classic algorithm */
+function factorialReal(n) {
   if (n === 0) return 1; // 0! = 1
   if (n < 1 || Math.floor(n) !== n) throw new Error(`Argument Error: factorial expects a positive integer, got ${n}`);
   let x = n--;
@@ -97,4 +98,29 @@ const variance = arr => {
   return sum(arr.map(x => Math.pow(x - m, 2))) / arr.length;
 };
 
-module.exports = { lambertw, factorial, LCF, primeFactors, isPrime, generatePrimes, mean, PMCC, variance, };
+// Constants for gamma()
+const p = [676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+
+const gamma = (z, EPSILON = 1e-7) => {
+  z = Complex.assert(z);
+	let y;
+	
+	if (z.a < 0.5) {
+		y = Complex.div(Math.PI, Complex.mult(Complex.sin(Complex.mult(Math.PI, z)), gamma(Complex.sub(1, z))));
+	} else {
+		z.sub(1);
+		let x = new Complex(0.99999999999980993);
+		for (let i = 0; i < p.length; i++) {
+			x.add(Complex.div(p[i], Complex.add(z, i).add(1)));
+		}
+		let t = Complex.add(z, p.length).sub(0.5);
+		y = Complex.sqrt(2 * Math.PI).mult(Complex.pow(t, Complex.add(z, 0.5))).mult(Complex.exp(Complex.mult(t, -1))).mult(x);
+	}
+	
+	return y.b <= EPSILON ? new Complex(y.a) : y; // Remove imaginary component is too small
+};
+
+/** Factorial using gamma function */
+const factorial = n => gamma(Complex.add(n, 1));
+
+module.exports = { lambertw, factorialReal, LCF, primeFactors, isPrime, generatePrimes, mean, PMCC, variance, gamma, factorial };

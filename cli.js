@@ -8,7 +8,7 @@ const { VariableToken } = require("./src/evaluation/tokens");
 
 // PARSE ARGV
 const opts = parseArgString(process.argv, true);
-const rs = new Runspace(opts.strict, opts.ans, opts.bidmas);
+const rs = new Runspace(opts);
 if (opts.imag !== undefined) Complex.imagLetter = opts.imag;
 define(rs);
 if (opts.defineVars) defineVars(rs);

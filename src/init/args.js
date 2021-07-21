@@ -14,6 +14,7 @@ function parseArgString(args, doHideBin = true) {
     ans: getArgvBool(argv, "ans", true),
     imag: argv.imag,
     bidmas: getArgvBool(argv, "bidmas", true),
+    gammaFactorial: getArgvBool(argv, "gamma-factorial", true),
   };
 }
 

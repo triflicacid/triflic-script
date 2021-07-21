@@ -10,8 +10,12 @@ Input maths problems to be solved. Supports dynamic operators, variables and fun
 
 ## CLI - Command-line Arguments
 All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. They are all optional.
+
+### Position
 - `cli.js` - Arguments proceed `node cli.js`
 - `discord.js` - Arguments proceed `!start`
+
+### Arguments
 - `strict` : `boolean`. Strict mode? (actions are more tightly controlled).
 - `bidmas` : `boolean`. Should expressions obey BIDMAS (order of operations)?
 - `define-vars` : `boolean`. Whether or not to define common variables such as `pi` and `e`.
@@ -21,6 +25,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `nice-errors` : `boolean`. Whether or not to catch errors and prinpt nicely to the screen, or to crash the program.
 - `ans` : `boolean`. Whether or not to provide the `ans` variable.
 - `imag` : `character`. What character to use to represent the imaginary component in complex numbers. Set `--imag " "` to essentially disable complex numbers.
+- `gamma-factorial` : `boolean`. Use `gamma` function for factorial operator `!` (use `factorial` or `factorialReal`) ?
 
 ## Implicit Multiplication
 Multiplication operations are inserted automatically between tokens in the following cases:

@@ -2,7 +2,7 @@ const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { parseVariable } = require("../evaluation/parse");
 const { OperatorToken, VariableToken, TokenString } = require("../evaluation/tokens");
-const { lambertw, isPrime, LCF, primeFactors, factorial, generatePrimes, mean, variance, PMCC } = require("../maths/functions");
+const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma } = require("../maths/functions");
 const { print, sort, findIndex } = require("../utils");
 const { typeOf, isNumericType } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue } = require("../evaluation/values");
@@ -45,7 +45,7 @@ function define(rs) {
     } else if (item instanceof Value) {
       help = `Type: ${item.type()}\nNumeric: ${item.toPrimitive('complex')}\nValue: ${item.toString()}`;
     } else {
-      if (rs.strict) throw new Error(`Cannot get help on given argument`);
+      if (rs.opts.strict) throw new Error(`Cannot get help on given argument`);
     }
     return new StringValue(rs, help);
   }, 'Get general help or help on a provided argument', false));
@@ -133,12 +133,12 @@ function define(rs) {
   }, 'Return array populated with numbers between <a>-<b> step <c>. 1 arg=range(0,<a>,1); 2 args=range(<a>,<b>,1); 3 args=range(<a>,<b>,<c>)'));
   rs.define(new RunspaceBuiltinFunction(rs, 'len', { o: 'any' }, ({ o }) => {
     const length = o.__len__?.();
-    if (rs.strict && length === undefined) throw new Error(`Strict Mode: argument has no len()`);
+    if (rs.opts.strict && length === undefined) throw new Error(`Strict Mode: argument has no len()`);
     return new NumberValue(rs, length === undefined ? NaN : length);
   }, 'return length of argument'));
   rs.define(new RunspaceBuiltinFunction(rs, 'abs', { o: 'any' }, ({ o }) => {
     const abs = o.__abs__?.();
-    if (rs.strict && abs === undefined) throw new Error(`Strict Mode: argument has no abs()`);
+    if (rs.opts.strict && abs === undefined) throw new Error(`Strict Mode: argument has no abs()`);
     return new NumberValue(rs, abs === undefined ? NaN : abs);
   }, 'return length of argument'));
   rs.define(new RunspaceBuiltinFunction(rs, 'get', { arg: 'any', key: 'any' }, ({ arg, key }) => {
@@ -304,7 +304,8 @@ function defineFuncs(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'primes', { limit: 'real_int' }, ({ limit }) => new ArrayValue(rs, generatePrimes(limit.toPrimitive('real'))), 'generate list of primes 0..limit'));
 
   rs.define(new RunspaceBuiltinFunction(rs, 'factors', { x: 'real' }, ({ x }) => new ArrayValue(rs, primeFactors(x.toPrimitive('real'))), 'return prime factors of x'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'factorial', { x: 'real_int' }, ({ x }) => new NumberValue(rs, factorial(x.toPrimitive('real'))), 'calculate the factorial of x'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'factorial', { z: 'complex' }, ({ z }) => new NumberValue(rs, factorial(z.toPrimitive('complex'))), 'calculate the factorial of x using the Gamma function'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'factorialReal', { x: 'real_int' }, ({ x }) => new NumberValue(rs, factorialReal(x.toPrimitive('real'))), 'calculate the factorial of x using the common algorithm'));
   rs.define(new RunspaceBuiltinFunction(rs, 'ln', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.log(z.toPrimitive('complex'))), 'calculate the natural logarithm of x')); // natural logarithm
   rs.define(new RunspaceBuiltinFunction(rs, 'log', { a: 'complex', b: '?complex' }, ({ a, b }) => {
     return b === undefined ?
@@ -397,6 +398,8 @@ function defineFuncs(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'tanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tanh(z.toPrimitive('complex'))), 'return hyperbolic tangent of z')); // hyperbolic tangent
   rs.define(new RunspaceBuiltinFunction(rs, 'lambertW', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
   rs.funcAlias('lambertW', 'W');
+  rs.define(new RunspaceBuiltinFunction(rs, 'gamma', { z: 'complex' }, ({ z }) => new NumberValue(rs, gamma(z.toPrimitive('complex'))), 'Return the gamma function at z'));
+  rs.funcAlias('gamma', 'Γ');
 }
 
 module.exports = { define, defineVars, defineFuncs };

@@ -5,14 +5,13 @@ const { primitiveToValueClass } = require("../evaluation/values");
 const { prepareOperators } = require("../evaluation/operators");
 
 class Runspace {
-  constructor(strict = false, storeAns = true, doBidmas = true) {
+  constructor(opts) {
     this._vars = [{}]; // { variable: EnvVariable }[]
     this._funcs = {}; // { fn_name: EnvFunction }
     this.operators = prepareOperators(this);
 
-    this.strict = !!strict;
-    this.bidmas = !!doBidmas;
-    this.storeAns(storeAns);
+    this.opts = opts;
+    this.storeAns(opts.ans);
   }
 
   var(name, value = undefined, desc = undefined, constant = false) {
