@@ -1,7 +1,7 @@
 const RunspaceVariable = require("./Variable");
-const { TokenString, VariableToken, Token } = require("../evaluation/tokens");
+const { TokenString, Token } = require("../evaluation/tokens");
 const { peek } = require("../utils");
-const { primitiveToValueClass } = require("../evaluation/values");
+const { primitiveToValueClass, MapValue } = require("../evaluation/values");
 const { prepareOperators } = require("../evaluation/operators");
 
 class Runspace {
@@ -12,6 +12,12 @@ class Runspace {
 
     this.opts = opts;
     this.storeAns(opts.ans);
+
+    if (opts.revealHeaders) {
+      const map = new MapValue(this);
+      Object.entries(this.opts).forEach(([k, v]) => map.value.set(k, primitiveToValueClass(this, v)));
+      this.var('headers', map, 'Config headers of current runspace [readonly]', true);
+    }
   }
 
   var(name, value = undefined, desc = undefined, constant = false) {
@@ -25,7 +31,7 @@ class Runspace {
       let obj;
       if (value instanceof Token) obj = new RunspaceVariable(name, value, desc, constant);
       else if (value instanceof RunspaceVariable) obj = value.copy();
-      else obj = new RunspaceVariable(name, primitiveToValueClass(this, value, true), desc, constant);
+      else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
 
       peek(this._vars)[name] = obj; // Insert into top-level scope
     }

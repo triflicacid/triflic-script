@@ -12,8 +12,10 @@ client.login(process.env.BOT_TOKEN);
 /** Create new runspace */
 function createRunspace(argString = '') {
   const opts = parseArgString(argString, false);
+  if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter; // Change imaginary unit
+  opts.app = 'Discord';
+  opts.time = Date.now();
   const rs = new Runspace(opts); // Create object
-  if (opts.imag !== undefined) Complex.imagLetter = opts.imag; // Change imaginary unit
   define(rs);
   if (opts.defineVars) defineVars(rs);
   if (opts.defineFuncs) defineFuncs(rs);

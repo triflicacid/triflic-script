@@ -4,12 +4,15 @@ const { input, print, consoleColours } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
-const { VariableToken } = require("./src/evaluation/tokens");
 
 // PARSE ARGV
 const opts = parseArgString(process.argv, true);
+if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter;
+opts.app = 'CLI';
+opts.dir = __dirname;
+opts.file = __filename;
+opts.time = Date.now();
 const rs = new Runspace(opts);
-if (opts.imag !== undefined) Complex.imagLetter = opts.imag;
 define(rs);
 if (opts.defineVars) defineVars(rs);
 if (opts.defineFuncs) defineFuncs(rs);
@@ -26,9 +29,6 @@ rs.define(new RunspaceBuiltinFunction(rs, 'printr', { arg: 'any' }, ({ arg }) =>
   console.log(arg);
   return arg;
 }, 'Print raw object :INTERNAL:'));
-
-rs.eval('m1 = cast(range(5), "map")');
-rs.eval('m2 = cast(range(5,11), "map")');
 
 (async function () {
   if (opts.intro) {

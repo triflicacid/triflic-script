@@ -37,7 +37,7 @@ function define(rs) {
       }
     } else if (item instanceof VariableToken) {
       let v = item.getVar();
-      help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.toString()}`;
+      help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.toPrimitive('string')}`;
     } else if (item instanceof StringValue && rs.operators[item.value] !== undefined) {
       const info = rs.operators[item.value];
       const argStr = Array.isArray(info.args) ? `${info.args.join(' or ')} (${info.args.length} overloads)` : info.args;
