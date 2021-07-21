@@ -2,7 +2,7 @@ const { factorial } = require("../maths/functions");
 const Complex = require("../maths/Complex");
 const { isNumericType } = require("./types");
 const { NumberValue, StringValue, ArrayValue, SetValue, BoolValue } = require("./values");
-const { equal, intersect, arrDifference } = require("../utils");
+const { equal, intersect, arrDifference, findIndex } = require("../utils");
 
 // "<operator>": {
 //   precedence: <int>,       // Precedence of operator
@@ -219,6 +219,17 @@ const prepareOperators = rs => {
       },
       desc: `a greater than b`,
       syntax: 'a > b',
+    },
+    "in": {
+      precedence: 12,
+      args: 2,
+      fn: (a, b) => {
+        const tb = b.type();
+        if (tb === 'array' || tb === 'set') return new BoolValue(rs, findIndex(a, b.toPrimitive('array')) !== -1);
+        if (tb === 'string') return new BoolValue(rs, b.toString().indexOf(a.toString()) !== -1);
+      },
+      desc: `check if <a> is in <b>`,
+      syntax: 'a in b',
     },
     "==": {
       precedence: 11,
