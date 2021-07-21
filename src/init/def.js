@@ -2,10 +2,10 @@ const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { parseVariable } = require("../evaluation/parse");
 const { OperatorToken, VariableToken, TokenString } = require("../evaluation/tokens");
-const { lambertw, isPrime, LCF, primeFactors, factorial, generatePrimes } = require("../maths/functions");
-const { print, bool, PMCC, mean, sort, variance } = require("../utils");
+const { lambertw, isPrime, LCF, primeFactors, factorial, generatePrimes, mean, variance, PMCC } = require("../maths/functions");
+const { print, sort, findIndex } = require("../utils");
 const { typeOf, isNumericType } = require("../evaluation/types");
-const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, primitiveToValueClass, BoolValue } = require("../evaluation/values");
+const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue } = require("../evaluation/values");
 
 
 /** Core definitions !REQUIRED! */
@@ -243,6 +243,11 @@ function define(rs) {
     return new ArrayValue(rs, array);
   }, 'Remove all values from arr for which fn(value, ?index) is false'));
   rs.define(new RunspaceBuiltinFunction(rs, 'join', { arr: 'array', seperator: 'string' }, ({ arr, seperator }) => new StringValue(rs, arr.toPrimitive('array').map(v => v.toString()).join(seperator.toString())), 'Join elements in an array by <seperator>'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'find', { item: 'any', o: 'any' }, ({ item, o }) => {
+    if (o instanceof ArrayValue || o instanceof SetValue) return new NumberValue(rs, findIndex(item, o.value));
+    if (o instanceof StringValue) return new NumberValue(rs, o.value.indexOf(item.toString()));
+    throw new Error(`Argument Error: cannot search type ${o.type()}`);
+  }, 'Return index of <item> in <o> or -1'));
   rs.define(new RunspaceBuiltinFunction(rs, 'base', { arg: 'string', from: 'real_int', to: 'real_int'}, ({ arg, from, to }) => {
     from = from.toPrimitive('real_int');
     to = to.toPrimitive('real_int');
@@ -389,7 +394,8 @@ function defineFuncs(rs) {
   rs.funcAlias('summation', '∑');
   rs.define(new RunspaceBuiltinFunction(rs, 'tan', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tan(z.toPrimitive('complex'))), 'return tangent of z')); // tangent
   rs.define(new RunspaceBuiltinFunction(rs, 'tanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tanh(z.toPrimitive('complex'))), 'return hyperbolic tangent of z')); // hyperbolic tangent
-  rs.define(new RunspaceBuiltinFunction(rs, 'W', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'lambertW', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
+  rs.funcAlias('lambertW', 'W');
 }
 
 module.exports = { define, defineVars, defineFuncs };

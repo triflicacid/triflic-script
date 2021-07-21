@@ -1,5 +1,5 @@
 const Complex = require("../maths/Complex");
-const { str, bool } = require("../utils");
+const { str, bool, removeDuplicates } = require("../utils");
 const { castingError, isNumericType, isIntType } = require("./types");
 
 class Value {
@@ -221,36 +221,4 @@ function primitiveToValueClass(runspace, primitive, sudo = false) {
   return new StringValue(undefined, primitive);
 }
 
-function equal(a, b) {
-  const basic = a === b;
-  if (basic) return basic;
-
-  const ta = a.type(), tb = b.type();
-  if (isNumericType(ta) && isNumericType(tb)) return a.toPrimitive('complex').equals(b.toPrimitive('complex'));
-  if (ta === 'string' && ta === 'string') return a.value === b.value;
-  if (ta === 'array' && tb === 'array') {
-    a = a.eval('array');
-    b = b.eval('array');
-    let lim = Math.max(a.value.length, b.value.length);
-    for (let i = 0; i < lim; i++) if (!equal(a.value[i], b.value[i])) return false;
-    return true;
-  }
-}
-
-/** Remove duplicate values from array  */
-function removeDuplicates(arr) {
-  let set = [];
-  for (let i = 0; i < arr.length; i++) {
-    let found = false;
-    for (let j = 0; j < set.length; j++) {
-      if (equal(arr[i], set[j])) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) set.push(arr[i]);
-  }
-  return set;
-}
-
-module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, FunctionRefValue, primitiveToValueClass, equal, removeDuplicates };
+module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, FunctionRefValue, primitiveToValueClass };

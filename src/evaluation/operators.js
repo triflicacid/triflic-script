@@ -1,7 +1,8 @@
 const { factorial } = require("../maths/functions");
 const Complex = require("../maths/Complex");
 const { isNumericType } = require("./types");
-const { equal, NumberValue, StringValue, ArrayValue, SetValue, BoolValue } = require("./values");
+const { NumberValue, StringValue, ArrayValue, SetValue, BoolValue } = require("./values");
+const { equal, intersect, arrDifference } = require("../utils");
 
 // "<operator>": {
 //   precedence: <int>,       // Precedence of operator
@@ -37,6 +38,22 @@ const prepareOperators = rs => {
       syntax: '~x',
       preservePosition: true,
     },
+    "'": {
+      precedence: 17,
+      args: 1,
+      fn: x => {
+        const tx = x.type();
+        if (tx === 'set') {
+          const us = rs.var('ε')?.eval('any');
+          if (us == undefined || us.type() !== 'set') throw new Error(`Type Error: expected built-in variable 'universal set' [ε] to be of type set, got ${us?.type()}`);
+          return new SetValue(rs, arrDifference(us.toPrimitive('array'), x.toPrimitive('array')));
+        }
+        return new BoolValue(rs, !x.toPrimitive('bool'));
+      },
+      desc: `logical not unless x is of type set. Then, find complement of x (using universal set, ε)`,
+      syntax: 'x\'',
+      preservePosition: true,
+    },
     "**": {
       precedence: 16,
       args: 2,
@@ -55,9 +72,21 @@ const prepareOperators = rs => {
         if (isNumericType(ta) && isNumericType(tb)) return new NumberValue(rs, Complex.mult(a.toPrimitive('complex'), b.toPrimitive('complex')));
         if (isNumericType(ta) && tb === 'string') return new StringValue(rs, b.toPrimitive('string').repeat(a.toPrimitive('real')));
         if (isNumericType(tb) && ta === 'string') return new StringValue(rs, a.toPrimitive('string').repeat(b.toPrimitive('real')));
+        if (ta === 'array' && tb === 'array') return new ArrayValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
       },
       desc: `a × b`,
       syntax: 'a * b',
+    },
+    "∩": {
+      precedence: 15,
+      args: 2,
+      fn: (a, b) => {
+        const ta = a.type(), tb = b.type();
+        if (ta === 'array' && tb === 'array') return new ArrayValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
+        if (ta === 'set' && tb === 'set') return new SetValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
+      },
+      desc: `a ∩ b`,
+      syntax: 'intersection of a and b',
     },
     "//": {
       precedence: 15,
@@ -107,13 +136,26 @@ const prepareOperators = rs => {
       desc: `a + b`,
       syntax: 'a + b',
     },
+    "∪": {
+      precedence: 14,
+      args: 2,
+      fn: (a, b) => {
+        const ta = a.type(), tb = b.type();
+        if (ta === 'array' && tb === 'array') return new ArrayValue(rs, a.toPrimitive('array').concat(b.toPrimitive('array')));
+        if (ta === 'set' && tb === 'set') return new SetValue(rs, a.toPrimitive('array').concat(b.toPrimitive('array')));
+      },
+      desc: `a ∪ b`,
+      syntax: 'union of a and b',
+    },
     "-": {
       precedence: 14,
       args: [2, 1],
       fn2: (a, b) => {
         const ta = a.type(), tb = b.type();
         if (isNumericType(ta) && isNumericType(tb)) return new NumberValue(rs, Complex.sub(a.toPrimitive('complex'), b.toPrimitive('complex')));
-      },
+        if (ta === 'array' && tb === 'array') return new ArrayValue(rs, arrDifference(a.toPrimitive('array'), b.toPrimitive('array')));
+        if (ta === 'set' && tb === 'set') return new SetValue(rs, arrDifference(a.toPrimitive('array'), b.toPrimitive('array')));
+       },
       fn1: n => new NumberValue(rs, Complex.mult(n.toPrimitive('complex'), -1)),
       desc: `a - b`,
       syntax: 'a - b',

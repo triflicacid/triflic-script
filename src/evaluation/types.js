@@ -1,5 +1,3 @@
-const { createEnum } = require("../utils");
-
 const types = {
   any: 0, // Keep original Token type
   complex: 1, // Complex number 'a + bi'
@@ -28,4 +26,4 @@ function typeOf(arg) {
   return 'unknown';
 }
 
-module.exports = { types, enum: createEnum(types), isNumericType, isIntType, castingError, typeOf };
+module.exports = { types, isNumericType, isIntType, castingError, typeOf };

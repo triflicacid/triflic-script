@@ -23,10 +23,9 @@ function attempt(fn) {
 }
 
 rs.define(new RunspaceBuiltinFunction(rs, 'printr', { arg: 'any' }, ({ arg }) => {
-  if (arg instanceof VariableToken) arg = arg.getVar().value;
   console.log(arg);
-  return arg.value;
-}, 'Print raw object :INTERNAL:', false));
+  return arg;
+}, 'Print raw object :INTERNAL:'));
 
 (async function () {
   if (opts.intro) {

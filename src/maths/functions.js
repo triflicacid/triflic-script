@@ -1,3 +1,4 @@
+const { sum } = require("../utils");
 const Complex = require("./Complex");
 const { lambertw_scalar } = require("./lambertw");
 
@@ -80,4 +81,20 @@ function generatePrimes(limit) {
   return primes;
 }
 
-module.exports = { lambertw, factorial, LCF, primeFactors, isPrime, generatePrimes, };
+const mean = arr => sum(arr) / arr.length;
+const PMCC = (x, y) => {
+  if (x.length !== y.length) throw new Error(`Argument Error: input arrays must be same size`);
+  const n = x.length;
+  
+  const ux = sum(x), uy = sum(y);
+  const vx = sum(x.map(a => a * a)), vy = sum(y.map(a => a * a));
+  const wxy = sum(x.map((_, i) => x[i] * y[i]));
+  
+  return (n * wxy - ux * uy) / Math.sqrt((n * vx - ux * ux) * (n * vy - uy * uy));
+};
+const variance = arr => {
+  const m = mean(arr);
+  return sum(arr.map(x => Math.pow(x - m, 2))) / arr.length;
+};
+
+module.exports = { lambertw, factorial, LCF, primeFactors, isPrime, generatePrimes, mean, PMCC, variance, };

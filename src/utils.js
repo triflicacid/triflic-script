@@ -1,5 +1,6 @@
 const Complex = require("./maths/Complex");
 const readline = require("readline");
+const { isNumericType } = require("./evaluation/types");
 
 const STDIN = process.stdin, STDOUT = process.stdout;
 
@@ -105,6 +106,7 @@ const createTokenStringParseObj = (str, pos, depth, terminateClosing = null) => 
   terminateClosing, // When depth>0 and this closing bracket is found (assuming brackets.length==0) break from the function
 });
 
+/** Check if prititive arrays are equal */
 function arraysEqual(a1, a2) {
   let len = Math.max(a1.length, a2.length);
   for (let i = 0; i < len; i++) {
@@ -115,22 +117,55 @@ function arraysEqual(a1, a2) {
 
 const sum = arr => arr.reduce((a, x) => a.add(x), new Complex(0));
 const sort = arr => [...arr].sort((a, b) => a - b);
-const mean = arr => sum(arr) / arr.length;
-const PMCC = (x, y) => {
-  if (x.length !== y.length) throw new Error(`Argument Error: input arrays must be same size`);
-  const n = x.length;
-  
-  const ux = sum(x), uy = sum(y);
-  const vx = sum(x.map(a => a * a)), vy = sum(y.map(a => a * a));
-  const wxy = sum(x.map((_, i) => x[i] * y[i]));
-  
-  return (n * wxy - ux * uy) / Math.sqrt((n * vx - ux * ux) * (n * vy - uy * uy));
-};
-const variance = arr => {
-  const m = mean(arr);
-  return sum(arr.map(x => Math.pow(x - m, 2))) / arr.length;
-};
+
+/** Check if two Values are equal */
+function equal(a, b) {
+  const basic = a === b;
+  if (basic) return basic;
+
+  const ta = a.type(), tb = b.type();
+  if (isNumericType(ta) && isNumericType(tb)) return a.toPrimitive('complex').equals(b.toPrimitive('complex'));
+  if (ta === 'string' && ta === 'string') return a.value === b.value;
+  if ((ta === 'array' && tb === 'array') || (ta === 'set' && tb === 'set')) {
+    a = a.eval('array');
+    b = b.eval('array');
+    if (a.value.length !== b.value.length) return false;
+    for (let i = 0; i < a.value.length; i++) if (!equal(a.value[i], b.value[i])) return false;
+    return true;
+  }
+  if (ta !== tb) return false;
+
+  throw new Error(`Type Error: cannot compare types ${ta} and ${tb}`);
+}
+
+/** Find and return index of <item> in pritmitive <array> */
+function findIndex(item, array) {
+  for (let i = 0; i < array.length; i++) if (equal(item, array[i])) return i;
+  return -1;
+}
+
+/** Remove duplicate values from array  */
+function removeDuplicates(arr) {
+  let set = [];
+  for (let i = 0; i < arr.length; i++) {
+    let found = false;
+    for (let j = 0; j < set.length; j++) {
+      if (equal(arr[i], set[j])) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) set.push(arr[i]);
+  }
+  return set;
+}
+
+/** Return intersection between two primitive arrays */
+const intersect = (a, b) => a.filter(v => findIndex(v, b) !== -1);
+
+/** Difference between two primitive arrays: diff([1,2], [5,1]) = [2] */
+const arrDifference = (a, b) => a.filter(v => findIndex(v, b) === -1);
 
 module.exports = {
-  input, print, peek, isDigit, prefixLines, getArgvBool, assertReal, consoleColours, createEnum, str, bool, createTokenStringParseObj, arraysEqual, PMCC, mean, sort, variance,
+  input, print, consoleColours, peek, isDigit, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference
 };
