@@ -4,7 +4,7 @@ const { parseVariable } = require("../evaluation/parse");
 const { OperatorToken, VariableToken, TokenString } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorial, generatePrimes } = require("../maths/functions");
 const { print, bool, PMCC, mean, sort, variance } = require("../utils");
-const { typeOf } = require("../evaluation/types");
+const { typeOf, isNumericType } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, primitiveToValueClass, BoolValue } = require("../evaluation/values");
 
 
@@ -49,27 +49,12 @@ function define(rs) {
     }
     return new StringValue(rs, help);
   }, 'Get general help or help on a provided argument', false));
-  rs.define(new RunspaceBuiltinFunction(rs, 'del', { item: 'any' }, ({ item }) => {
-    const zero = new NumberValue(rs, 0);
-    if (item instanceof VariableToken) {
-      let obj = item.getVar();
-      if (obj.constant) {
-        if (rs.strict) throw new Error(`Argument Error: cannot delete constant variable ${item}`);
-        return zero;
-      }
-      return new NumberValue(rs, +rs.var(item.value, null));
-    } else if (item instanceof FunctionRefValue) {
-      let fn = item.getFn();
-      if (fn.constant) {
-        if (rs.strict) throw new Error(`Argument Error: cannot delete constant function ${item}`);
-        return zero;
-      }
-      return new NumberValue(rs, +rs.func(item.value, null));
-    } else {
-      if (rs.strict) throw new Error(`Argument Error: Cannot remove provided symbol`);
-      return zero;
-    }
-  }, 'attempt to delete provided symbol, returning 0 or 1 upon success', false));
+  rs.define(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, ({ obj, key }) => {
+    if (obj instanceof VariableToken && key !== undefined) obj = obj.getVar().value;
+    const v = obj.__del__?.(key);
+    if (v === undefined) throw new Error(`Argument Error: cannot del() object of type ${obj.type()}`);
+    return v;
+  }, 'attempt to delete given object. If a key is given, attempts to delete that key from the given object.', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
     print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
     process.exit(0);
@@ -125,6 +110,15 @@ function define(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.eval(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, typeOf(o)), 'attempt a direct cast from object <o> to type <type>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
+    t = t.toString();
+    if (isNumericType(t)) return new NumberValue(rs, 0);
+    if (t === 'string') return new StringValue(rs, "");
+    if (t === 'bool') return new BoolValue(rs, false);
+    if (t === 'array') return new ArrayValue(rs, []);
+    if (t === 'set') return new SetValue(rs, []);
+    throw new Error(`Argument Error: unable to create value of type '${t}'`);
+  }, 'create new value of type <t>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new StringValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => new NumberValue(rs, chr.toString().charCodeAt(0)), 'return character code of <chr>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
@@ -138,23 +132,22 @@ function define(rs) {
     return new ArrayValue(rs, range);
   }, 'Return array populated with numbers between <a>-<b> step <c>. 1 arg=range(0,<a>,1); 2 args=range(<a>,<b>,1); 3 args=range(<a>,<b>,<c>)'));
   rs.define(new RunspaceBuiltinFunction(rs, 'len', { o: 'any' }, ({ o }) => {
-    const length = o.len?.();
+    const length = o.__len__?.();
     if (rs.strict && length === undefined) throw new Error(`Strict Mode: argument has no len()`);
     return new NumberValue(rs, length === undefined ? NaN : length);
   }, 'return length of argument'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'get', { arg: 'any', i: 'real_int' }, ({ arg, i }) => {
-    let value;
-    if (arg instanceof ArrayValue) value = arg.toPrimitive('array')[i];
-    else if (arg instanceof StringValue) value = new StringValue(rs, arg.toString()[i]);
-    if (value != undefined) return value;
-    throw new Error(`Argument Error: unable to retrieve index ${i} of type ${arg.type()}`);
+  rs.define(new RunspaceBuiltinFunction(rs, 'abs', { o: 'any' }, ({ o }) => {
+    const abs = o.__abs__?.();
+    if (rs.strict && abs === undefined) throw new Error(`Strict Mode: argument has no abs()`);
+    return new NumberValue(rs, abs === undefined ? NaN : abs);
+  }, 'return length of argument'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'get', { arg: 'any', key: 'any' }, ({ arg, key }) => {
+    if (typeof arg.__get__ !== 'function') throw new Error(`Argument Error: cannot get() type ${arg.type()}`);
+    return arg.__get__(key);
   }, 'get item at <i> in <arg>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'set', { arr: 'array', i: 'real_int', item: 'any' }, ({ arr, i, item }) => {
-    if (arr instanceof ArrayValue) {
-      arr.value[i] = item;
-      return item;
-    }
-    throw new Error(`Argument Error: unable to set index ${i} of type ${arr.type()}`);
+  rs.define(new RunspaceBuiltinFunction(rs, 'set', { arg: 'any', key: 'any', value: 'any' }, ({ arg, key, value }) => {
+    if (typeof arg.__set__ !== 'function') throw new Error(`Argument Error: cannot set() type ${arg.type()}`);
+    return arg.__set__(key, value);
   }, 'set item at <i> in array <arr> to <item>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }) => {
     if (arr instanceof ArrayValue) return new NumberValue(rs, arr.value.push(item));
@@ -249,6 +242,7 @@ function define(rs) {
     }
     return new ArrayValue(rs, array);
   }, 'Remove all values from arr for which fn(value, ?index) is false'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'join', { arr: 'array', seperator: 'string' }, ({ arr, seperator }) => new StringValue(rs, arr.toPrimitive('array').map(v => v.toString()).join(seperator.toString())), 'Join elements in an array by <seperator>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'base', { arg: 'string', from: 'real_int', to: 'real_int'}, ({ arg, from, to }) => {
     from = from.toPrimitive('real_int');
     to = to.toPrimitive('real_int');
@@ -283,7 +277,6 @@ function defineVars(rs) {
 
 /** Built-in functions */
 function defineFuncs(rs) {
-  rs.define(new RunspaceBuiltinFunction(rs, 'abs', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.abs(z.toPrimitive('complex'))), 'calculate absolute value of z')); // abs
   rs.define(new RunspaceBuiltinFunction(rs, 'arccos', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arccos(z.toPrimitive('complex'))), 'return arccosine of z')); // arccosine
   rs.define(new RunspaceBuiltinFunction(rs, 'arccosh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arccosh(z.toPrimitive('complex'))), 'return hyperbolic arccosine of z')); // hyperbolic arccosine
   rs.define(new RunspaceBuiltinFunction(rs, 'arcsin', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arcsin(z.toPrimitive('complex'))), 'return arcsine of z')); // arcsine

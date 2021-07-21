@@ -111,6 +111,12 @@ class VariableToken extends Token {
   toString() {
     return str(this.getVar()?.value);
   }
+  __del__() {
+    const v = this.getVar();
+    if (v.constant) throw new Error(`Argument Error: Attempt to delete a constant variable ${this.value}`);
+    this.tstr.rs.var(this.value, null);
+    return new NumberValue(this.tstr.rs, 0);
+  }
 }
 
 /** For functions e.g. 'f(...)' (non-definitions) */
@@ -482,7 +488,8 @@ throw e
         } else {
           argCount = info.args;
         }
-        if (argCount === undefined || stack.length < argCount) throw new Error(`Syntax Error: operator '${T[i]}' has no overload for ${argCount} arguments, at position ${T[i].pos} (SIG_STACK_UNDERFLOW while evaluating)`);
+        if (stack.length < argCount) throw new Error(`Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - stack underflow (expects ${argCount} values, got ${stack.length}) (while evaluating)`);
+        if (argCount === undefined) throw new Error(`Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - no overload found for <= ${stack.length} parameters (while evaluating)`);
         let args = [];
         for (let i = 0; i < argCount; i++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
         const val = T[i].eval(...args);
@@ -514,12 +521,17 @@ throw e
         }
         stack.pop(); // Remove ) from stack
       } else if (tokens[i] instanceof OperatorToken) {
-        if (bidmas) {
-          while (stack.length !== 0 && tokens[i].priority() < peek(stack).priority()) output.push(stack.pop());
+        const info = tokens[i].info();
+        if (info.preservePosition) {
+          output.push(tokens[i]);
         } else {
-          while (stack.length !== 0) output.push(stack.pop());
+          if (bidmas) {
+            while (stack.length !== 0 && tokens[i].priority() < peek(stack).priority()) output.push(stack.pop());
+          } else {
+            while (stack.length !== 0) output.push(stack.pop());
+          }
+          stack.push(tokens[i]);
         }
-        stack.push(tokens[i]);
       } else {
         throw new Error(`Unknown token: ${typeof tokens[i]} ${tokens[i].constructor.name}`);
       }

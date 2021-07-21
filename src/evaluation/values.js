@@ -38,6 +38,8 @@ class NumberValue extends Value {
         }
         castingError(this, type);
     }
+
+    __abs__() { return Complex.abs(this.value); }
 }
 
 class StringValue extends Value {
@@ -47,7 +49,26 @@ class StringValue extends Value {
 
   type() { return "string"; }
 
-  len() { return this.value.length; }
+  __len__() { return this.value.length; }
+  __get__(i) {
+    i = i.toPrimitive('real_int');
+    if (i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    return new StringValue(this.rs, this.value[i]);
+  }
+  __set__(i, value) {
+    i = i.toPrimitive('real_int');
+    if (i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    value = value.toPrimitive('string');
+    this.value = this.value.substring(0, i) + value + this.value.substr(i + value.length);
+    return this;
+  }
+  __del__(key) {
+    let i = key.toPrimitive('real_int');
+    if (isNaN(i) || i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    const chr = this.value[i];
+    this.value = this.value.substring(0, i) + this.value.substr(i + 1);
+    return new StringValue(this.rs, chr);
+  }
   
   eval(type) {
     if (type === 'any' || type === 'string') return this;
@@ -85,7 +106,25 @@ class ArrayValue extends Value {
 
   type() { return "array"; }
   
-  len() { return this.value.length; }
+  __len__() { return this.value.length; }
+  __abs__() { return this.value.length; }
+  __get__(i) {
+    i = i.toPrimitive('real_int');
+    if (isNaN(i) || i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    return this.value[i];
+  }
+  __set__(i, value) {
+    i = i.toPrimitive('real_int');
+    if (isNaN(i) || i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    this.value[i] = value;
+    return this;
+  }
+  __del__(key) {
+    let i = key.toPrimitive('real_int');
+    if (isNaN(i) || i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    this.value.splice(i, 1);
+    return new NumberValue(this.rs, i);
+  }
   
   eval(type) {
     if (type === 'any' || type === 'array') return this;
@@ -110,7 +149,8 @@ class SetValue extends Value {
 
   type() { return "set"; }
   
-  len() { return this.value.length; }
+  __len__() { return this.value.length; }
+  __abs__() { return this.value.length; }
   
   eval(type) {
     if (type === 'any' || type === 'set') return this;
@@ -153,6 +193,13 @@ class FunctionRefValue extends Value {
 
   toString() {
     return `<function ${this.value}>`;
+  }
+
+  __del__() {
+    const f = this.getFn();
+    if (f.constant) throw new Error(`Argument Error: Attempt to delete referemce to constant function ${this.toString()}`);
+    this.rs.func(this.value, null);
+    return new NumberValue(this.rs, 0);
   }
 }
 

@@ -3,6 +3,16 @@ const Complex = require("../maths/Complex");
 const { isNumericType } = require("./types");
 const { equal, NumberValue, StringValue, ArrayValue, SetValue, BoolValue } = require("./values");
 
+// "<operator>": {
+//   precedence: <int>,       // Precedence of operator
+//   args: <int> | <int[]>,   // Argument count, or array of argument counts (for overloads)
+//   fn: ...,                 // Function called if only one overload
+//   fn<overload-n>: ...,     // Function called corresponding to arg length overload e.g. fn2, fn1
+//   desc: <string>,          // Description of operator
+//   syntax: <string>,        // Syntax of how operator is used
+//   preservePosition: <bool> // Should this operator be preserved exactly (ignore precedence)
+// },
+
 const prepareOperators = rs => {
   const ops = {
     "deg": { // !CUSTOM; degrees to radians
@@ -14,6 +24,7 @@ const prepareOperators = rs => {
       },
       desc: `Take argument as degrees and convert to radians`,
       syntax: '<a>deg',
+      preservePosition: true,
     },
     "~": {
       precedence: 17,
@@ -24,6 +35,7 @@ const prepareOperators = rs => {
       },
       desc: `Bitwise NOT`,
       syntax: '~x',
+      preservePosition: true,
     },
     "**": {
       precedence: 16,
@@ -247,6 +259,7 @@ const prepareOperators = rs => {
       },
       desc: `Calculate factorial of n. n must be a real, positive integer.`,
       syntax: 'a!',
+      preservePosition: true,
     },
   };
 
