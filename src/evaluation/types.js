@@ -8,7 +8,8 @@ const types = {
   bool: 6,
   array: 7,
   set: 8,
-  func: 9,
+  map: 9,
+  func: 10,
 };
 
 const isNumericType = t => t === 'complex' || t === 'complex_int' || t === 'real' || t === 'real_int' || t === 'bool';

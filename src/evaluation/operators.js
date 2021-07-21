@@ -1,7 +1,7 @@
 const { factorial, factorialReal } = require("../maths/functions");
 const Complex = require("../maths/Complex");
 const { isNumericType } = require("./types");
-const { NumberValue, StringValue, ArrayValue, SetValue, BoolValue } = require("./values");
+const { NumberValue, StringValue, ArrayValue, SetValue, BoolValue, MapValue } = require("./values");
 const { equal, intersect, arrDifference, findIndex } = require("../utils");
 
 // "<operator>": {
@@ -73,6 +73,7 @@ const prepareOperators = rs => {
         if (isNumericType(ta) && tb === 'string') return new StringValue(rs, b.toPrimitive('string').repeat(a.toPrimitive('real')));
         if (isNumericType(tb) && ta === 'string') return new StringValue(rs, a.toPrimitive('string').repeat(b.toPrimitive('real')));
         if (ta === 'array' && tb === 'array') return new ArrayValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
+        if (ta === 'set' && tb === 'set') return new SetValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
       },
       desc: `a × b`,
       syntax: 'a * b',
@@ -131,6 +132,14 @@ const prepareOperators = rs => {
         if (ta === 'set') return new SetValue(rs, a.toPrimitive('array').concat(b.toPrimitive('any')));
         if (tb === 'array') return new ArrayValue(rs, [a.toPrimitive('any'), ...b.toPrimitive('array')]);
         if (tb === 'set') return new SetValue(rs, [a.toPrimitive('any'), ...b.toPrimitive('array')]);
+        if (ta === 'map' && tb === 'map') {
+          const map = new MapValue(rs);
+          a = a.toPrimitive('map');
+          b = b.toPrimitive('map');
+          a.forEach((v, k) => map.value.set(k, v));
+          b.forEach((v, k) => !map.value.has(k) && map.value.set(k, v));
+          return map;
+        }
       },
       fn1: n => new NumberValue(rs, n.toPrimitive('complex')),
       desc: `a + b`,

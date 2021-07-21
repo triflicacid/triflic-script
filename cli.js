@@ -27,6 +27,9 @@ rs.define(new RunspaceBuiltinFunction(rs, 'printr', { arg: 'any' }, ({ arg }) =>
   return arg;
 }, 'Print raw object :INTERNAL:'));
 
+rs.eval('m1 = cast(range(5), "map")');
+rs.eval('m2 = cast(range(5,11), "map")');
+
 (async function () {
   if (opts.intro) {
     print(`${__filename} - JS Maths CLI\nType help() for basic help`);

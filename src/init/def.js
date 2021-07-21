@@ -4,8 +4,8 @@ const { parseVariable } = require("../evaluation/parse");
 const { OperatorToken, VariableToken, TokenString } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma } = require("../maths/functions");
 const { print, sort, findIndex } = require("../utils");
-const { typeOf, isNumericType } = require("../evaluation/types");
-const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue } = require("../evaluation/values");
+const { typeOf, isNumericType, types } = require("../evaluation/types");
+const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, MapValue } = require("../evaluation/values");
 
 
 /** Core definitions !REQUIRED! */
@@ -69,44 +69,34 @@ function define(rs) {
     return o;
   }, 'print item to screen'));
   rs.define(new RunspaceBuiltinFunction(rs, 'funcs', {}, () => {
-    let output = '';
+    const funcs = [];
     for (let func in rs._funcs) {
-      if (rs._funcs.hasOwnProperty(func)) {
-        let fn = rs.func(func);
-        output += `- [${fn instanceof RunspaceBuiltinFunction ? 'BUILT-IN' : 'USER-DEF'}] '${func}' \t ${fn.defString()}\n`;
-      }
+      if (rs._funcs.hasOwnProperty(func)) funcs.push(new FunctionRefValue(rs, func));
     }
-    return new StringValue(rs, output.substr(0, output.length - 1)); // Remove final '\n'
-  }, 'list all defined functions'));
+    return new ArrayValue(rs, funcs);
+  }, 'return array of all defined functions'));
   rs.define(new RunspaceBuiltinFunction(rs, 'vars', { s: '?real_int' }, ({ s }) => {
-    let output = '';
+    const vars = [];
     if (s === undefined) {
       rs._vars.forEach((scope, i) => {
+        const svars = [];
         for (let v in scope) {
-          if (scope.hasOwnProperty(v)) {
-            output += `- [${i}]  '${v}' \t = \t ${rs._vars[i][v].eval('string')}\n`;
-          }
+          if (scope.hasOwnProperty(v)) svars.push(new StringValue(rs, v));
         }
+        vars.push(new ArrayValue(rs, svars));
       });
     } else {
       if (rs._vars[s] === undefined) throw new Error(`Argument Error: scope ${s} does not exist`);
       for (let v in rs._vars[s]) {
         if (rs._vars[s].hasOwnProperty(v)) {
-          output += `- '${v}' \t = \t ${rs._vars[s][v].eval('string')}\n`;
+          if (rs._vars[s].hasOwnProperty(v)) vars.push(new StringValue(rs, v));
         }
       }
     }
-    return new StringValue(rs, output);
-  }, 'list all defined variables in a given scope depth'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'operators', { h: '?real' }, ({ h }) => {
-    let output = h === 0 ? '' : `Precedence | Operator | Syntax | Description\n`;
-    for (let op in rs.operators) {
-      if (rs.operators.hasOwnProperty(op)) {
-        output += `- ${rs.operators[op].precedence} \t '${op}' \t ${rs.operators[op].syntax} \t ${rs.operators[op].desc}\n`;
-      }
-    }
-    return new StringValue(rs, output.substr(0, output.length - 1)); // Remove final '\n'
-  }, 'list all available operators (<h>: show headers?)'));
+    return new ArrayValue(rs, vars);
+  }, 'list all defined variables in a given scope, or array of scopes'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(rs.operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Object.keys(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
   rs.define(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.eval(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, typeOf(o)), 'attempt a direct cast from object <o> to type <type>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
@@ -117,15 +107,16 @@ function define(rs) {
     if (t === 'bool') return new BoolValue(rs, false);
     if (t === 'array') return new ArrayValue(rs, []);
     if (t === 'set') return new SetValue(rs, []);
+    if (t === 'map') return new MapValue(rs);
     throw new Error(`Argument Error: unable to create value of type '${t}'`);
   }, 'create new value of type <t>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new StringValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => new NumberValue(rs, chr.toString().charCodeAt(0)), 'return character code of <chr>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
     let start, end, step;
-    if (b === undefined) { start = 0; end = a; step = 1; }
-    else if (c === undefined) { start = a; end = b; step = 1; }
-    else { start = a; end = b; step = c; }
+    if (b === undefined) { start = 0; end = a.toPrimitive('real'); step = 1; }
+    else if (c === undefined) { start = a.toPrimitive('real'); end = b.toPrimitive('real'); step = 1; }
+    else { start = a.toPrimitive('real'); end = b.toPrimitive('real'); step = c.toPrimitive('real'); }
     if (isNaN(start) || isNaN(end) || isNaN(step) || !isFinite(start) || !isFinite(end) || !isFinite(step) || Math.sign(end - start) !== Math.sign(step)) throw new Error(`Argument Error: range is infinite given arguments`);
     const range = [];
     for (let n = start; n < end; n += step) range.push(new NumberValue(rs, n));

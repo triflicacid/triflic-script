@@ -131,6 +131,11 @@ class ArrayValue extends Value {
     if (type === 'set') return new SetValue(this.rs, this.value);
     if (type === 'string') return new StringValue(this.rs, "[" + this.value.map(t => t.toString()).join(',') + "]");
     if (type === 'bool') return new BoolValue(this.rs, !!this.value);
+    if (type === 'map') {
+      const map = new MapValue(this.rs);
+      this.value.forEach((v, i) => map.value.set(i, v));
+      return map;
+    }
     if (isNumericType(type)) return new NumberValue(this.rs, Complex.NaN());
     castingError(this, type);
   }
@@ -157,7 +162,6 @@ class SetValue extends Value {
     if (type === 'array') return new ArrayValue(this.rs, this.value);
     if (type === 'string') return new StringValue(this.rs, "{" + this.value.map(t => t.toString()).join(',') + "}");
     if (type === 'bool') return new BoolValue(this.rs, !!this.value);
-    if (isNumericType(type)) return new NumberValue(this.rs, NaN);
     castingError(this, type);
   }
 
@@ -166,6 +170,42 @@ class SetValue extends Value {
     let tmp = fn(this);
     this.check();
     return tmp;
+  }
+}
+
+class MapValue extends Value {
+  constructor(runspace) {
+    super(runspace, null);
+    this.value = new Map();
+  }
+
+  type() { return "map"; }
+  
+  __len__() { return this.value.size; }
+  __abs__() { return this.value.size; }
+  __get__(key) {
+    key = key.toString(); 
+    if (!this.value.has(key)) throw new Error(`Key Error: key "${key}" does not exist in map`);
+    return this.value.get(key);
+  }
+  __set__(key, value) {
+    key = key.toString();
+    this.value.set(key, value);
+    return this;
+  }
+  __del__(key) {
+    key = key.toString(); 
+    if (!this.value.has(key)) throw new Error(`Key Error: key "${key}" does not exist in map`);
+    const val = this.value.get(key);
+    this.value.delete(key);
+    return val;
+  }
+  
+  eval(type) {
+    if (type === 'any' || type === 'map') return this;
+    if (type === 'string') return new StringValue(this.rs, "{" + Array.from(this.value.entries()).map(pair => `${pair[0].toString()}:${pair[1].toString()}`).join(',') + "}");
+    if (type === 'bool') return new BoolValue(this.rs, !!this.value);
+    castingError(this, type);
   }
 }
 
@@ -205,20 +245,22 @@ class FunctionRefValue extends Value {
 
 
 /** Convert primitive JS value to Value class */
-function primitiveToValueClass(runspace, primitive, sudo = false) {
-  if (!sudo) {
-    console.log(arguments);
-    throw new Error(`FUNCTION IS DEPRECATED`);
-  }
-
+function primitiveToValueClass(runspace, primitive) {
   if (primitive instanceof Value) return primitive;
   if (typeof primitive === 'boolean') return new BoolValue(runspace, primitive);
   const c = Complex.is(primitive);
   if (c !== false) return new NumberValue(runspace, c);
   if (primitive instanceof Set) return new SetValue(runspace, Array.from(primitive).map(p => primitiveToValueClass(runspace, p)));
+  if (primitive instanceof Map) {
+    let map = new MapValue(rs);
+    primitive.forEach((v, k) => {
+      map.value.set(k, primitiveToValueClass(runspace, v));
+    });
+    return map;
+  }
   if (Array.isArray(primitive)) return new ArrayValue(runspace, primitive.map(p => primitiveToValueClass(runspace, p)));
   if (runspace.func(primitive) !== undefined) return new FunctionRefValue(runspace, primitive);
   return new StringValue(undefined, primitive);
 }
 
-module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, FunctionRefValue, primitiveToValueClass };
+module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, primitiveToValueClass };
