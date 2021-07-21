@@ -256,6 +256,7 @@ function define(rs) {
     return StringValue(rs, parseInt(arg.toString(), from).toString(to));
   }, 'Convert <arg> from base <from> to base <to>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.parseString(str.toString()).eval(), 'evaluate an input'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'if', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
     
   return rs;
 }
