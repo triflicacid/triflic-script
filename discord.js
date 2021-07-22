@@ -6,6 +6,10 @@ const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 const { parseArgString } = require("./src/init/args");
 const Complex = require("./src/maths/Complex");
 
+// CHECK FOR REQUIRED ENV VARIABLES
+if (!process.env.BOT_TOKEN) throw new Error(`Setup Error: missing BOT_TOKEN environment variable`);
+if (!process.env.CHANNEL) throw new Error(`Setup Error: missing CHANNEL environment variable`);
+
 const client = new Discord.Client();
 client.login(process.env.BOT_TOKEN);
 
@@ -30,6 +34,7 @@ function createRunspace(argString = '') {
     }
   }, 'End the discord maths session'));
   rs.func('clear', null); // Remove function 'clear'
+  rs.func('import', null); // Remove function 'import'
   return rs;
 }
 

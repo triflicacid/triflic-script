@@ -27,6 +27,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `imag` : `character`. What character to use to represent the imaginary component in complex numbers. Set `--imag " "` to essentially disable complex numbers.
 - `gamma-factorial` : `boolean`. Use `gamma` function for factorial operator `!` (use `factorial` or `factorialReal`) ?
 - `reveal-headers` : `boolean`. Reveal CLI options and other information to Runspace as `headers` map?
+- `define-aliases` : `boolean`. Define aliases for some variables/functions e.g. `W` for `lambertW` and `π` for `pi` (NB these are not aliases, but copies, so `pi` is independant from `π`)
 
 ## Implicit Multiplication
 Multiplication operations are inserted automatically between tokens in the following cases:

@@ -44,8 +44,8 @@ const prepareOperators = rs => {
       fn: x => {
         const tx = x.type();
         if (tx === 'set') {
-          const us = rs.var('ε')?.eval('any');
-          if (us == undefined || us.type() !== 'set') throw new Error(`Type Error: expected built-in variable 'universal set' [ε] to be of type set, got ${us?.type()}`);
+          const us = rs.var('universal_set')?.eval('any');
+          if (us == undefined || us.type() !== 'set') throw new Error(`Type Error: expected variable universal_set to be of type set, got ${us?.type()}`);
           return new SetValue(rs, arrDifference(us.toPrimitive('array'), x.toPrimitive('array')));
         }
         return new BoolValue(rs, !x.toPrimitive('bool'));
@@ -164,7 +164,7 @@ const prepareOperators = rs => {
         if (isNumericType(ta) && isNumericType(tb)) return new NumberValue(rs, Complex.sub(a.toPrimitive('complex'), b.toPrimitive('complex')));
         if (ta === 'array' && tb === 'array') return new ArrayValue(rs, arrDifference(a.toPrimitive('array'), b.toPrimitive('array')));
         if (ta === 'set' && tb === 'set') return new SetValue(rs, arrDifference(a.toPrimitive('array'), b.toPrimitive('array')));
-       },
+      },
       fn1: n => new NumberValue(rs, Complex.mult(n.toPrimitive('complex'), -1)),
       desc: `a - b`,
       syntax: 'a - b',

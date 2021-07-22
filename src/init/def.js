@@ -16,8 +16,8 @@ function define(rs) {
   rs.var('inf', Infinity, 'Value representing Infinity', true);
   rs.var('true', true, '\'true\' is a boolean value that represents mathematical and logical truth', true);
   rs.var('false', false, '\'false\' is a boolean value that is used when the result of a logical statement is false', true);
-  rs.var('∅', new SetValue(rs, []), 'Empty set', true);
-  rs.var('ε', new SetValue(rs, []), 'Universal set', false);
+  rs.var('empty_set', new SetValue(rs, []), 'Empty set', true);
+  rs.var('universal_set', new SetValue(rs, []), 'Universal set', false);
 
   /****************** CORE FUNCTIONS */
 
@@ -240,7 +240,7 @@ function define(rs) {
     if (o instanceof StringValue) return new NumberValue(rs, o.value.indexOf(item.toString()));
     throw new Error(`Argument Error: cannot search type ${o.type()}`);
   }, 'Return index of <item> in <o> or -1'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'base', { arg: 'string', from: 'real_int', to: 'real_int'}, ({ arg, from, to }) => {
+  rs.define(new RunspaceBuiltinFunction(rs, 'base', { arg: 'string', from: 'real_int', to: 'real_int' }, ({ arg, from, to }) => {
     from = from.toPrimitive('real_int');
     to = to.toPrimitive('real_int');
     if (from < 2 || from > 36) throw new Error(`Argument Error: invalid base: <from> = ${from}`);
@@ -291,21 +291,21 @@ function define(rs) {
       throw new Error(`Argument Error: path is not a file (full path: ${fpath})`);
     }
   }, 'Import <file> - see README.md for more details'));
-    
+
   return rs;
 }
 
 /** Built-in Variables */
 function defineVars(rs) {
   rs.var('pi', Math.PI, 'pi is equal to the circumference of any circle divided by its diameter', true); // pi
-  rs.var('π', rs.var('pi'));
+  if (rs.opts.defineAliases) rs.var('π', rs.var('pi'));
   rs.var('e', Math.E, 'Euler\'s constant', true); // e
   rs.var('omega', 0.5671432904097838, 'Principle solution to xe^x = 1 (= W(1))', true); // W(1, 0)
-  rs.var('Ω', rs.var('omega'));
+  if (rs.opts.defineAliases) rs.var('Ω', rs.var('omega'));
   rs.var('phi', 1.618033988749895, 'Phi, the golden ratio, approx (1 + √5)/2', true); // phi, golden ratio
-  rs.var('φ', rs.var('phi'));
+  if (rs.opts.defineAliases) rs.var('φ', rs.var('phi'));
   rs.var('tau', 2 * Math.PI, 'A constant representing the ratio between circumference and radius of a circle', true); // tau
-  rs.var('τ', rs.var('tau'));
+  if (rs.opts.defineAliases) rs.var('τ', rs.var('tau'));
   rs.var(Complex.imagLetter, Complex.I(), '√(-1)', true);
   rs.var('ln2', Math.LN2, 'Natural logarithm of 2');
   rs.var('ln10', Math.LN10, 'Natural logarithm of 10');
@@ -313,6 +313,7 @@ function defineVars(rs) {
   rs.var('log10e', Math.LOG10E, 'Base-10 logarithm of e');
   rs.var('sqrt1_2', Math.SQRT1_2, 'Square root of 0.5');
   rs.var('sqrt2', Math.SQRT2, 'Square root of 2');
+  if (rs.opts.defineAliases) rs.var('∅', rs.var('empty_set'));
 }
 
 /** Built-in functions */
@@ -381,7 +382,7 @@ function defineFuncs(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'sin', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sin(z.toPrimitive('complex'))), 'return sine of z')); // sine
   rs.define(new RunspaceBuiltinFunction(rs, 'sinh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sinh(z.toPrimitive('complex'))), 'return hyperbolic sine of z')); // hyperbolic sine
   rs.define(new RunspaceBuiltinFunction(rs, 'sqrt', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sqrt(z.toPrimitive('complex'))), 'return square root of z')); // cube root
-  rs.funcAlias('sqrt', '√');
+  if (rs.opts.defineAliases) rs.funcAlias('sqrt', '√');
   rs.define(new RunspaceBuiltinFunction(rs, 'summation', { start: 'any', limit: 'any', action: 'any', svar: '?any' }, ({ start, limit, action, svar }) => {
     let sumVar = 'x', sum = new Complex(0);
     start = start.toPrimitive('real_int');
@@ -427,13 +428,13 @@ function defineFuncs(rs) {
     }
     return new NumberValue(rs, sum);
   }, 'Calculate a summation series between <start> and <limit>, executing <action> (may be constant, function or string). Use variable <svar> as counter.'));
-  rs.funcAlias('summation', '∑');
+  if (rs.opts.defineAliases) rs.funcAlias('summation', '∑');
   rs.define(new RunspaceBuiltinFunction(rs, 'tan', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tan(z.toPrimitive('complex'))), 'return tangent of z')); // tangent
   rs.define(new RunspaceBuiltinFunction(rs, 'tanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tanh(z.toPrimitive('complex'))), 'return hyperbolic tangent of z')); // hyperbolic tangent
   rs.define(new RunspaceBuiltinFunction(rs, 'lambertW', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
-  rs.funcAlias('lambertW', 'W');
+  if (rs.opts.defineAliases) rs.funcAlias('lambertW', 'W');
   rs.define(new RunspaceBuiltinFunction(rs, 'gamma', { z: 'complex' }, ({ z }) => new NumberValue(rs, gamma(z.toPrimitive('complex'))), 'Return the gamma function at z'));
-  rs.funcAlias('gamma', 'Γ');
+  if (rs.opts.defineAliases) rs.funcAlias('gamma', 'Γ');
 }
 
 module.exports = { define, defineVars, defineFuncs };

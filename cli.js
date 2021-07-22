@@ -3,7 +3,6 @@ const { define, defineVars, defineFuncs } = require("./src/init/def");
 const { input, print, consoleColours } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
-const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 
 // PARSE ARGV
 const opts = parseArgString(process.argv, true);
@@ -35,6 +34,7 @@ function attempt(fn) {
     if (!opts.defineVars) notes.push("pre-defined variables were not defined");
     if (!opts.defineFuncs) notes.push("pre-defined functions were not defined");
     if (!opts.ans) notes.push("variable ans is not defined");
+    if (!opts.defineAliases) notes.push("function/variables aliases were not defined");
     notes.forEach(note => print(`${consoleColours.Bright}${consoleColours.FgWhite}${consoleColours.Reverse}Note${consoleColours.Reset} ${note}`));
     print();
   }
