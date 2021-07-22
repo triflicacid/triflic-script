@@ -12,6 +12,7 @@ const { equal, intersect, arrDifference, findIndex } = require("../utils");
 //   desc: <string>,          // Description of operator
 //   syntax: <string>,        // Syntax of how operator is used
 //   preservePosition: <bool> // Should this operator be preserved exactly (ignore precedence)
+//   unary: <string|null>     // If present, and if operator meets unary criteria, use this operator instead
 // },
 
 const prepareOperators = rs => {
@@ -37,6 +38,22 @@ const prepareOperators = rs => {
       desc: `Bitwise NOT`,
       syntax: '~x',
       preservePosition: true,
+    },
+    "u+": {
+      precedence: 17,
+      args: 1,
+      fn: n => new NumberValue(rs, n.toPrimitive('complex')),
+      desc: 'cast n into a number',
+      syntax: '+n',
+      // preservePosition: true,
+    },
+    "u-": {
+      precedence: 17,
+      args: 1,
+      fn: n => new NumberValue(rs, Complex.mult(n.toPrimitive('complex'), -1)),
+      desc: 'cast n into a negative number',
+      syntax: '-n',
+      // preservePosition: true,
     },
     "'": {
       precedence: 17,
@@ -121,8 +138,8 @@ const prepareOperators = rs => {
     },
     "+": {
       precedence: 14,
-      args: [2, 1],
-      fn2: (a, b) => {
+      args: 2,
+      fn: (a, b) => {
         const ta = a.type(), tb = b.type();
         if (isNumericType(ta) && isNumericType(tb)) return new NumberValue(rs, Complex.add(a.toPrimitive('complex'), b.toPrimitive('complex')));
         if (ta === 'array' && tb === 'array') return new ArrayValue(rs, a.toPrimitive('array').concat(b.toPrimitive('array')));
@@ -141,9 +158,9 @@ const prepareOperators = rs => {
           return map;
         }
       },
-      fn1: n => new NumberValue(rs, n.toPrimitive('complex')),
       desc: `a + b`,
       syntax: 'a + b',
+      unary: 'u+',
     },
     "∪": {
       precedence: 14,
@@ -158,16 +175,16 @@ const prepareOperators = rs => {
     },
     "-": {
       precedence: 14,
-      args: [2, 1],
-      fn2: (a, b) => {
+      args: 2,
+      fn: (a, b) => {
         const ta = a.type(), tb = b.type();
         if (isNumericType(ta) && isNumericType(tb)) return new NumberValue(rs, Complex.sub(a.toPrimitive('complex'), b.toPrimitive('complex')));
         if (ta === 'array' && tb === 'array') return new ArrayValue(rs, arrDifference(a.toPrimitive('array'), b.toPrimitive('array')));
         if (ta === 'set' && tb === 'set') return new SetValue(rs, arrDifference(a.toPrimitive('array'), b.toPrimitive('array')));
       },
-      fn1: n => new NumberValue(rs, Complex.mult(n.toPrimitive('complex'), -1)),
       desc: `a - b`,
       syntax: 'a - b',
+      unary: 'u-',
     },
     "<<": {
       precedence: 13,

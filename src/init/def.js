@@ -16,7 +16,6 @@ function define(rs) {
   rs.var('inf', Infinity, 'Value representing Infinity', true);
   rs.var('true', true, '\'true\' is a boolean value that represents mathematical and logical truth', true);
   rs.var('false', false, '\'false\' is a boolean value that is used when the result of a logical statement is false', true);
-  rs.var('empty_set', new SetValue(rs, []), 'Empty set', true);
   rs.var('universal_set', new SetValue(rs, []), 'Universal set', false);
 
   /****************** CORE FUNCTIONS */
@@ -25,9 +24,6 @@ function define(rs) {
     let help = '';
     if (item === undefined) {
       help = `help(?s) \t Get help on a specific symbol\nvars() \t List all variables\nfuncs() \t List all functions\noperators() \t List all operators\nexit() \t Terminate the program`;
-    } else if (item instanceof OperatorToken) {
-      let info = rs.operators[item];
-      help = `Type: operator\nDesc: ${info.desc}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
     } else if (item instanceof FunctionRefValue) {
       let fn = item.getFn();
       if (fn === undefined) {
@@ -39,10 +35,10 @@ function define(rs) {
     } else if (item instanceof VariableToken) {
       let v = item.getVar();
       help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.toPrimitive('string')}`;
-    } else if (item instanceof StringValue && rs.operators[item.value] !== undefined) {
+    } else if (item instanceof StringValue && rs.operators[item.value] !== undefined) { // Operator
       const info = rs.operators[item.value];
       const argStr = Array.isArray(info.args) ? `${info.args.join(' or ')} (${info.args.length} overloads)` : info.args;
-      help = `Type: string (operator)\nDesc: ${info.desc}\nArgs: ${argStr}\nPrecedence: ${info.precedence}\nSyntax: ${info.syntax}`;
+      help = `Type: string (operator)\nDesc: ${info.desc}\nArgs: ${argStr}\nPrecedence: ${info.precedence}\nUnary Overload: ${info.unary ? `yes (${info.unary})` : 'no'}\nSyntax: ${info.syntax}`;
     } else if (item instanceof Value) {
       help = `Type: ${item.type()}\nNumeric: ${item.toPrimitive('complex')}\nValue: ${item.toString()}`;
     } else {
@@ -313,6 +309,7 @@ function defineVars(rs) {
   rs.var('log10e', Math.LOG10E, 'Base-10 logarithm of e');
   rs.var('sqrt1_2', Math.SQRT1_2, 'Square root of 0.5');
   rs.var('sqrt2', Math.SQRT2, 'Square root of 2');
+  rs.var('empty_set', new SetValue(rs, []), 'Empty set', true);
   if (rs.opts.defineAliases) rs.var('∅', rs.var('empty_set'));
 }
 

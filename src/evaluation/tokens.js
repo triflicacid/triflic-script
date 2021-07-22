@@ -64,11 +64,13 @@ class OperatorToken extends Token {
   constructor(tstring, op, pos) {
     super(tstring, op, pos);
     if (tstring.rs.operators[op] === undefined) throw new Error(`new OperatorToken() : '${op}' is not an operator`);
+    this.isUnary = false;
   }
 
   /** Eval as operators */
   eval(...args) {
-    let fn = Array.isArray(this.tstr.rs.operators[this.value].args) ? this.tstr.rs.operators[this.value]['fn' + args.length] : this.tstr.rs.operators[this.value].fn;
+    const info = this.info();
+    let fn = Array.isArray(info.args) ? info['fn' + args.length] : info.fn;
     if (typeof fn !== 'function') throw new Error(`Internal Error: operator function for ${this.value} with ${args.length} args is undefined`);
     let r = fn(...args);
     if (r === undefined) throw new Error(`Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
@@ -76,11 +78,16 @@ class OperatorToken extends Token {
   }
 
   priority() {
-    return +this.tstr.rs.operators[this.value].precedence;
+    return +this.info().precedence;
   }
 
   info() {
-    return this.tstr.rs.operators[this.value];
+    let i = this.tstr.rs.operators[this.value];
+    if (this.isUnary) {
+      i = this.tstr.rs.operators[i.unary];
+      if (i === undefined) throw new Error(`Operator ${this.toString()} has no unary counterpart (isUnary=${this.isUnary})`);
+    }
+    return i;
   }
 }
 
@@ -275,8 +282,17 @@ class TokenString {
       // Operator?
       let op = parseOperator(this.rs, string.substr(i));
       if (op !== null) {
-        const top = peek(obj.tokens);
         const t = new OperatorToken(this, op, obj.pos);
+
+        // Is unary: first, after (, after an operator
+        const top = peek(obj.tokens);
+        if (top === undefined || (top instanceof BracketToken && top.facing() === 1) || top instanceof OperatorToken) {
+          // Check if has unary counterpart
+          if (this.rs.operators[t.info().unary] === undefined) throw new Error(`Syntax Error: unexpected operator ${t} (flagged as unary, but no associated unary overload found)`);
+
+          t.isUnary = true;
+        }
+
         obj.tokens.push(t);
         i += op.length;
         obj.pos += op.length;
@@ -366,7 +382,7 @@ class TokenString {
         newTokens.push(new OperatorToken(this, '!*', obj.tokens[i].pos)); // High-precedence multiplication
       }
     }
-    
+
     obj.tokens.length = 0;
     newTokens.forEach(i => obj.tokens.push(i));
     return;
@@ -403,7 +419,7 @@ class TokenString {
     try {
       return this._eval();
     } catch (e) {
-throw e      
+      throw e
       throw new Error(`${this.string}:\n${e}`);
     }
   }
@@ -461,7 +477,7 @@ throw e
     for (let i = 0; i < this.tokens.length; i++) {
       if (this.tokens[i] instanceof ValueToken) this.tokens[i] = this.tokens[i].value;
     }
-    
+
     const T = this._toRPN(this.tokens, this.rs.opts.bidmas), stack = []; // STACK SHOULD ONLY CONTAIN COMPLEX()
     for (let i = 0; i < T.length; i++) {
       if (T[i] instanceof Value) {
