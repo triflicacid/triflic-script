@@ -5,8 +5,9 @@ const { OperatorToken, VariableToken, TokenString } = require("../evaluation/tok
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma } = require("../maths/functions");
 const { print, sort, findIndex } = require("../utils");
 const { typeOf, isNumericType, types } = require("../evaluation/types");
-const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, MapValue } = require("../evaluation/values");
-
+const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, MapValue, primitiveToValueClass } = require("../evaluation/values");
+const path = require("path");
+const fs = require("fs");
 
 /** Core definitions !REQUIRED! */
 function define(rs) {
@@ -248,6 +249,48 @@ function define(rs) {
   }, 'Convert <arg> from base <from> to base <to>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.parseString(str.toString()).eval(), 'evaluate an input'));
   rs.define(new RunspaceBuiltinFunction(rs, 'if', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => {
+    const fpath = path.join(rs.dir, "imports/", file.toString());
+    let stats;
+    try {
+      stats = fs.lstatSync(fpath);
+    } catch (e) {
+      throw new Error(`Argument Error: invalid path '${fpath}':\n${e}`);
+    }
+
+    if (stats.isFile()) {
+      const ext = path.extname(fpath);
+      if (ext === '.js') {
+        const fn = require(fpath);
+        if (typeof fn !== 'function') throw new Error(`Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
+        try {
+          fn(rs);
+        } catch (e) {
+          throw new Error(`Import Error: .js: error whilst executing ${fpath}'s export function:\n${e}`);
+        }
+      } else {
+        let text;
+        try {
+          text = fs.readFileSync(fpath, 'utf8');
+        } catch (e) {
+          throw new Error(`Import Error: ${ext}: unable to read file (full path: ${fpath}):\n${e}`);
+        }
+
+        const lines = text.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          try {
+            rs.eval(lines[i]);
+          } catch (e) {
+            throw new Error(`Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}), line ${i + 1}:\n${e}`);
+          }
+        }
+      }
+
+      return new NumberValue(rs, 0);
+    } else {
+      throw new Error(`Argument Error: path is not a file (full path: ${fpath})`);
+    }
+  }, 'Import <file> - see README.md for more details'));
     
   return rs;
 }

@@ -25,11 +25,6 @@ function attempt(fn) {
   }
 }
 
-rs.define(new RunspaceBuiltinFunction(rs, 'printr', { arg: 'any' }, ({ arg }) => {
-  console.log(arg);
-  return arg;
-}, 'Print raw object :INTERNAL:'));
-
 (async function () {
   if (opts.intro) {
     print(`${__filename} - JS Maths CLI\nType help() for basic help`);

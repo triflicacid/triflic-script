@@ -45,6 +45,23 @@ So, `e ^ 2ln(2)` -> `e ^ 2 !* ln(2)` so `2 !* ln(2)` is evaluated first, as the 
 Base definitions to an `Environment` are present in `src/def.js`
 For more information on built-ins, enter `help()`.
 
+### `import(file: string)`
+This functions is used to import scripts into the current runspace. `file` may be any valid file.
+
+The full path to the imported file is resolves as follows: `currentWorkingDirectory + "imports/" + file` where
+- `currentWorkingDirectory` is the path of the directory in which `cli.js` lies
+- `"imports/"` is a standard directory where all external files are recommended to be kept
+- `file` is the argument to the function
+
+
+If the file is a `.js` (JavaScript) file:
+- `module.exports` must be set to a single function
+- `module.exports` is called with one argument, being the active `Runspace` instance.
+
+Any other extension:
+- The file is read, and the contents are split line-by-line
+- Each line is evaluated as if it were input via `Runspace#eval`
+
 ## Input
 Lines may be inputted and process by using `Environment#eval()`.
 
