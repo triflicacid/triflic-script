@@ -56,15 +56,6 @@ function define(rs) {
     print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
     process.exit(0);
   }, 'exit application with given code'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'clear', {}, () => {
-    process.stdout.write('\033c');
-    return new StringValue(0, "");
-  }, 'clears the screen'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'print', { o: 'any', newline: '?bool' }, ({ o, newline }) => {
-    newline = newline === undefined ? true : newline.toPrimitive('bool');
-    process.stdout.write(o.toString() + (newline ? '\n' : ''));
-    return o;
-  }, 'print item to screen'));
   rs.define(new RunspaceBuiltinFunction(rs, 'funcs', {}, () => {
     const funcs = [];
     for (let func in rs._funcs) {
@@ -244,6 +235,7 @@ function define(rs) {
     return StringValue(rs, parseInt(arg.toString(), from).toString(to));
   }, 'Convert <arg> from base <from> to base <to>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.parseString(str.toString()).eval(), 'evaluate an input'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'rpn', { str: 'string' }, ({ str }) => new StringValue(rs, rs.parseString(str.toString()).toRPN().join(' ')), 'transform input to RPN notation'));
   rs.define(new RunspaceBuiltinFunction(rs, 'if', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
   rs.define(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => {
     const fpath = path.join(rs.dir, "imports/", file.toString());

@@ -45,7 +45,7 @@ const prepareOperators = rs => {
       fn: n => new NumberValue(rs, n.toPrimitive('complex')),
       desc: 'cast n into a number',
       syntax: '+n',
-      // preservePosition: true,
+      unary: "u+",
     },
     "u-": {
       precedence: 17,
@@ -53,7 +53,7 @@ const prepareOperators = rs => {
       fn: n => new NumberValue(rs, Complex.mult(n.toPrimitive('complex'), -1)),
       desc: 'cast n into a negative number',
       syntax: '-n',
-      // preservePosition: true,
+      unary: "u-",
     },
     "'": {
       precedence: 17,

@@ -89,6 +89,10 @@ class OperatorToken extends Token {
     }
     return i;
   }
+
+  toString() {
+    return this.isUnary ? this.tstr.rs.operators[this.value].unary : this.value;
+  }
 }
 
 /** For symbols e.g. 'hello' */
@@ -478,18 +482,18 @@ class TokenString {
       if (this.tokens[i] instanceof ValueToken) this.tokens[i] = this.tokens[i].value;
     }
 
-    const T = this._toRPN(this.tokens, this.rs.opts.bidmas), stack = []; // STACK SHOULD ONLY CONTAIN COMPLEX()
+    const T = this.toRPN(), stack = []; // STACK SHOULD ONLY CONTAIN COMPLEX()
     for (let i = 0; i < T.length; i++) {
       if (T[i] instanceof Value) {
         stack.push(T[i]);
       } else if (T[i] instanceof FunctionToken) {
-        const val = T[i].eval();
+        const val = T[i].isDeclaration ? T[i] : T[i].eval();
         stack.push(val);
       } else if (T[i] instanceof VariableToken) {
-        if (!T[i].exists()) throw new Error(`Name Error: name '${T[i].value}' does not exist (position ${T[i].pos})`);
+        if (!T[i].isDeclaration && !T[i].exists()) throw new Error(`Name Error: name '${T[i].value}' does not exist (position ${T[i].pos})`);
         stack.push(T[i]);
       } else if (T[i] instanceof FunctionRefValue) {
-        if (!T[i].exists()) throw new Error(`Reference Error: null reference ${T[i]} (position ${T[i].pos})`);
+        if (!T[i].isDeclaration && !T[i].exists()) throw new Error(`Reference Error: null reference ${T[i]} (position ${T[i].pos})`);
         stack.push(T[i]);
       } else if (T[i] instanceof OperatorToken) {
         const info = T[i].info();
@@ -521,6 +525,11 @@ class TokenString {
 
   toString() {
     return this.tokens.map(t => t.toString()).join(' ');
+  }
+
+  /** Return array of tokens of this tokenString RPNd */
+  toRPN() {
+    return this._toRPN(this.tokens, this.rs.opts.bidmas);
   }
 
   /** Token array from infix to postfix */
