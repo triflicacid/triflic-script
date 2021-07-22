@@ -3,7 +3,8 @@ const { TokenString, Token } = require("../evaluation/tokens");
 const { peek } = require("../utils");
 const { primitiveToValueClass, MapValue } = require("../evaluation/values");
 const { prepareOperators } = require("../evaluation/operators");
-const path = require('path');
+const path = require("path");
+const fs = require("fs");
 
 class Runspace {
   constructor(opts) {
@@ -93,6 +94,54 @@ class Runspace {
     let obj = ts.eval(); // Intermediate value
     if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', obj.eval('any'), 'value returned by previous statement');
     return obj.toString();
+  }
+
+  /** Attempt to import a file */
+  import(file) {
+    const fpath = path.join(this.dir, "imports/", file.toString());
+    let stats;
+    try {
+      stats = fs.lstatSync(fpath);
+    } catch (e) {
+      throw new Error(`Argument Error: invalid path '${fpath}':\n${e}`);
+    }
+
+    if (stats.isFile()) {
+      const ext = path.extname(fpath);
+      if (ext === '.js') {
+        let fn;
+        try {
+          fn = require(fpath);
+        } catch (e) {
+          throw new Error(`Import Error: .js: error whilst requiring ${fpath}:\n${e}`);
+        }
+        if (typeof fn !== 'function') throw new Error(`Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
+        try {
+          fn(this);
+        } catch (e) {
+          console.error(e);
+          throw new Error(`Import Error: .js: error whilst executing ${fpath}'s export function:\n${e}`);
+        }
+      } else {
+        let text;
+        try {
+          text = fs.readFileSync(fpath, 'utf8');
+        } catch (e) {
+          throw new Error(`Import Error: ${ext}: unable to read file (full path: ${fpath}):\n${e}`);
+        }
+
+        const lines = text.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          try {
+            this.eval(lines[i]);
+          } catch (e) {
+            throw new Error(`Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}), line ${i + 1}:\n${e}`);
+          }
+        }
+      }
+    } else {
+      throw new Error(`Argument Error: path is not a file (full path: ${fpath})`);
+    }
   }
 }
 

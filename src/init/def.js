@@ -6,8 +6,6 @@ const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generate
 const { print, sort, findIndex } = require("../utils");
 const { typeOf, isNumericType, types } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, MapValue } = require("../evaluation/values");
-const path = require("path");
-const fs = require("fs");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 
 /** Core definitions !REQUIRED! */
@@ -239,51 +237,8 @@ function define(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'rpn', { str: 'string' }, ({ str }) => new StringValue(rs, rs.parseString(str.toString()).toRPN().join(' ')), 'transform input to RPN notation'));
   rs.define(new RunspaceBuiltinFunction(rs, 'if', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
   rs.define(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => {
-    const fpath = path.join(rs.dir, "imports/", file.toString());
-    let stats;
-    try {
-      stats = fs.lstatSync(fpath);
-    } catch (e) {
-      throw new Error(`Argument Error: invalid path '${fpath}':\n${e}`);
-    }
-
-    if (stats.isFile()) {
-      const ext = path.extname(fpath);
-      if (ext === '.js') {
-        let fn;
-        try {
-          fn = require(fpath);
-        } catch (e) {
-          throw new Error(`Import Error: .js: error whilst requiring ${fpath}:\n${e}`);
-        }
-        if (typeof fn !== 'function') throw new Error(`Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
-        try {
-          fn(rs);
-        } catch (e) {
-          throw new Error(`Import Error: .js: error whilst executing ${fpath}'s export function:\n${e}`);
-        }
-      } else {
-        let text;
-        try {
-          text = fs.readFileSync(fpath, 'utf8');
-        } catch (e) {
-          throw new Error(`Import Error: ${ext}: unable to read file (full path: ${fpath}):\n${e}`);
-        }
-
-        const lines = text.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-          try {
-            rs.eval(lines[i]);
-          } catch (e) {
-            throw new Error(`Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}), line ${i + 1}:\n${e}`);
-          }
-        }
-      }
-
-      return new NumberValue(rs, 0);
-    } else {
-      throw new Error(`Argument Error: path is not a file (full path: ${fpath})`);
-    }
+    rs.import(file);
+    return new NumberValue(rs, 0);
   }, 'Import <file> - see README.md for more details'));
 
   return rs;
@@ -339,9 +294,9 @@ function defineFuncs(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'factorialReal', { x: 'real_int' }, ({ x }) => new NumberValue(rs, factorialReal(x.toPrimitive('real'))), 'calculate the factorial of x using the common algorithm'));
   rs.define(new RunspaceBuiltinFunction(rs, 'ln', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.log(z.toPrimitive('complex'))), 'calculate the natural logarithm of x')); // natural logarithm
   rs.define(new RunspaceBuiltinFunction(rs, 'log', { a: 'complex', b: '?complex' }, ({ a, b }) => {
-    return b === undefined ?
-      Complex.div(Complex.log(a), Math.LN10) :// log base 10 of <a>
-      Complex.div(Complex.log(b), Complex.log(a));// log base <a> of <b>
+    return new NumberValue(rs, b === undefined ?
+      Complex.div(Complex.log(a.toPrimitive('complex')), Math.LN10) :// log base 10 of <a>
+      Complex.div(Complex.log(b.toPrimitive('complex')), Complex.log(a.toPrimitive('complex'))));// log base <a> of <b>
   }, 'return log base <a> of <b>. If b is not provided, return log base 10 of <a>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'lcf', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, LCF(a.toPrimitive('real'), b.toPrimitive('real'))), 'return the lowest common factor of a and b'));
   rs.define(new RunspaceBuiltinFunction(rs, 'mean', { arr: 'array' }, ({ arr }) => new NumberValue(rs, mean(arr.toPrimitive('array').map(v => v.toPrimitive('real')))), 'calculate mean value in an array'));

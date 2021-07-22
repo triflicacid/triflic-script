@@ -115,6 +115,7 @@ function arraysEqual(a1, a2) {
   return true;
 }
 
+/** Sum of array of complex numbers */
 const sum = arr => arr.reduce((a, x) => a.add(x), new Complex(0));
 const sort = arr => [...arr].sort((a, b) => a - b);
 

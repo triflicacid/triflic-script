@@ -105,7 +105,9 @@ class VariableToken extends Token {
     return str(this.getVar()?.value.type());
   }
   eval(type) {
-    return this.tstr.rs.var(this.value)?.eval(type);
+    let v = this.tstr.rs.var(this.value);
+    if (v.value === this) throw new Error(`Self-referencing variable (infinite lookup prevented) - variable '${this.value}'`);
+    return v.eval(type);
   }
   toPrimitive(type) {
     return this.tstr.rs.var(this.value)?.toPrimitive(type);
