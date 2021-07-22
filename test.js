@@ -1,27 +1,19 @@
 /** FILE FOR TEST SCRIPTS */
 
-const readline = require('readline');
+const Complex = require('./src/maths/Complex.js');
+Complex.imagLetter = 'j';
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  prompt: '>>> '
-});
+let z = new Complex(2, -5);
 
-rl.prompt();
+let w = new Complex(2);
+let wp1 = new Complex(4.34355, -0.1);
+let r = new Complex(0, -2);
+const TWOITERTOL = 2.2204460492503131e-16;
 
-rl.on('line', (line) => {
-  switch (line.trim()) {
-    case 'hello':
-      console.log('world!');
-      break;
-    default:
-      // console.log(`Say what? I might have heard '${line.trim()}'`);
-      rl.setPrompt(line.trimLeft());
-      break;
-  }
-  rl.prompt();
-}).on('close', () => {
-  console.log('Have a great day!');
-  process.exit(0);
-});
+// r/wp1*(2.0*wp1*(wp1+2.0/3.0*r)-r)/(2.0*wp1*(wp1+2.0/3.0*r)-2.0*r);
+// r/wp1*(2.0*wp1*(wp1+2.0/3.0*r)-r)/(2.0*wp1*(wp1+2.0/3.0*r)-2.0*r);
+//
+
+let ans = Complex.abs(lhs) >= rhs;
+
+console.log(ans.toString());

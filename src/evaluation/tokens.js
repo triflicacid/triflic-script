@@ -551,7 +551,7 @@ class TokenString {
           output.push(tokens[i]);
         } else {
           if (bidmas) {
-            while (stack.length !== 0 && tokens[i].priority() < peek(stack).priority()) output.push(stack.pop());
+            while (stack.length !== 0 && tokens[i].priority() <= peek(stack).priority()) output.push(stack.pop());
           } else {
             while (stack.length !== 0) output.push(stack.pop());
           }

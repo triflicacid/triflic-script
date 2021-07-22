@@ -1,10 +1,10 @@
 const Complex = require("./Complex");
+const { PI, TWO_PI, E, EXPN1, OMEGA } = require("./constants");
 
-const PI = 3.1415926535897932384626433,
-  TWO_PI = 6.2831853071795864769252842, // 2 * pi
-  E = 2.718281828459045235360287471352662498, // e
-  EXPN1 = 0.36787944117144232159553, // exp(-1)
-  OMEGA = 0.56714329040978387299997; // W(1, 0)
+/**
+ * LambertW is defined as the solution to w * e ** w = z
+ * @implementation from SciPy: https://github.com/scipy/scipy/blob/master/scipy/special/_lambertw.pxd
+ */
 
 function lambertw_scalar(z, k, tol) {
   let i, p, absz, w, ew, wew, wewz, wn;

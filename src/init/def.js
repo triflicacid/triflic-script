@@ -1,13 +1,14 @@
 const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { parseVariable } = require("../evaluation/parse");
-const { OperatorToken, VariableToken, TokenString } = require("../evaluation/tokens");
-const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma } = require("../maths/functions");
+const { VariableToken, TokenString } = require("../evaluation/tokens");
+const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest } = require("../maths/functions");
 const { print, sort, findIndex } = require("../utils");
 const { typeOf, isNumericType, types } = require("../evaluation/types");
-const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, MapValue, primitiveToValueClass } = require("../evaluation/values");
+const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, MapValue } = require("../evaluation/values");
 const path = require("path");
 const fs = require("fs");
+const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 
 /** Core definitions !REQUIRED! */
 function define(rs) {
@@ -249,7 +250,12 @@ function define(rs) {
     if (stats.isFile()) {
       const ext = path.extname(fpath);
       if (ext === '.js') {
-        const fn = require(fpath);
+        let fn;
+        try {
+          fn = require(fpath);
+        } catch (e) {
+          throw new Error(`Import Error: .js: error whilst requiring ${fpath}:\n${e}`);
+        }
         if (typeof fn !== 'function') throw new Error(`Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
         try {
           fn(rs);
@@ -285,14 +291,15 @@ function define(rs) {
 
 /** Built-in Variables */
 function defineVars(rs) {
-  rs.var('pi', Math.PI, 'pi is equal to the circumference of any circle divided by its diameter', true); // pi
+  rs.var('DBL_EPSILON', DBL_EPSILON, 'smallest such that 1.0+DBL_EPSILON != 1.0', true);
+  rs.var('pi', PI, 'pi is equal to the circumference of any circle divided by its diameter', true); // pi
   if (rs.opts.defineAliases) rs.var('π', rs.var('pi'));
-  rs.var('e', Math.E, 'Euler\'s constant', true); // e
-  rs.var('omega', 0.5671432904097838, 'Principle solution to xe^x = 1 (= W(1))', true); // W(1, 0)
+  rs.var('e', E, 'Euler\'s constant', true); // e
+  rs.var('omega', OMEGA, 'Principle solution to xe^x = 1 (= W(1))', true); // W(1, 0)
   if (rs.opts.defineAliases) rs.var('Ω', rs.var('omega'));
-  rs.var('phi', 1.618033988749895, 'Phi, the golden ratio, approx (1 + √5)/2', true); // phi, golden ratio
+  rs.var('phi', PHI, 'Phi, the golden ratio, approx (1 + √5)/2', true); // phi, golden ratio
   if (rs.opts.defineAliases) rs.var('φ', rs.var('phi'));
-  rs.var('tau', 2 * Math.PI, 'A constant representing the ratio between circumference and radius of a circle', true); // tau
+  rs.var('tau', TWO_PI, 'A constant representing the ratio between circumference and radius of a circle', true); // tau
   if (rs.opts.defineAliases) rs.var('τ', rs.var('tau'));
   rs.var(Complex.imagLetter, Complex.I(), '√(-1)', true);
   rs.var('ln2', Math.LN2, 'Natural logarithm of 2');
@@ -420,10 +427,13 @@ function defineFuncs(rs) {
   if (rs.opts.defineAliases) rs.funcAlias('summation', '∑');
   rs.define(new RunspaceBuiltinFunction(rs, 'tan', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tan(z.toPrimitive('complex'))), 'return tangent of z')); // tangent
   rs.define(new RunspaceBuiltinFunction(rs, 'tanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tanh(z.toPrimitive('complex'))), 'return hyperbolic tangent of z')); // hyperbolic tangent
-  rs.define(new RunspaceBuiltinFunction(rs, 'lambertW', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
-  if (rs.opts.defineAliases) rs.funcAlias('lambertW', 'W');
+  rs.define(new RunspaceBuiltinFunction(rs, 'lambertw', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
+  if (rs.opts.defineAliases) rs.funcAlias('lambertw', 'W');
+  rs.define(new RunspaceBuiltinFunction(rs, 'wrightomega', { z: 'complex' }, ({ z }) => new NumberValue(rs, wrightomega(z.toPrimitive('complex'))), 'return approximation of the Wright Omega function'));
+  if (rs.opts.defineAliases) rs.funcAlias('wrightomega', 'ω');
   rs.define(new RunspaceBuiltinFunction(rs, 'gamma', { z: 'complex' }, ({ z }) => new NumberValue(rs, gamma(z.toPrimitive('complex'))), 'Return the gamma function at z'));
   if (rs.opts.defineAliases) rs.funcAlias('gamma', 'Γ');
+  rs.define(new RunspaceBuiltinFunction(rs, 'nextNearest', { n: 'real', dir: 'real' }, ({ n, dir }) => new NumberValue(rs, nextNearest(n.toPrimitive('real'), dir.toPrimitive('real'))), 'Return the next representable double from value <n> towards direction <dir>'));
 }
 
 module.exports = { define, defineVars, defineFuncs };

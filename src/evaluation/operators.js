@@ -81,31 +81,6 @@ const prepareOperators = rs => {
       desc: `exponentation: raise a to the b`,
       syntax: 'a ** b',
     },
-    "*": {
-      precedence: 15,
-      args: 2,
-      fn: (a, b) => {
-        const ta = a.type(), tb = b.type();
-        if (isNumericType(ta) && isNumericType(tb)) return new NumberValue(rs, Complex.mult(a.toPrimitive('complex'), b.toPrimitive('complex')));
-        if (isNumericType(ta) && tb === 'string') return new StringValue(rs, b.toPrimitive('string').repeat(a.toPrimitive('real')));
-        if (isNumericType(tb) && ta === 'string') return new StringValue(rs, a.toPrimitive('string').repeat(b.toPrimitive('real')));
-        if (ta === 'array' && tb === 'array') return new ArrayValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
-        if (ta === 'set' && tb === 'set') return new SetValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
-      },
-      desc: `a × b`,
-      syntax: 'a * b',
-    },
-    "∩": {
-      precedence: 15,
-      args: 2,
-      fn: (a, b) => {
-        const ta = a.type(), tb = b.type();
-        if (ta === 'array' && tb === 'array') return new ArrayValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
-        if (ta === 'set' && tb === 'set') return new SetValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
-      },
-      desc: `a ∩ b`,
-      syntax: 'intersection of a and b',
-    },
     "//": {
       precedence: 15,
       args: 2,
@@ -135,6 +110,31 @@ const prepareOperators = rs => {
       },
       desc: `a % b (remainder of a ÷ b)`,
       syntax: 'a % b',
+    },
+    "*": {
+      precedence: 15,
+      args: 2,
+      fn: (a, b) => {
+        const ta = a.type(), tb = b.type();
+        if (isNumericType(ta) && isNumericType(tb)) return new NumberValue(rs, Complex.mult(a.toPrimitive('complex'), b.toPrimitive('complex')));
+        if (isNumericType(ta) && tb === 'string') return new StringValue(rs, b.toPrimitive('string').repeat(a.toPrimitive('real')));
+        if (isNumericType(tb) && ta === 'string') return new StringValue(rs, a.toPrimitive('string').repeat(b.toPrimitive('real')));
+        if (ta === 'array' && tb === 'array') return new ArrayValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
+        if (ta === 'set' && tb === 'set') return new SetValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
+      },
+      desc: `a × b`,
+      syntax: 'a * b',
+    },
+    "∩": {
+      precedence: 15,
+      args: 2,
+      fn: (a, b) => {
+        const ta = a.type(), tb = b.type();
+        if (ta === 'array' && tb === 'array') return new ArrayValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
+        if (ta === 'set' && tb === 'set') return new SetValue(rs, intersect(a.toPrimitive('array'), b.toPrimitive('array')));
+      },
+      desc: `a ∩ b`,
+      syntax: 'intersection of a and b',
     },
     "+": {
       precedence: 14,
@@ -246,7 +246,7 @@ const prepareOperators = rs => {
       desc: `a greater than b`,
       syntax: 'a > b',
     },
-    "in": {
+    "in ": {
       precedence: 12,
       args: 2,
       fn: (a, b) => {
@@ -254,7 +254,7 @@ const prepareOperators = rs => {
         if (tb === 'array' || tb === 'set') return new BoolValue(rs, findIndex(a, b.toPrimitive('array')) !== -1);
         if (tb === 'string') return new BoolValue(rs, b.toString().indexOf(a.toString()) !== -1);
       },
-      desc: `check if <a> is in <b>`,
+      desc: `check if <a> is in <b>. (NB a space after 'in' is required)`,
       syntax: 'a in b',
     },
     "==": {
