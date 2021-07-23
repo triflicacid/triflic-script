@@ -90,13 +90,9 @@ function define(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
   rs.define(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
     t = t.toString();
-    if (isNumericType(t)) return new NumberValue(rs, 0);
-    if (t === 'string') return new StringValue(rs, "");
-    if (t === 'bool') return new BoolValue(rs, false);
-    if (t === 'array') return new ArrayValue(rs, []);
-    if (t === 'set') return new SetValue(rs, []);
-    if (t === 'map') return new MapValue(rs);
-    throw new Error(`Argument Error: unable to create value of type '${t}'`);
+    const value = Value.__new__?.(rs, t);
+    if (value === undefined) throw new Error(`Type ${t} cannot be initialised`);
+    return value;
   }, 'create new value of type <t>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new StringValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => new NumberValue(rs, chr.toString().charCodeAt(0)), 'return character code of <chr>'));
@@ -131,7 +127,7 @@ function define(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }) => {
     if (arr instanceof ArrayValue) return new NumberValue(rs, arr.value.push(item));
     if (arr instanceof SetValue) { arr.run(() => arr.value.push(item)); return new NumberValue(rs, arr.value.length); }
-    throw new Error(`Argument Error: expected array`);
+    throw new Error(`Argument Error: expected arraylike, got type ${arr.type()}`);
   }, 'push item <item> to array <arr>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'pop', { arr: 'array' }, ({ arr }) => {
     if (arr instanceof ArrayValue || arr instanceof SetValue) return arr.value.pop();

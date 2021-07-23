@@ -54,7 +54,7 @@ class Value {
 }
 
 class NumberValue extends Value {
-  constructor(runspace, num) {
+  constructor(runspace, num = 0) {
     super(runspace, Complex.assert(num));
   }
 
@@ -185,7 +185,7 @@ class NumberValue extends Value {
 }
 
 class StringValue extends Value {
-  constructor(runspace, string) {
+  constructor(runspace, string = '') {
     super(runspace, str(string));
   }
 
@@ -246,8 +246,8 @@ class StringValue extends Value {
 }
 
 class BoolValue extends Value {
-  constructor(runspace, boolean) {
-    super(runspace, bool(boolean));
+  constructor(runspace, boolean = false) {
+    super(runspace, !!boolean);
   }
 
   type() { return "bool"; }
@@ -287,7 +287,7 @@ class BoolValue extends Value {
 }
 
 class ArrayValue extends Value {
-  constructor(runspace, items) {
+  constructor(runspace, items = []) {
     super(runspace, items);
   }
 
@@ -370,7 +370,7 @@ class ArrayValue extends Value {
 }
 
 class SetValue extends Value {
-  constructor(runspace, items) {
+  constructor(runspace, items = []) {
     super(runspace, items);
     this.check();
   }
@@ -542,5 +542,23 @@ function primitiveToValueClass(runspace, primitive) {
   if (runspace.func(primitive) !== undefined) return new FunctionRefValue(runspace, primitive);
   return new StringValue(undefined, primitive);
 }
+
+/** This is used for Value.__new__ */
+Value.typeMap = {
+  complex: NumberValue,
+  complex_int: NumberValue,
+  real: NumberValue,
+  real_int: NumberValue,
+  string: StringValue,
+  bool: BoolValue,
+  array: ArrayValue,
+  set: SetValue,
+  map: MapValue,
+};
+
+Value.__new__ = (rs, t) => {
+  if (t in Value.typeMap) return new Value.typeMap[t](rs);
+  return undefined;
+};
 
 module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, primitiveToValueClass };
