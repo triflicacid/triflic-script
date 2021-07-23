@@ -110,8 +110,8 @@ function parseNumber(string) {
 /** Requires Runspace instance */
 function parseOperator(rs, string) {
   if (arguments.length !== 2) throw new Error(`ParseOperator: required 2 arguments`);
-  for (let operator in rs.operators) {
-    if (rs.operators.hasOwnProperty(operator)) {
+  for (let operator in operators) {
+    if (operators.hasOwnProperty(operator)) {
       let snippet = string.substr(0, operator.length);
       if (operator === snippet) return operator;
     }

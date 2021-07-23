@@ -3,6 +3,7 @@ const { bracketValues, bracketMap, parseNumber, parseOperator, parseFunction, pa
 const { RunspaceUserFunction, RunspaceBuiltinFunction } = require("../runspace/Function");
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, primitiveToValueClass, SetValue } = require("./values");
 const { isNumericType } = require("./types");
+const operators = require("./operators");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -63,17 +64,21 @@ class BracketToken extends Token {
 class OperatorToken extends Token {
   constructor(tstring, op, pos) {
     super(tstring, op, pos);
-    if (tstring.rs.operators[op] === undefined) throw new Error(`new OperatorToken() : '${op}' is not an operator`);
+    if (operators[op] === undefined) throw new Error(`new OperatorToken() : '${op}' is not an operator`);
     this.isUnary = false;
   }
 
   /** Eval as operators */
   eval(...args) {
+    const error = (code) => new Error(`Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} } [${code}]`);
+
     const info = this.info();
     let fn = Array.isArray(info.args) ? info['fn' + args.length] : info.fn;
     if (typeof fn !== 'function') throw new Error(`Internal Error: operator function for ${this.value} with ${args.length} args is undefined`);
-    let r = fn(...args);
-    if (r === undefined) throw new Error(`Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
+    let r;
+    try { r = fn(...args); } catch (e) { throw error(e); }
+    if (r instanceof Error) throw r; // May return custom errors
+    if (r === undefined) throw error(r);
     return r;
   }
 
@@ -82,16 +87,16 @@ class OperatorToken extends Token {
   }
 
   info() {
-    let i = this.tstr.rs.operators[this.value];
+    let i = operators[this.value];
     if (this.isUnary) {
-      i = this.tstr.rs.operators[i.unary];
+      i = operators[i.unary];
       if (i === undefined) throw new Error(`Operator ${this.toString()} has no unary counterpart (isUnary=${this.isUnary})`);
     }
     return i;
   }
 
   toString() {
-    return this.isUnary ? this.tstr.rs.operators[this.value].unary : this.value;
+    return this.isUnary ? operators[this.value].unary : this.value;
   }
 }
 
@@ -222,6 +227,12 @@ class TokenString {
         continue;
       }
 
+      // Break??
+      if (obj.terminateOn.includes(string[i])) {
+        obj.terminateOn = string[i];
+        break;
+      }
+
       if (string[i] === ' ') {
         i++;
         obj.pos++;
@@ -234,11 +245,6 @@ class TokenString {
         break;
       }
 
-      // Comma? (only in depth>0)
-      if (string[i] === ',' && obj.depth > 0) {
-        break;
-      }
-
       // Bracket Group?
       if (string[i] in bracketValues) {
         let t = new BracketToken(this, string[i], obj.pos);
@@ -248,10 +254,6 @@ class TokenString {
         } else if (bracketValues[string[i]] === -1) {
           const lastOpened = peek(brackets);
           if (lastOpened === undefined) {
-            if (string[i] === obj.terminateClosing) {
-              obj.terminateClosing = true; // Signify that it was met
-              break;
-            }
             throw new Error(`Syntax Error: unexpected token '${string[i]}' (position ${obj.pos}); no matching '${bracketMap[string[i]]}' found.`);
           } else {
             if (bracketMap[lastOpened.value] === string[i]) {
@@ -290,12 +292,9 @@ class TokenString {
       if (op !== null) {
         const t = new OperatorToken(this, op, obj.pos);
 
-        // Is unary: first, after (, after an operator
+        // Is unary: first, after (, after an operator (first, check that there IS a unary operator available)
         const top = peek(obj.tokens);
-        if (top === undefined || (top instanceof BracketToken && top.facing() === 1) || top instanceof OperatorToken) {
-          // Check if has unary counterpart
-          if (this.rs.operators[t.info().unary] === undefined) throw new Error(`Syntax Error: unexpected operator ${t} (flagged as unary, but no associated unary overload found)`);
-
+        if (t.info().unary && (top === undefined || (top instanceof BracketToken && top.facing() === 1) || top instanceof OperatorToken)) {
           t.isUnary = true;
         }
 
@@ -397,7 +396,7 @@ class TokenString {
   _parseCommaSeperated(argTokens, string, pos, depth, closingSymbol) {
     let i = 0, done = false;
     while (!done && i < string.length) { // Keep parsing args until ending thing is found
-      const pobj = createTokenStringParseObj(string.substr(i), pos, depth + 1, closingSymbol);
+      const pobj = createTokenStringParseObj(string.substr(i), pos, depth + 1, [",", closingSymbol]);
       try {
         this._parse(pobj); // Parse
         if (pobj.tokens.length !== 0) { // Not Empty
@@ -411,7 +410,7 @@ class TokenString {
         pos = pobj.pos + 1;
 
         // Was terminating bracket met?
-        if (pobj.terminateClosing === true) {
+        if (pobj.terminateOn === closingSymbol) {
           done = true;
         }
       } catch (e) {

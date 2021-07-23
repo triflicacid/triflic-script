@@ -97,13 +97,13 @@ const bool = x => {
   return !!x;
 };
 
-const createTokenStringParseObj = (str, pos, depth, terminateClosing = null) => ({
+const createTokenStringParseObj = (str, pos, depth, terminateOn = []) => ({
   string: str,
   pos,
   depth,
   tokens: [],
   comment: '',
-  terminateClosing, // When depth>0 and this closing bracket is found (assuming brackets.length==0) break from the function
+  terminateOn, // When depth>0 and this this found, set value to what caused the breakage and break
 });
 
 /** Check if prititive arrays are equal */
@@ -167,6 +167,13 @@ const intersect = (a, b) => a.filter(v => findIndex(v, b) !== -1);
 /** Difference between two primitive arrays: diff([1,2], [5,1]) = [2] */
 const arrDifference = (a, b) => a.filter(v => findIndex(v, b) === -1);
 
+function arrRepeat(array, count) {
+  if (count < 1) return [];
+  const out = [];
+  for (let i = 0; i < count; i++) out.push(...array);
+  return out;
+}
+
 module.exports = {
-  input, print, consoleColours, peek, isDigit, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference
+  input, print, consoleColours, peek, isDigit, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat
 };

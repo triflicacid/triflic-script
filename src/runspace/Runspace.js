@@ -2,7 +2,7 @@ const RunspaceVariable = require("./Variable");
 const { TokenString, Token } = require("../evaluation/tokens");
 const { peek } = require("../utils");
 const { primitiveToValueClass, MapValue } = require("../evaluation/values");
-const { prepareOperators } = require("../evaluation/operators");
+const operators = require("../evaluation/operators");
 const path = require("path");
 const fs = require("fs");
 
@@ -10,7 +10,6 @@ class Runspace {
   constructor(opts) {
     this._vars = [{}]; // { variable: EnvVariable }[]
     this._funcs = {}; // { fn_name: EnvFunction }
-    this.operators = prepareOperators(this);
     this.dir = path.join(__dirname, "../../"); // Requires setting externally
 
     this.opts = opts;

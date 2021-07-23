@@ -7,6 +7,7 @@ const { print, sort, findIndex } = require("../utils");
 const { typeOf, isNumericType, types } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, MapValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
+const operators = require("../evaluation/operators");
 
 /** Core definitions !REQUIRED! */
 function define(rs) {
@@ -34,8 +35,8 @@ function define(rs) {
     } else if (item instanceof VariableToken) {
       let v = item.getVar();
       help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.toPrimitive('string')}`;
-    } else if (item instanceof StringValue && rs.operators[item.value] !== undefined) { // Operator
-      const info = rs.operators[item.value];
+    } else if (item instanceof StringValue && operators[item.value] !== undefined) { // Operator
+      const info = operators[item.value];
       const argStr = Array.isArray(info.args) ? `${info.args.join(' or ')} (${info.args.length} overloads)` : info.args;
       help = `Type: string (operator)\nDesc: ${info.desc}\nArgs: ${argStr}\nPrecedence: ${info.precedence}\nUnary Overload: ${info.unary ? `yes (${info.unary})` : 'no'}\nSyntax: ${info.syntax}`;
     } else if (item instanceof Value) {
@@ -82,7 +83,7 @@ function define(rs) {
     }
     return new ArrayValue(rs, vars);
   }, 'list all defined variables in a given scope, or array of scopes'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(rs.operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
   rs.define(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Object.keys(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
   rs.define(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.eval(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, typeOf(o)), 'attempt a direct cast from object <o> to type <type>', false));
@@ -152,7 +153,7 @@ function define(rs) {
     if (!(arr instanceof ArrayValue)) throw new Error(`Argument Error: expected array`);
 
     if (action instanceof StringValue) {
-      const op = rs.operators[action.value];
+      const op = operators[action.value];
       if (op) {
         if (op.args === 2 || (Array.isArray(op.args) && op.args.includes(2))) {
           let acc = new NumberValue(rs, 0);
