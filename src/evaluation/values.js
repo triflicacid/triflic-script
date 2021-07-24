@@ -11,7 +11,13 @@ class Value {
 
   type() { throw new Error(`Requires Overload`); }
 
-  eval() { throw new Error(`Requires Overload`); }
+  eval(type) {
+    if (type === 'any') return this;
+    const mapObj = this.constructor.castMap;
+    let value = mapObj && type in mapObj ? mapObj[type](this) : undefined;
+    if (value == undefined) castingError(this, type);
+    return value;
+  }
 
   toPrimitive(type) {
     const v = this.eval(type).value;
@@ -59,20 +65,6 @@ class NumberValue extends Value {
   }
 
   type() { return this.value.isReal() ? "real" : "complex"; }
-
-  eval(type) {
-    if (type === 'any' || type === 'complex') return this;
-    if (type === 'complex_int') return new NumberValue(this.rs, Complex.floor(this.value));
-    if (type === 'real') return new NumberValue(this.rs, this.value.a);
-    if (type === 'real_int') return new NumberValue(this.rs, Math.floor(this.value.a));
-    if (type === 'string') return new StringValue(this.rs, str(this.value));
-    if (type === 'bool') {
-      if (this.value.b === 0) return new BoolValue(this.rs, !!this.value.a);
-      if (this.value.a === 0) return new BoolValue(this.rs, !!this.value.b);
-      return true;
-    }
-    castingError(this, type);
-  }
 
   /** abs() function */
   __abs__() { return Complex.abs(this.value); }
@@ -225,19 +217,6 @@ class StringValue extends Value {
   /** copy() function */
   __copy__() { return new StringValue(this.rs, this.value); }
 
-  eval(type) {
-    if (type === 'any' || type === 'string') return this;
-    if (type === 'bool') return new BoolValue(this.rs, !!this.value);
-    if (isNumericType(type)) {
-      let n = +this.value;
-      if (isIntType(type)) n = Math.floor(n);
-      return new NumberValue(this.rs, n);
-    }
-    if (type === 'array') return new ArrayValue(this.rs, this.value.split(''));
-    if (type === 'set') return new SetValue(this.rs, this.value.split(''));
-    castingError(this, type);
-  }
-
   /** operator: * */
   __mul__(n) {
     const t = n.type();
@@ -257,13 +236,6 @@ class BoolValue extends Value {
   }
 
   type() { return "bool"; }
-
-  eval(type) {
-    if (type === "any" || type === "bool") return this;
-    if (isNumericType(type)) return new NumberValue(this.rs, +this.value);
-    if (type === 'string') return new StringValue(this.rs, str(this.value));
-    castingError(this, type);
-  }
 
   /** copy() function */
   __copy__() { return new BoolValue(this.rs, this.value); }
@@ -342,20 +314,6 @@ class ArrayValue extends Value {
     }));
   }
 
-  eval(type) {
-    if (type === 'any' || type === 'array') return this;
-    if (type === 'set') return new SetValue(this.rs, this.value);
-    if (type === 'string') return new StringValue(this.rs, "[" + this.value.map(t => t.toString()).join(',') + "]");
-    if (type === 'bool') return new BoolValue(this.rs, !!this.value);
-    if (type === 'map') {
-      const map = new MapValue(this.rs);
-      this.value.forEach((v, i) => map.value.set(i, v));
-      return map;
-    }
-    if (isNumericType(type)) return new NumberValue(this.rs, Complex.NaN());
-    castingError(this, type);
-  }
-
   /** operator: * */
   __mul__(n) {
     const t = n.type();
@@ -417,14 +375,6 @@ class SetValue extends Value {
       if (copy === undefined) throw new Error(emsg(v, i));
       return copy;
     }));
-  }
-
-  eval(type) {
-    if (type === 'any' || type === 'set') return this;
-    if (type === 'array') return new ArrayValue(this.rs, this.value);
-    if (type === 'string') return new StringValue(this.rs, "{" + this.value.map(t => t.toString()).join(',') + "}");
-    if (type === 'bool') return new BoolValue(this.rs, !!this.value);
-    castingError(this, type);
   }
 
   /** Run and return fn() */
@@ -523,13 +473,6 @@ class MapValue extends Value {
     });
     return map;
   }
-
-  eval(type) {
-    if (type === 'any' || type === 'map') return this;
-    if (type === 'string') return new StringValue(this.rs, "{" + Array.from(this.value.entries()).map(pair => `${pair[0].toString()}:${pair[1].toString()}`).join(',') + "}");
-    if (type === 'bool') return new BoolValue(this.rs, !!this.value);
-    castingError(this, type);
-  }
 }
 
 /** Reference to function without calling. this.value = function name */
@@ -546,12 +489,6 @@ class FunctionRefValue extends Value {
 
   getFn() {
     return this.rs.func(this.value);
-  }
-
-  eval(type) {
-    if (type === 'any' || type === 'func') return this;
-    if (type === 'string') return new StringValue(this.rs, this.toString());
-    castingError(this, type);
   }
 
   toString() {
@@ -606,6 +543,70 @@ Value.typeMap = {
 Value.__new__ = (rs, t) => {
   if (t in Value.typeMap) return new Value.typeMap[t](rs);
   return undefined;
+};
+
+/** Setup casting maps */
+NumberValue.castMap = {
+  complex: o => o,
+  complex_int: o => new NumberValue(o.rs, Complex.floor(o.value)),
+  real: o => new NumberValue(o.rs, Complex.floor(o.value)),
+  real_int: o => new NumberValue(o.rs, Math.floor(o.value.a)),
+  string: o => new StringValue(o.rs, str(o.value)),
+  bool: o => {
+    if (o.value.b === 0) return new BoolValue(o.rs, !!o.value.a);
+    if (o.value.a === 0) return new BoolValue(o.rs, !!o.value.b);
+    return new BoolValue(o.rs, true);
+  },
+};
+
+StringValue.castMap = {
+  string: o => o,
+  bool: o => new BoolValue(o.rs, !!o.value),
+  complex: o => new NumberValue(o.rs, +o.value),
+  complex_int: o => new NumberValue(o.rs, Math.floor(+o.value)),
+  real: o => new NumberValue(o.rs, +o.value),
+  real_int: o => new NumberValue(o.rs, Math.floor(+o.value)),
+  array: o => new ArrayValue(o.rs, o.value.split('').map(s => new StringValue(o.rs, s))),
+  set: o => new SetValue(o.rs, o.value.split('').map(s => new StringValue(o.rs, s))),
+};
+
+BoolValue.castMap = {
+  bool: o => o,
+  complex: o => new NumberValue(o.rs, +o.value),
+  complex_int: o => new NumberValue(o.rs, +o.value),
+  real: o => new NumberValue(o.rs, +o.value),
+  real_int: o => new NumberValue(o.rs, +o.value),
+  string: o => new StringValue(o.rs, o.value.toString()),
+};
+
+ArrayValue.castMap = {
+  array: o => o,
+  set: o => new SetValue(o.rs, o.value),
+  string: o => new StringValue(o.rs, "[" + o.value.map(t => t.toString()).join(',') + "]"),
+  bool: o => new BoolValue(o.rs, !!this.value),
+  map: o => {
+    const map = new MapValue(o.rs);
+    o.value.forEach((v, i) => map.value.set(i, v));
+    return map;
+  },
+};
+
+SetValue.castMap = {
+  set: o => o,
+  array: o => new ArrayValue(o.rs, o.value),
+  string: o => new StringValue(o.rs, "{" + o.value.map(t => t.toString()).join(',') + "}"),
+  bool: o => new BoolValue(o.rs, !!this.value),
+};
+
+MapValue.castMap = {
+  map: o => o,
+  string: o => new StringValue(o.rs, "{" + Array.from(o.value.entries()).map(pair => pair.join(':')).join(',') + "}"),
+  bool: o => new BoolValue(o.rs, !!o.value),
+};
+
+FunctionRefValue.castMap = {
+  func: o => o,
+  string: o => new StringValue(o.rs, o.toString()),
 };
 
 module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, primitiveToValueClass };

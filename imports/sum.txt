@@ -1,1 +1,0 @@
-const sum(arr) = apply(arr, "+") # Find sum of values in an array
