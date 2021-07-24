@@ -1,4 +1,4 @@
-const { peek, str, createTokenStringParseObj } = require("../utils");
+const { peek, str, createTokenStringParseObj, consoleColours } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseFunction, parseVariable } = require("./parse");
 const { RunspaceUserFunction, RunspaceBuiltinFunction } = require("../runspace/Function");
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, primitiveToValueClass, SetValue } = require("./values");
@@ -70,15 +70,13 @@ class OperatorToken extends Token {
 
   /** Eval as operators */
   eval(...args) {
-    const error = (code) => new Error(`Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} } [${code}]`);
-
     const info = this.info();
     let fn = Array.isArray(info.args) ? info['fn' + args.length] : info.fn;
-    if (typeof fn !== 'function') throw new Error(`Internal Error: operator function for ${this.value} with ${args.length} args is undefined`);
+    if (typeof fn !== 'function') throw new Error(`Argument Error: no overload for operator function ${this.value} with ${args.length} args`);
     let r;
-    try { r = fn(...args); } catch (e) { throw error(e); }
+    try { r = fn(...args); } catch (e) { throw new Error(`Operator ${this.value}:\n${e}`); }
     if (r instanceof Error) throw r; // May return custom errors
-    if (r === undefined) throw error(r);
+    if (r === undefined) throw new Error(`Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
     return r;
   }
 
@@ -107,7 +105,7 @@ class VariableToken extends Token {
     this.isDeclaration = false; // Is this token on the RHS of assignment?
   }
   type() {
-    return str(this.getVar()?.value.type());
+    return this.isDeclaration ? `<symbol ${this.value}>` : str(this.getVar()?.value.type());
   }
   eval(type) {
     let v = this.tstr.rs.var(this.value);
@@ -127,13 +125,30 @@ class VariableToken extends Token {
     return obj instanceof FunctionToken || obj instanceof VariableToken || (obj instanceof BracketToken && obj.facing() === 1);
   }
   toString() {
-    return str(this.getVar()?.value);
+    return this.isDeclaration ? this.value : str(this.getVar()?.value);
   }
+
+  /** function: del() */
   __del__() {
     const v = this.getVar();
     if (v.constant) throw new Error(`Argument Error: Attempt to delete a constant variable ${this.value}`);
     this.tstr.rs.var(this.value, null);
     return new NumberValue(this.tstr.rs, 0);
+  }
+
+  /** operator: = */
+  __assign__(v) {
+    const name = this.value;
+    if (this.tstr.rs.func(name)) throw new Error(`Syntax Error: Invalid syntax - symbol '${name}' is a function but treated as a variable at position ${this.pos}`);
+    if (this.tstr.rs.var(name)?.constant) throw new Error(`Syntax Error: Assignment to constant variable ${name} (position ${this.pos})`);
+    // Setup TokenString
+    const ts = new TokenString(this.tstr.rs, '');
+    ts.tokens = [v];
+    // Evaluate
+    const obj = ts.eval(); // Intermediate
+    const varObj = this.tstr.rs.var(name, obj.eval('any'));
+    if (this.isDeclaration === 2) varObj.constant = true;
+    return obj;
   }
 }
 
@@ -424,58 +439,37 @@ class TokenString {
     try {
       return this._eval();
     } catch (e) {
-      throw e
       throw new Error(`${this.string}:\n${e}`);
     }
   }
 
   _eval() {
-    // SORT OUT DECLARATIONS
+    // HANDLE FUNCTION DECLARATIONS
     if (this.tokens[0]?.isDeclaration) {
-      // Next char must be OperatorToken "="
-      if (this.tokens[1]?.is(OperatorToken, "=")) {
+      if (this.tokens[1]?.is(OperatorToken, "=") && this.tokens[0] instanceof FunctionToken) {
         let defTokens = this.tokens.slice(2);
         if (defTokens.length === 0) throw new Error(`Syntax Error: unexpected end of input after assignement at position ${this.tokens[1].pos}`);
 
-        if (this.tokens[0] instanceof VariableToken) {
-          let name = this.tokens[0].value;
-          if (this.rs.func(name)) throw new Error(`Syntax Error: Invalid syntax - symbol '${name}' is a function but treated as a variable at position ${this.tokens[0].pos}`);
-          if (this.rs.var(name)?.constant) throw new Error(`Syntax Error: Assignment to constant variable ${name} (position ${this.tokens[1].pos})`);
-          // Setup TokenString
-          let ts = new TokenString(this.rs, '');
-          ts.tokens = defTokens;
-          // Evaluate
-          const obj = ts.eval(); // Intermediate
-          const varObj = this.rs.var(name, obj.eval('any'));
-          if (this.tokens[0].isDeclaration === 2) varObj.constant = true;
-          if (this.comment) varObj.desc = this.comment;
-          return obj;
-        } else if (this.tokens[0] instanceof FunctionToken) {
-          let name = this.tokens[0].value;
-          if (this.rs.var(name)) throw new Error(`Syntax Error: Invalid syntax - symbol '${name}' is a variable but treated as a function at position ${this.tokens[0].pos}`);
-          if (this.rs.opts.strict && this.rs.func(name) instanceof RunspaceBuiltinFunction) throw new Error(`Strict Mode: cannot redefine built-in function ${name}`);
-          if (this.rs.func(name)?.constant) throw new Error(`Syntax Error: Assignment to constant function ${name} (position ${this.tokens[1].pos})`);
-          // Extract function arguments - each TokenString in FunctionToken#args should contain ONE symbol
-          let fargs = [], a = 0;
-          for (let argts of this.tokens[0].args) {
-            if (argts.tokens.length !== 1) throw new Error(`Syntax Error: Invalid function declaration: function ${name} paramater ${a} (positions ${argts.tokens[0].pos} - ${peek(argts.tokens).pos})`);
-            if (!(argts.tokens[0] instanceof VariableToken)) throw new Error(`Syntax Error: Invalid function declaration: function ${name} paramater ${a} (positions ${argts.tokens[0].pos} - ${peek(argts.tokens).pos}): invalid parameter ${argts.tokens[0]}`);
-            fargs[a] = argts.tokens[0].value;
-            a++;
-          }
-          // Setup TokenString
-          let ts = new TokenString(this.rs, '');
-          ts.tokens = defTokens;
-          // Define function
-          const fn = new RunspaceUserFunction(this.rs, name, fargs, ts, this.comment || undefined);
-          if (this.tokens[0].isDeclaration === 2) fn.constant = true;
-          this.rs.define(fn);
-          return new FunctionRefValue(this.rs, name);
-        } else {
-          throw new Error(`Syntax Error: invalid assignment at position ${this.tokens[0].pos}: cannot assign to ${typeof this.tokens[0]} ${this.tokens[0]}`);
+        let name = this.tokens[0].value;
+        if (this.rs.var(name)) throw new Error(`Syntax Error: Invalid syntax - symbol '${name}' is a variable but treated as a function at position ${this.tokens[0].pos}`);
+        if (this.rs.opts.strict && this.rs.func(name) instanceof RunspaceBuiltinFunction) throw new Error(`Strict Mode: cannot redefine built-in function ${name}`);
+        if (this.rs.func(name)?.constant) throw new Error(`Syntax Error: Assignment to constant function ${name} (position ${this.tokens[1].pos})`);
+        // Extract function arguments - each TokenString in FunctionToken#args should contain ONE symbol
+        let fargs = [], a = 0;
+        for (let argts of this.tokens[0].args) {
+          if (argts.tokens.length !== 1) throw new Error(`Syntax Error: Invalid function declaration: function ${name} paramater ${a} (positions ${argts.tokens[0].pos} - ${peek(argts.tokens).pos})`);
+          if (!(argts.tokens[0] instanceof VariableToken)) throw new Error(`Syntax Error: Invalid function declaration: function ${name} paramater ${a} (positions ${argts.tokens[0].pos} - ${peek(argts.tokens).pos}): invalid parameter ${argts.tokens[0]}`);
+          fargs[a] = argts.tokens[0].value;
+          a++;
         }
-      } else {
-        throw new Error(`Syntax Error: expected assignment operator following declaration at position ${this.tokens[0].pos}`);
+        // Setup TokenString
+        let ts = new TokenString(this.rs, '');
+        ts.tokens = defTokens;
+        // Define function
+        const fn = new RunspaceUserFunction(this.rs, name, fargs, ts, this.comment || undefined);
+        if (this.tokens[0].isDeclaration === 2) fn.constant = true;
+        this.rs.define(fn);
+        return new FunctionRefValue(this.rs, name);
       }
     }
 
