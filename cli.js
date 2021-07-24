@@ -76,6 +76,8 @@ rl.on('line', (line) => {
 
 rl.on('close', () => {
   rl.output.write('^C\n');
-  rs.eval('exit()'); // SImulate call to exit()
+  rs.eval('exit()'); // Simulate call to exit()
   process.exit(); // As a fallback
 });
+
+rs.import('matrix.js');

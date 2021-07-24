@@ -357,6 +357,11 @@ Complex.NaN = () => new Complex(NaN, NaN);
 Complex.assert = function (z) {
   if (z instanceof Complex) return z;
   if (typeof z === 'number' || typeof z === 'boolean') return new Complex(z, 0);
+  if (typeof z === 'string') {
+    let parts = z.split(/[\-\+]/);
+    if (parts.length === 1) return new Complex(parseFloat(parts[0]), 0);
+    if (parts.length === 2 && parts[1].indexOf(Complex.imagLetter) !== -1) return new Complex(parseFloat(parts[0]), parseFloat(parts[1].replace(Complex.imagLetter, '')));
+  }
   throw new TypeError(`Expected Complex, got ${typeof z} ${z}`);
 };
 

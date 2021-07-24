@@ -1,5 +1,5 @@
-const { RunspaceBuiltinFunction } = require("../src/runspace/Function");
-const { NumberValue } = require('../src/evaluation/values');
+const { RunspaceBuiltinFunction } = require("../../src/runspace/Function");
+const { NumberValue } = require('../../src/evaluation/values');
 
 module.exports = rs => {
     rs.define(new RunspaceBuiltinFunction(rs, 'timeit', { fn: 'func', args: '?array' }, ({ fn, args }) => {

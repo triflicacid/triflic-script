@@ -42,11 +42,8 @@ class Value {
     if (argt === 'string') return new BoolValue(this.rs, arg.toString().indexOf(this.toString()) !== -1);
   }
 
-  /** operator: == */
-  __eq__(a) { return new BoolValue(this.rs, equal(this, a)); }
-
   /** operator: != */
-  __neq__(a) { return !this.__eq__(a); }
+  __neq__(a) { return new BoolValue(this.rs, !this.__eq__(a).toPrimitive('bool')); }
 
   /** operator: && */
   __and__(a) { return this.toPrimitive('bool') && a.toPrimitive('bool') ? a : new BoolValue(this.rs, false); }
@@ -74,6 +71,9 @@ class NumberValue extends Value {
 
   /** operator: deg */
   __deg__() { return new NumberValue(this.rs, Complex.mult(this.value, Math.PI / 180)); }
+
+  /** operator: == */
+  __eq__(a) { return new BoolValue(this.rs, isNumericType(a.type()) ? this.value.equals(a.toPrimitive('complex')) : false); }
 
   /** operator: ~ */
   __bitwiseNot__() {
@@ -217,6 +217,9 @@ class StringValue extends Value {
   /** copy() function */
   __copy__() { return new StringValue(this.rs, this.value); }
 
+  /** operator: == */
+  __eq__(a) { return new BoolValue(this.rs, a.type() === 'string' ? this.toString() === a.toString() : false); }
+
   /** operator: * */
   __mul__(n) {
     const t = n.type();
@@ -239,6 +242,9 @@ class BoolValue extends Value {
 
   /** copy() function */
   __copy__() { return new BoolValue(this.rs, this.value); }
+
+  /** operator: == */
+  __eq__(a) { return new BoolValue(this.rs, isNumericType(a.type()) ? this.value === a.toPrimitive('bool') : false); }
 
   /** operator: ~ */
   __bitwiseNot__() { return new NumberValue(this.rs, ~this.value); }
@@ -314,6 +320,9 @@ class ArrayValue extends Value {
     }));
   }
 
+  /** operator: == */
+  __eq__(a) { return new BoolValue(this.rs, a.type() === 'array' && this.value.length === a.value.length ? this.value.map((_, i) => equal(this.value[i], a.value[i])).every(x => x) : false); }
+
   /** operator: * */
   __mul__(n) {
     const t = n.type();
@@ -383,6 +392,9 @@ class SetValue extends Value {
     this.check();
     return tmp;
   }
+
+  /** operator: == */
+  __eq__(a) { return new BoolValue(this.rs, a.type() === 'set' && this.value.length === a.value.length ? this.value.map((_, i) => equal(this.value[i], a.value[i])).every(x => x) : false); }
 
   /** operator: ' */
   __not__() {
@@ -473,6 +485,18 @@ class MapValue extends Value {
     });
     return map;
   }
+
+  /** operator: == */
+  __eq__(a) {
+    let bool = false;
+    if (a.type() === 'map') {
+      let ethis = Array.from(this.value.entries()), ea = Array.from(a.value.entries());
+      bool = (ethis.length === ea.length) ?
+        ethis.map(key => equal(this.value.get(key[0]), a.value.get(key[0]))).every(x => x)
+        : false;
+    }
+    return new BoolValue(this.rs, bool);
+  }
 }
 
 /** Reference to function without calling. this.value = function name */
@@ -505,6 +529,9 @@ class FunctionRefValue extends Value {
 
   /** copy() function */
   __copy__() { return new FunctionRefValue(this.rs, this.value); }
+
+  /** operator: == */
+  __eq__(a) { return new BoolValue(this.rs, a.type() === 'func' ? this.value === a.value : false); }
 }
 
 

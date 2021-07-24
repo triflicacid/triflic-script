@@ -1,5 +1,5 @@
-const { RunspaceBuiltinFunction } = require("../src/runspace/Function");
-const { NumberValue } = require("../src/evaluation/values.js");
+const { RunspaceBuiltinFunction } = require("../../src/runspace/Function");
+const { NumberValue } = require("../../src/evaluation/values.js");
 
 module.exports = rs => {
 	rs.define(new RunspaceBuiltinFunction(rs, 'rect', { n: 'real' }, ({ n }) => {

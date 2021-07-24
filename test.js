@@ -1,19 +1,12 @@
 /** FILE FOR TEST SCRIPTS */
 
-const Complex = require('./src/maths/Complex.js');
-Complex.imagLetter = 'j';
+const Complex = require("./src/maths/Complex");
+const Matrix = require("./src/maths/Matrix");
 
-let z = new Complex(2, -5);
+const a = Matrix.fromString('2 4 2; 6 8 4; 6 8 5;');
+console.log(`a = ${a}`);
+const b = Matrix.fromString('1 7 4; 2 0 0; 12 4 3;');
+console.log(`b = ${b}`);
 
-let w = new Complex(2);
-let wp1 = new Complex(4.34355, -0.1);
-let r = new Complex(0, -2);
-const TWOITERTOL = 2.2204460492503131e-16;
-
-// r/wp1*(2.0*wp1*(wp1+2.0/3.0*r)-r)/(2.0*wp1*(wp1+2.0/3.0*r)-2.0*r);
-// r/wp1*(2.0*wp1*(wp1+2.0/3.0*r)-r)/(2.0*wp1*(wp1+2.0/3.0*r)-2.0*r);
-//
-
-let ans = Complex.abs(lhs) >= rhs;
-
-console.log(ans.toString());
+const x = Matrix.mult(a, b);
+console.log(`${x}`);

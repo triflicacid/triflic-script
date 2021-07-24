@@ -124,19 +124,13 @@ function equal(a, b) {
   const basic = a === b;
   if (basic) return basic;
 
-  const ta = a.type(), tb = b.type();
-  if (isNumericType(ta) && isNumericType(tb)) return a.toPrimitive('complex').equals(b.toPrimitive('complex'));
-  if (ta === 'string' && ta === 'string') return a.value === b.value;
-  if ((ta === 'array' && tb === 'array') || (ta === 'set' && tb === 'set')) {
-    a = a.eval('array');
-    b = b.eval('array');
-    if (a.value.length !== b.value.length) return false;
-    for (let i = 0; i < a.value.length; i++) if (!equal(a.value[i], b.value[i])) return false;
-    return true;
+  let bool;
+  try {
+    bool = a.__eq__(b);
+  } catch (e) {
+    return false;
   }
-  if (ta !== tb) return false;
-
-  throw new Error(`Type Error: cannot compare types ${ta} and ${tb}`);
+  return bool && bool.toPrimitive('bool');
 }
 
 /** Find and return index of <item> in pritmitive <array> */

@@ -1,4 +1,4 @@
-const { RunspaceBuiltinFunction } = require("../src/runspace/Function");
+const { RunspaceBuiltinFunction } = require("../../src/runspace/Function");
 
 module.exports = rs => {
     rs.define(new RunspaceBuiltinFunction(rs, 'printr', { arg: 'any' }, ({ arg }) => {
