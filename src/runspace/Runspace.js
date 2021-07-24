@@ -1,8 +1,7 @@
 const RunspaceVariable = require("./Variable");
 const { TokenString, Token } = require("../evaluation/tokens");
 const { peek } = require("../utils");
-const { primitiveToValueClass, MapValue } = require("../evaluation/values");
-const operators = require("../evaluation/operators");
+const { primitiveToValueClass, MapValue, NumberValue } = require("../evaluation/values");
 const path = require("path");
 const fs = require("fs");
 
@@ -115,12 +114,14 @@ class Runspace {
           throw new Error(`Import Error: .js: error whilst requiring ${fpath}:\n${e}`);
         }
         if (typeof fn !== 'function') throw new Error(`Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
+        let resp;
         try {
-          fn(this);
+          resp = fn(this);
         } catch (e) {
           console.error(e);
           throw new Error(`Import Error: .js: error whilst executing ${fpath}'s export function:\n${e}`);
         }
+        return resp || new NumberValue(this.rs, 0);
       } else {
         let text;
         try {

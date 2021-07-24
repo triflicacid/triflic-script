@@ -4,5 +4,5 @@ module.exports = rs => {
     rs.define(new RunspaceBuiltinFunction(rs, 'printr', { arg: 'any' }, ({ arg }) => {
         console.log(arg);
         return arg;
-    }, 'Print raw object as stored internally', false));
+    }, 'Print raw object as stored internally'));
 };

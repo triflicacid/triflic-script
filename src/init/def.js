@@ -94,6 +94,11 @@ function define(rs) {
     if (value === undefined) throw new Error(`Type ${t} cannot be initialised`);
     return value;
   }, 'create new value of type <t>'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'copy', { o: 'any' }, ({ o }) => {
+    const copy = o.__copy__?.();
+    if (copy === undefined) throw new Error(`Type ${o.type()} cannot be copied`);
+    return copy;
+  }, 'Return a copy of object <o>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new StringValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => new NumberValue(rs, chr.toString().charCodeAt(0)), 'return character code of <chr>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
@@ -217,7 +222,6 @@ function define(rs) {
     }
     return new ArrayValue(rs, array);
   }, 'Remove all values from arr for which fn(value, ?index) is false'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'join', { arr: 'array', seperator: 'string' }, ({ arr, seperator }) => new StringValue(rs, arr.toPrimitive('array').map(v => v.toString()).join(seperator.toString())), 'Join elements in an array by <seperator>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'find', { item: 'any', o: 'any' }, ({ item, o }) => {
     if (o instanceof ArrayValue || o instanceof SetValue) return new NumberValue(rs, findIndex(item, o.value));
     if (o instanceof StringValue) return new NumberValue(rs, o.value.indexOf(item.toString()));

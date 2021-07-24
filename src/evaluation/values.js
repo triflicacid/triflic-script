@@ -77,6 +77,9 @@ class NumberValue extends Value {
   /** abs() function */
   __abs__() { return Complex.abs(this.value); }
 
+  /** copy() function - <#Complex> has a copy method available */
+  __copy__() { return new NumberValue(this.rs, this.value.copy()); }
+
   /** operator: deg */
   __deg__() { return new NumberValue(this.rs, Complex.mult(this.value, Math.PI / 180)); }
 
@@ -219,6 +222,9 @@ class StringValue extends Value {
     return new StringValue(this.rs, chr);
   }
 
+  /** copy() function */
+  __copy__() { return new StringValue(this.rs, this.value); }
+
   eval(type) {
     if (type === 'any' || type === 'string') return this;
     if (type === 'bool') return new BoolValue(this.rs, !!this.value);
@@ -258,6 +264,9 @@ class BoolValue extends Value {
     if (type === 'string') return new StringValue(this.rs, str(this.value));
     castingError(this, type);
   }
+
+  /** copy() function */
+  __copy__() { return new BoolValue(this.rs, this.value); }
 
   /** operator: ~ */
   __bitwiseNot__() { return new NumberValue(this.rs, ~this.value); }
@@ -320,6 +329,17 @@ class ArrayValue extends Value {
     if (isNaN(i) || i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
     this.value.splice(i, 1);
     return new NumberValue(this.rs, i);
+  }
+
+  /** copy() function */
+  __copy__() {
+    const emsg = (v, i) => `Error whilst copying type array: index ${i}: type ${v.type()} cannot be copied`;
+    return new ArrayValue(this.rs, this.value.map((v, i) => {
+      let copy;
+      try { copy = v.__copy__?.(); } catch (e) { throw new Error(`${emsg(v, i)}\n${e}`); }
+      if (copy === undefined) throw new Error(emsg(v, i));
+      return copy;
+    }));
   }
 
   eval(type) {
@@ -387,6 +407,17 @@ class SetValue extends Value {
 
   /** abs() function */
   __abs__() { return this.value.length; }
+
+  /** copy() function */
+  __copy__() {
+    const emsg = (v, i) => `Error whilst copying type set: index ${i}: type ${v.type()} cannot be copied`;
+    return new SetValue(this.rs, this.value.map((v, i) => {
+      let copy;
+      try { copy = v.__copy__?.(); } catch (e) { throw new Error(`${emsg(v, i)}\n${e}`); }
+      if (copy === undefined) throw new Error(emsg(v, i));
+      return copy;
+    }));
+  }
 
   eval(type) {
     if (type === 'any' || type === 'set') return this;
@@ -480,6 +511,19 @@ class MapValue extends Value {
     return val;
   }
 
+  /** copy() function */
+  __copy__() {
+    const emsg = (v, key) => `Error whilst copying type map: key ${key}: type ${v.type()} cannot be copied`;
+    const map = new MapValue(this.rs);
+    this.value.forEach((v, key) => {
+      let copy;
+      try { copy = v.__copy__?.(); } catch (e) { throw new Error(`${emsg(v, key)}\n${e}`); }
+      if (copy === undefined) throw new Error(emsg(v, key));
+      map.value.set(key, copy);
+    });
+    return map;
+  }
+
   eval(type) {
     if (type === 'any' || type === 'map') return this;
     if (type === 'string') return new StringValue(this.rs, "{" + Array.from(this.value.entries()).map(pair => `${pair[0].toString()}:${pair[1].toString()}`).join(',') + "}");
@@ -521,6 +565,9 @@ class FunctionRefValue extends Value {
     this.rs.func(this.value, null);
     return new NumberValue(this.rs, 0);
   }
+
+  /** copy() function */
+  __copy__() { return new FunctionRefValue(this.rs, this.value); }
 }
 
 

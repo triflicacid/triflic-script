@@ -446,7 +446,7 @@ class TokenString {
           ts.tokens = defTokens;
           // Evaluate
           const obj = ts.eval(); // Intermediate
-          const varObj = this.rs.var(name, obj);
+          const varObj = this.rs.var(name, obj.eval('any'));
           if (this.tokens[0].isDeclaration === 2) varObj.constant = true;
           if (this.comment) varObj.desc = this.comment;
           return obj;
