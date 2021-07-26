@@ -358,9 +358,13 @@ Complex.assert = function (z) {
   if (z instanceof Complex) return z;
   if (typeof z === 'number' || typeof z === 'boolean') return new Complex(z, 0);
   if (typeof z === 'string') {
-    let parts = z.split(/[\-\+]/);
+    let parts = z.split(/(?=[\-\+])/).map(x => x.trim()).filter(x => x.length > 0);
     if (parts.length === 1) return new Complex(parseFloat(parts[0]), 0);
-    if (parts.length === 2 && parts[1].indexOf(Complex.imagLetter) !== -1) return new Complex(parseFloat(parts[0]), parseFloat(parts[1].replace(Complex.imagLetter, '')));
+    if (parts.length === 2 && parts[1].indexOf(Complex.imagLetter) !== -1) {
+      let imag = parts[1].replace(Complex.imagLetter, '');
+      if (imag === '-' || imag === '+') imag += '1';
+      return new Complex(parseFloat(parts[0]), parseFloat(imag));
+    }
   }
   throw new TypeError(`Expected Complex, got ${typeof z} ${z}`);
 };

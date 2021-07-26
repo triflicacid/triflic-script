@@ -56,6 +56,19 @@ class Value {
   }
 }
 
+class UndefinedValue extends Value {
+  constructor(runspace) {
+    super(runspace, undefined);
+  }
+
+  type() { return 'undefined'; }
+
+  /* operator: == */
+  __eq__(v) {
+    return new BoolValue(this.rs, v instanceof UndefinedValue);
+  }
+}
+
 class NumberValue extends Value {
   constructor(runspace, num = 0) {
     super(runspace, Complex.assert(num));
@@ -538,6 +551,7 @@ class FunctionRefValue extends Value {
 /** Convert primitive JS value to Value class */
 function primitiveToValueClass(runspace, primitive) {
   if (primitive instanceof Value) return primitive;
+  if (runspace == undefined) return new UndefinedValue(runspace);
   if (typeof primitive === 'boolean') return new BoolValue(runspace, primitive);
   const c = Complex.is(primitive);
   if (c !== false) return new NumberValue(runspace, c);
@@ -573,6 +587,14 @@ Value.__new__ = (rs, t) => {
 };
 
 /** Setup casting maps */
+UndefinedValue.castMap = {
+  string: o => new StringValue(o.rs, 'undefined'),
+  complex: o => new NumberValue(o.rs, NaN),
+  complex_int: o => new NumberValue(o.rs, NaN),
+  real: o => new NumberValue(o.rs, NaN),
+  real_int: o => new NumberValue(o.rs, NaN),
+};
+
 NumberValue.castMap = {
   complex: o => o,
   complex_int: o => new NumberValue(o.rs, Complex.floor(o.value)),
@@ -636,4 +658,4 @@ FunctionRefValue.castMap = {
   string: o => new StringValue(o.rs, o.toString()),
 };
 
-module.exports = { Value, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, primitiveToValueClass };
+module.exports = { Value, UndefinedValue, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, primitiveToValueClass };

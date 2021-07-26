@@ -4,8 +4,8 @@ const { parseVariable } = require("../evaluation/parse");
 const { VariableToken, TokenString } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest } = require("../maths/functions");
 const { print, sort, findIndex } = require("../utils");
-const { typeOf, isNumericType, types } = require("../evaluation/types");
-const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, MapValue } = require("../evaluation/values");
+const { typeOf, types } = require("../evaluation/types");
+const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, MapValue, UndefinedValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
 
@@ -16,6 +16,7 @@ function define(rs) {
   rs.var('inf', Infinity, 'Value representing Infinity', true);
   rs.var('true', true, '\'true\' is a boolean value that represents mathematical and logical truth', true);
   rs.var('false', false, '\'false\' is a boolean value that is used when the result of a logical statement is false', true);
+  rs.var('undefined', new UndefinedValue(rs), 'A variable that has not been assigned a value is of type undefined', true);
   rs.var('universal_set', new SetValue(rs, []), 'Universal set', false);
 
   /****************** CORE FUNCTIONS */

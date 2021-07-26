@@ -22,6 +22,12 @@ class Matrix {
     return this.matrix[r][c];
   }
 
+  /** Set (row, col) to <arg> */
+  set(r, c, n) {
+    this.matrix[r][c] = n;
+    return this;
+  }
+
   /** Flatten matrix -> returns array */
   flatten() { return this.matrix.flat(); }
 
@@ -204,11 +210,42 @@ Matrix.mult = (a, b) => {
   }
 };
 
+function _getCofactor(mat, temp, p, q, n) {
+  let i = 0, j = 0;
+  // Loop through each element of matrix
+  for (let row = 0; row < n; row++) {
+    for (let col = 0; col < n; col++) {
+      // Copy into temp matrix.
+      if (row !== p && col !== q) {
+        temp.set(i, j++, mat.get(row, col));
+        // Row is filled, so inc row index and reset col index
+        if (j === n - 1) {
+          j = 0;
+          i++;
+        }
+      }
+    }
+  }
+}
+
 /** Calculate the determinant of a matrix */
-Matrix.determinant = (matrix, size = null) => {
+Matrix.determinant = (matrix, n = null) => {
   if (matrix.isSquare()) {
-    size = size ?? matrix.rows;
-    throw new Error(`Not Implemented`);
+    n = n ?? matrix.rows;
+
+    let D = 0;
+    if (n === 1) return matrix.get(0, 0); // 1 by 1 matrix
+
+    let temp = Matrix.fromDimensions(n, n, 0); // Matrix to store cofactors
+    let sign = 1; // Store sign multiplier
+
+    for (let f = 0; f < n; f++) {
+      _getCofactor(matrix, temp, 0, f, n); // Get cofector of matrix[0][f]
+      D += sign * matrix.get(0, f) * Matrix.determinant(temp, n - 1);
+      sign = -sign; // Alternate sign
+    }
+
+    return D;
   } else {
     throw E_SQUARE;
   }
