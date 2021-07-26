@@ -108,8 +108,7 @@ function parseNumber(string) {
 }
 
 /** Requires Runspace instance */
-function parseOperator(rs, string) {
-  if (arguments.length !== 2) throw new Error(`ParseOperator: required 2 arguments`);
+function parseOperator(string) {
   for (let operator in operators) {
     if (operators.hasOwnProperty(operator)) {
       let snippet = string.substr(0, operator.length);
@@ -119,25 +118,9 @@ function parseOperator(rs, string) {
   return null;
 }
 
-/** Parse a variable name */
-function parseVariable(string) {
-  const rStart = /[A-Za-z_$ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω∞]/;
-  const rRest = /[0-9]/;
-  if (!rStart.test(string[0])) return null;
-  let symbol = string[0];
-  for (let i = 1; i < string.length; i++) {
-    if (rStart.test(string[i]) || rRest.test(string[i])) {
-      symbol += string[i];
-    } else {
-      break;
-    }
-  }
-  return symbol;
-}
-
-/** Parse a function name */
-function parseFunction(string) {
-  const rStart = /[A-Za-z_$ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω√∛∑]/;
+/** Parse a symbol name */
+function parseSymbol(string) {
+  const rStart = /[A-Za-z_$ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω∞√∛∑]/;
   const rRest = /[0-9]/;
   if (!rStart.test(string[0])) return null;
   let symbol = string[0];
@@ -153,5 +136,5 @@ function parseFunction(string) {
 
 module.exports = {
   bracketMap, bracketValues, getMatchingBracket,
-  parseOperator, parseNumber, parseVariable, parseFunction,
+  parseOperator, parseNumber, parseSymbol,
 };

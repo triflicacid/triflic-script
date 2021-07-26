@@ -252,11 +252,19 @@ const operators = {
     desc: `Bitwise OR`,
     syntax: 'a | b',
   },
-  "=": { // Used and processed internally
+  ":=": {
+    name: 'constant assignment',
+    precedence: 3,
+    args: 2,
+    fn: (symbol, v) => symbol.__assign__?.(v, true),
+    desc: 'Set symbol <symbol> equal to <v> (cannot be reassigned)',
+    syntax: 'symbol := v',
+  },
+  "=": {
     name: 'assignment',
     precedence: 3,
     args: 2,
-    fn: (symbol, v) => symbol.__assign__?.(v),
+    fn: (symbol, v) => symbol.__assign__?.(v, false),
     desc: 'Set symbol <symbol> equal to <v>',
     syntax: 'symbol = v',
   },

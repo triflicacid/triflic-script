@@ -1,14 +1,15 @@
 const RunspaceVariable = require("./Variable");
-const { TokenString, Token } = require("../evaluation/tokens");
+const { TokenString } = require("../evaluation/tokens");
 const { peek } = require("../utils");
-const { primitiveToValueClass, MapValue, NumberValue } = require("../evaluation/values");
+const { primitiveToValueClass, MapValue, NumberValue, Value, FunctionRefValue } = require("../evaluation/values");
 const path = require("path");
 const fs = require("fs");
+const { RunspaceFunction } = require("./Function");
 
 class Runspace {
   constructor(opts) {
-    this._vars = [{}]; // { variable: EnvVariable }[]
-    this._funcs = {}; // { fn_name: EnvFunction }
+    this._vars = [{}]; // { variable: RunspaceVariable }[]
+    this._funcs = [{}]; // { func: RunspaceFunction }[]
     this.dir = path.join(__dirname, "../../"); // Requires setting externally
 
     this.opts = opts;
@@ -30,7 +31,7 @@ class Runspace {
       }
     } else if (value !== undefined) {
       let obj;
-      if (value instanceof Token) obj = new RunspaceVariable(name, value, desc, constant);
+      if (value instanceof Value || value instanceof RunspaceFunction) obj = new RunspaceVariable(name, value, desc, constant);
       else if (value instanceof RunspaceVariable) obj = value.copy();
       else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
 
@@ -51,35 +52,35 @@ class Runspace {
   /** Push new variable scope */
   pushScope() {
     this._vars.push({});
+    this._funcs.push({});
   }
 
   /** Pop variable scope */
   popScope() {
     if (this._vars.length > 1) this._vars.pop();
+    if (this._funcs.length > 1) this._funcs.pop();
   }
 
   /** Get/Set/Delete a function */
   func(name, body = undefined) {
     if (body === null) {
-      return delete this._funcs[name];
+      for (let i = this._funcs.length - 1; i >= 0; i--) {
+        if (this._funcs[i].hasOwnProperty(name)) {
+          return delete this._funcs[i][name];
+        }
+      }
     } else if (body !== undefined) {
-      this._funcs[name] = body;
+      peek(this._funcs)[name] = body;
+      this.var(name, new FunctionRefValue(this, name)); // Store reference to function as a variable
     }
-    return this._funcs[name];
+    for (let i = this._funcs.length - 1; i >= 0; i--) {
+      if (this._funcs[i].hasOwnProperty(name)) return this._funcs[i][name];
+    }
   }
 
   /** Define a function */
   define(fn) {
     return this.func(fn.name, fn);
-  }
-
-  /** Define a function alias */
-  funcAlias(name, aliasName) {
-    let original = this.func(name);
-    if (original === undefined) throw new Error(`Cannot create alias for '${name}' as it is not a function`);
-    let copy = original.clone();
-    copy.name = aliasName; // Change name
-    this.func(aliasName, copy);
   }
 
   /** Return a new TokenString */

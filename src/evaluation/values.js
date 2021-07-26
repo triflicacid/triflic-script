@@ -1,5 +1,6 @@
 const Complex = require("../maths/Complex");
 const { factorial, factorialReal } = require("../maths/functions");
+const { RunspaceUserFunction } = require("../runspace/Function");
 const { str, bool, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal } = require("../utils");
 const { castingError, isNumericType, isIntType } = require("./types");
 
@@ -537,12 +538,33 @@ class FunctionRefValue extends Value {
     return `<function ${this.value}>`;
   }
 
+  /** Define a function, given array of VariableToken arguments and tokens as the function bosy */
+  defineFunction(params, body, pos, isConstant = false, comment = undefined) {
+    params = params.map(param => param.value); // string[] of parameter names
+
+    let fn = this.getFn();
+    if (fn?.constant) throw new Error(`Syntax Error: Assignment to constant function ${this.value} (position ${pos})`);
+    fn = new RunspaceUserFunction(this.rs, this.value, params, body, comment, isConstant); // Define new function
+    this.rs.func(this.value, fn);
+    return this;
+  }
+
   /** del() function */
   __del__() {
     const f = this.getFn();
     if (f.constant) throw new Error(`Argument Error: Attempt to delete constant reference to ${this.toString()}`);
     this.rs.func(this.value, null);
     return new NumberValue(this.rs, 0);
+  }
+
+  /** When this is called. Takes array of Value classes as arguments */
+  __call__(args) {
+    const fn = this.getFn();
+    if (fn) {
+      return fn.call(args);
+    } else {
+      throw new Error(`Null Reference: reference to undefined function ${this}`);
+    }
   }
 
   /** copy() function */

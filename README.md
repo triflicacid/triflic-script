@@ -83,13 +83,13 @@ Variables store values in memory. There are some predefined variables (assuming 
 
 The special `ans` variable holds the value of the last evaluation
 
-Variables may be declared/assigned using `[let|const] <var> = ...`, where `let` or `const` is optional, but more explicit.
+Variables may be declared/assigned using `<var> = ...`. `=` may be switched to `:=` for constant assignment.
 
 ### Functions
 Functions recieve arguments and return a value.
 
 There are two types of functions: `built-in`s and `user-defined`
 - `built-in`s are pre-defined internally using JavaScript.
-- `user-defined`s are defined by the user via the syntax `let|const <name>(<arg1>[, <arg2>[, ...]] = ...`, where `let` or `const` is required.
+- `user-defined`s are defined by the user via the syntax `<name>(<arg1>[, <arg2>[, ...]] = ...`. `=` may be switched to `:=` for constant assignment.
 
 Functions are called using parenthesis `()` containing their arguments, or may be referenced by omitting `()`.

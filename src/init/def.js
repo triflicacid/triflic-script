@@ -57,10 +57,23 @@ function define(rs) {
     print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
     process.exit(0);
   }, 'exit application with given code'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'funcs', {}, () => {
+  rs.define(new RunspaceBuiltinFunction(rs, 'funcs', { s: '?real_int' }, ({ s }) => {
     const funcs = [];
-    for (let func in rs._funcs) {
-      if (rs._funcs.hasOwnProperty(func)) funcs.push(new FunctionRefValue(rs, func));
+    if (s === undefined) {
+      rs._funcs.forEach((scope, i) => {
+        const sfuncs = [];
+        for (let v in scope) {
+          if (scope.hasOwnProperty(v)) sfuncs.push(v.toString());
+        }
+        funcs.push(new ArrayValue(rs, sfuncs));
+      });
+    } else {
+      if (rs._funcs[s] === undefined) throw new Error(`Argument Error: scope ${s} does not exist`);
+      for (let v in rs._funcs[s]) {
+        if (rs._funcs[s].hasOwnProperty(v)) {
+          if (rs._funcs[s].hasOwnProperty(v)) funcs.push(v.toString());
+        }
+      }
     }
     return new ArrayValue(rs, funcs);
   }, 'return array of all defined functions'));
@@ -70,7 +83,7 @@ function define(rs) {
       rs._vars.forEach((scope, i) => {
         const svars = [];
         for (let v in scope) {
-          if (scope.hasOwnProperty(v)) svars.push(new StringValue(rs, v));
+          if (scope.hasOwnProperty(v)) svars.push(v.toString());
         }
         vars.push(new ArrayValue(rs, svars));
       });
@@ -78,7 +91,7 @@ function define(rs) {
       if (rs._vars[s] === undefined) throw new Error(`Argument Error: scope ${s} does not exist`);
       for (let v in rs._vars[s]) {
         if (rs._vars[s].hasOwnProperty(v)) {
-          if (rs._vars[s].hasOwnProperty(v)) vars.push(new StringValue(rs, v));
+          if (rs._vars[s].hasOwnProperty(v)) vars.push(v.toString());
         }
       }
     }
@@ -335,7 +348,7 @@ function defineFuncs(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'sin', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sin(z.toPrimitive('complex'))), 'return sine of z')); // sine
   rs.define(new RunspaceBuiltinFunction(rs, 'sinh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sinh(z.toPrimitive('complex'))), 'return hyperbolic sine of z')); // hyperbolic sine
   rs.define(new RunspaceBuiltinFunction(rs, 'sqrt', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sqrt(z.toPrimitive('complex'))), 'return square root of z')); // cube root
-  if (rs.opts.defineAliases) rs.funcAlias('sqrt', '√');
+  // if (rs.opts.defineAliases) rs.funcAlias('sqrt', '√');
   rs.define(new RunspaceBuiltinFunction(rs, 'summation', { start: 'any', limit: 'any', action: 'any', svar: '?any' }, ({ start, limit, action, svar }) => {
     let sumVar = 'x', sum = new Complex(0);
     start = start.toPrimitive('real_int');
@@ -381,15 +394,15 @@ function defineFuncs(rs) {
     }
     return new NumberValue(rs, sum);
   }, 'Calculate a summation series between <start> and <limit>, executing <action> (may be constant, function or string). Use variable <svar> as counter.'));
-  if (rs.opts.defineAliases) rs.funcAlias('summation', '∑');
+  // if (rs.opts.defineAliases) rs.funcAlias('summation', '∑');
   rs.define(new RunspaceBuiltinFunction(rs, 'tan', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tan(z.toPrimitive('complex'))), 'return tangent of z')); // tangent
   rs.define(new RunspaceBuiltinFunction(rs, 'tanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tanh(z.toPrimitive('complex'))), 'return hyperbolic tangent of z')); // hyperbolic tangent
   rs.define(new RunspaceBuiltinFunction(rs, 'lambertw', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
-  if (rs.opts.defineAliases) rs.funcAlias('lambertw', 'W');
+  // if (rs.opts.defineAliases) rs.funcAlias('lambertw', 'W');
   rs.define(new RunspaceBuiltinFunction(rs, 'wrightomega', { z: 'complex' }, ({ z }) => new NumberValue(rs, wrightomega(z.toPrimitive('complex'))), 'return approximation of the Wright Omega function'));
-  if (rs.opts.defineAliases) rs.funcAlias('wrightomega', 'ω');
+  // if (rs.opts.defineAliases) rs.funcAlias('wrightomega', 'ω');
   rs.define(new RunspaceBuiltinFunction(rs, 'gamma', { z: 'complex' }, ({ z }) => new NumberValue(rs, gamma(z.toPrimitive('complex'))), 'Return the gamma function at z'));
-  if (rs.opts.defineAliases) rs.funcAlias('gamma', 'Γ');
+  // if (rs.opts.defineAliases) rs.funcAlias('gamma', 'Γ');
   rs.define(new RunspaceBuiltinFunction(rs, 'nextNearest', { n: 'real', dir: 'real' }, ({ n, dir }) => new NumberValue(rs, nextNearest(n.toPrimitive('real'), dir.toPrimitive('real'))), 'Return the next representable double from value <n> towards direction <dir>'));
 }
 

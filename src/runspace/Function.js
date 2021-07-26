@@ -90,7 +90,7 @@ class RunspaceUserFunction extends RunspaceFunction {
   }
 
   /** Array of Token arguments */
-  eval(args) {
+  call(args) {
     this.checkArgCount(args);
     this.rs.pushScope();
     // Set arguments to variables matching definition symbols
@@ -130,7 +130,7 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
     return new RunspaceBuiltinFunction(this.rs, this.name, this.rargs, this.fn, this.desc);
   }
 
-  eval(args) {
+  call(args) {
     this.checkArgCount(args);
     const o = {};
     // Assign 'param: value' in o
