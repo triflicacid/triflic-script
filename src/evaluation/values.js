@@ -205,14 +205,14 @@ class StringValue extends Value {
   /** get() function */
   __get__(i) {
     i = i.toPrimitive('real_int');
-    if (i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    if (i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
     return new StringValue(this.rs, this.value[i]);
   }
 
   /** set() function */
   __set__(i, value) {
     i = i.toPrimitive('real_int');
-    if (i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    if (i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
     value = value.toPrimitive('string');
     this.value = this.value.substring(0, i) + value + this.value.substr(i + value.length);
     return this;
@@ -221,7 +221,7 @@ class StringValue extends Value {
   /** del() function */
   __del__(key) {
     let i = key.toPrimitive('real_int');
-    if (isNaN(i) || i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    if (isNaN(i) || i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
     const chr = this.value[i];
     this.value = this.value.substring(0, i) + this.value.substr(i + 1);
     return new StringValue(this.rs, chr);
@@ -302,14 +302,19 @@ class ArrayValue extends Value {
   /** get() function */
   __get__(i) {
     i = i.toPrimitive('real_int');
-    if (isNaN(i) || i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    if (isNaN(i) || i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
     return this.value[i];
   }
 
   /** set() function */
   __set__(i, value) {
     i = i.toPrimitive('real_int');
-    if (isNaN(i) || i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    if (isNaN(i) || i < 0) return new UndefinedValue(this.rs);
+    if (i >= this.value.length) {
+      for (let j = this.value.length; j < i; j++) {
+        this.value[j] = new UndefinedValue(this.rs);
+      }
+    }
     this.value[i] = value;
     return this;
   }
@@ -317,7 +322,7 @@ class ArrayValue extends Value {
   /** del() function */
   __del__(key) {
     let i = key.toPrimitive('real_int');
-    if (isNaN(i) || i < 0 || i >= this.value.length) throw new Error(`Index Error: index ${i} is out of range`);
+    if (isNaN(i) || i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
     this.value.splice(i, 1);
     return new NumberValue(this.rs, i);
   }
@@ -466,7 +471,7 @@ class MapValue extends Value {
   /** get() function */
   __get__(key) {
     key = key.toString();
-    if (!this.value.has(key)) throw new Error(`Key Error: key "${key}" does not exist in map`);
+    if (!this.value.has(key)) return new UndefinedValue(this.rs); // throw new Error(`Key Error: key "${key}" does not exist in map`);
     return this.value.get(key);
   }
 
@@ -480,7 +485,7 @@ class MapValue extends Value {
   /** del() function */
   __del__(key) {
     key = key.toString();
-    if (!this.value.has(key)) throw new Error(`Key Error: key "${key}" does not exist in map`);
+    if (!this.value.has(key)) return new UndefinedValue(this.rs); // throw new Error(`Key Error: key "${key}" does not exist in map`);
     const val = this.value.get(key);
     this.value.delete(key);
     return val;
