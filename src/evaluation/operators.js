@@ -10,7 +10,20 @@
 // },
 
 const operators = {
+  ".": {
+    name: 'member access',
+    precedence: 20,
+    args: 2,
+    fn: (obj, prop) => {
+      obj = obj.eval('any');
+      if (!obj.__get__) throw new Error(`Key Error: Cannot access property ${prop} of type ${obj.type()}`);
+      return obj.eval('any').__get__(prop.eval('any'));
+    },
+    desc: `Access property <prop> of <obj>`,
+    syntax: '<obj>.<prop>',
+  },
   "deg": { // !CUSTOM; degrees to radians
+    name: 'degrees',
     precedence: 18,
     args: 1,
     fn: z => z.eval('any').__deg__?.(),
@@ -19,6 +32,7 @@ const operators = {
     preservePosition: true,
   },
   "~": {
+    name: 'bitwise not',
     precedence: 17,
     args: 1,
     fn: x => x.eval('any').__bitwiseNot__?.(),
@@ -26,6 +40,7 @@ const operators = {
     syntax: '~x',
   },
   "u+": {
+    name: 'unary plus',
     precedence: 17,
     args: 1,
     fn: n => n.eval('any').__pos__?.(),
@@ -34,6 +49,7 @@ const operators = {
     unary: "u+",
   },
   "u-": {
+    name: 'unary minus',
     precedence: 17,
     args: 1,
     fn: n => n.eval('any').__neg__?.(),
@@ -42,6 +58,7 @@ const operators = {
     unary: "u-",
   },
   "'": {
+    name: 'logical not',
     precedence: 17,
     args: 1,
     fn: x => x.eval('any').__not__?.(),
@@ -50,6 +67,7 @@ const operators = {
     preservePosition: true,
   },
   "**": {
+    name: 'exponentation',
     precedence: 16,
     args: 2,
     fn: (a, b) => a.eval('any').__pow__?.(b.eval('any')),
@@ -57,6 +75,7 @@ const operators = {
     syntax: 'a ** b',
   },
   "//": {
+    name: 'interger division',
     precedence: 15,
     args: 2,
     fn: (a, b) => a.eval('any').__intDiv__?.(b.eval('any')),
@@ -64,6 +83,7 @@ const operators = {
     syntax: 'a // b',
   },
   "/": {
+    name: 'division',
     precedence: 15,
     args: 2,
     fn: (a, b) => a.eval('any').__div__?.(b.eval('any')),
@@ -71,6 +91,7 @@ const operators = {
     syntax: 'a / b',
   },
   "%": {
+    name: 'modulo',
     precedence: 15,
     args: 2,
     fn: (a, b) => a.eval('any').__mod__?.(b.eval('any')),
@@ -78,6 +99,7 @@ const operators = {
     syntax: 'a % b',
   },
   "*": {
+    name: 'multiplication',
     precedence: 15,
     args: 2,
     fn: (a, b) => a.eval('any').__mul__?.(b.eval('any')),
@@ -85,6 +107,7 @@ const operators = {
     syntax: 'a * b',
   },
   "∩": {
+    name: 'intersection',
     precedence: 15,
     args: 2,
     fn: (a, b) => a.eval('any').__intersect__?.(b.eval('any')),
@@ -92,6 +115,7 @@ const operators = {
     syntax: 'intersection of a and b',
   },
   "+": {
+    name: 'addition',
     precedence: 14,
     args: 2,
     fn: (a, b) => a.eval('any').__add__?.(b.eval('any')),
@@ -100,6 +124,7 @@ const operators = {
     unary: 'u+',
   },
   "∪": {
+    name: 'union',
     precedence: 14,
     args: 2,
     fn: (a, b) => a.eval('any').__union__?.(b.eval('any')),
@@ -107,6 +132,7 @@ const operators = {
     syntax: 'union of a and b',
   },
   "-": {
+    name: 'subtract',
     precedence: 14,
     args: 2,
     fn: (a, b) => a.eval('any').__sub__?.(b.eval('any')),
@@ -115,6 +141,7 @@ const operators = {
     unary: 'u-',
   },
   "<<": {
+    name: 'right shift',
     precedence: 13,
     args: 2,
     fn: (a, b) => a.eval('any').__lshift__?.(b.eval('any')),
@@ -122,6 +149,7 @@ const operators = {
     syntax: 'a << b',
   },
   ">>": {
+    name: 'left shift',
     precedence: 13,
     args: 2,
     fn: (a, b) => a.eval('any').__rshift__?.(b.eval('any')),
@@ -129,6 +157,7 @@ const operators = {
     syntax: 'a >> b',
   },
   "<=": {
+    name: 'less than or equal to',
     precedence: 12,
     args: 2,
     fn: (a, b) => a.eval('any').__le__?.(b.eval('any')),
@@ -136,6 +165,7 @@ const operators = {
     syntax: 'a <= b',
   },
   "<": {
+    name: 'less than',
     precedence: 12,
     args: 2,
     fn: (a, b) => a.eval('any').__lt__?.(b.eval('any')),
@@ -143,6 +173,7 @@ const operators = {
     syntax: 'a < b',
   },
   ">=": {
+    name: 'greater than or equal to',
     precedence: 12,
     args: 2,
     fn: (a, b) => a.eval('any').__ge__?.(b.eval('any')),
@@ -150,6 +181,7 @@ const operators = {
     syntax: 'a >= b',
   },
   ">": {
+    name: 'greater than',
     precedence: 12,
     args: 2,
     fn: (a, b) => a.eval('any').__gt__?.(b.eval('any')),
@@ -157,6 +189,7 @@ const operators = {
     syntax: 'a > b',
   },
   "in ": {
+    name: 'in',
     precedence: 12,
     args: 2,
     fn: (a, b) => a.eval('any').__in__?.(b.eval('any')),
@@ -164,6 +197,7 @@ const operators = {
     syntax: 'a in b',
   },
   "==": {
+    name: 'equality',
     precedence: 11,
     args: 2,
     fn: (a, b) => a.eval('any').__eq__?.(b.eval('any')),
@@ -171,6 +205,7 @@ const operators = {
     syntax: 'a == b',
   },
   "!=": {
+    name: 'inequality',
     precedence: 11,
     args: 2,
     fn: (a, b) => a.eval('any').__neq__?.(b.eval('any')),
@@ -178,6 +213,7 @@ const operators = {
     syntax: 'a != b',
   },
   "&&": {
+    name: 'logical and',
     precedence: 7,
     args: 2,
     fn: (a, b) => a.eval('any').__and__?.(b.eval('any')),
@@ -185,6 +221,7 @@ const operators = {
     syntax: 'a && b',
   },
   "&": {
+    name: 'bitwise and',
     precedence: 10,
     args: 2,
     fn: (a, b) => a.eval('any').__bitwiseAnd__?.(b.eval('any')),
@@ -192,6 +229,7 @@ const operators = {
     syntax: 'a & b',
   },
   "^": {
+    name: 'bitwise xor',
     precedence: 9,
     args: 2,
     fn: (a, b) => a.eval('any').__xor__?.(b.eval('any')),
@@ -199,6 +237,7 @@ const operators = {
     syntax: 'a ^ b',
   },
   "||": {
+    name: 'logical or',
     precedence: 6,
     args: 2,
     fn: (a, b) => a.eval('any').__or__?.(b.eval('any')),
@@ -206,6 +245,7 @@ const operators = {
     syntax: 'a || b',
   },
   "|": {
+    name: 'bitwise or',
     precedence: 8,
     args: 2,
     fn: (a, b) => a.eval('any').__bitwiseOr__?.(b.eval('any')),
@@ -213,6 +253,7 @@ const operators = {
     syntax: 'a | b',
   },
   "=": { // Used and processed internally
+    name: 'assignment',
     precedence: 3,
     args: 2,
     fn: (symbol, v) => symbol.__assign__?.(v),
@@ -221,6 +262,7 @@ const operators = {
   },
 
   "!": {
+    name: 'factorial',
     precedence: 17,
     args: 1,
     fn: n => n.eval('any').__excl__?.(),
@@ -229,6 +271,7 @@ const operators = {
     preservePosition: true,
   },
   ",": {
+    name: 'comma',
     precedence: 1,
     args: 2,
     fn: (lhs, rhs) => rhs,
