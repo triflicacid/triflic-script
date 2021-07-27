@@ -128,7 +128,7 @@ class VariableToken extends Token {
     // Evaluate
     const obj = ts.eval(); // Intermediate
     const varObj = this.tstr.rs.var(name, obj.eval('any'));
-    if (this.isDeclaration === 2) varObj.constant = true;
+    if (this.isDeclaration === 2) varObj.constant = true; // Is variable constant?
     return obj;
   }
 }

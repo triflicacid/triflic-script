@@ -29,19 +29,6 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `reveal-headers` : `boolean`. Reveal CLI options and other information to Runspace as `headers` map?
 - `define-aliases` : `boolean`. Define aliases for some variables/functions e.g. `W` for `lambertW` and `π` for `pi` (NB these are not aliases, but copies, so `pi` is independant from `π`)
 
-## Implicit Multiplication
-Multiplication operations are inserted automatically between tokens in the following cases:
-let two tokens in sequence be `a` and `b`:
-- `a` is a `Number` and `b` is [`(`, `Function`, `Variable`]
-- `a` is a `Variable` and `b` is [`(`, `Function`, `Variable`]
-- `a` is a `Function` and `b` is [`(`, `Function`, `Variable`]
-- `a` is a `)` and `b` is [`(`, `Function`, `Variable`, `Number`]
-
-The special `!*` operator will be inserted between `a` and `b`. This has higher precendence than all other operators so it is executed first.
-
-e.g. If `e ^ 2ln(2)` -> `e ^ 2 * ln(2)`, `e ^ 2` would be evaluated first which is not what the user wanted.
-So, `e ^ 2ln(2)` -> `e ^ 2 !* ln(2)` so `2 !* ln(2)` is evaluated first, as the user expected.
-
 ## Built-Ins
 Base definitions to an `Environment` are present in `src/def.js`
 For more information on built-ins, enter `help()`.
@@ -72,11 +59,22 @@ The input will be pre-processed in the `eval()` method itself before being parse
 
 Comments may be includes as `# ...`. Enything after `#` will be ignored. If a comment is included in a function/variable definition, the contents of this comment will be displayed when `help(<thing>)` is called.
 
-Strings are marked by `"..."`.
+### Literals
+These are structures in the code which define values:
 
-Arrays are marked by `[...]`.
+- `123...` define numbers. Numbers:
+  - May start with a sign `+/-`. Default is `+`.
+  - Radix indicator `0[x|b|o|d]`. Default is `d`.
+  - Digits in the declared base (these are optional)
+  - A decimal point `.`
+  - More digits in the decimal point
+  - An exponent `e`, followed by another valid number (note, this number may not contain `e`)
+  *N.B.* Numbers may contain the seperator `_`. This cannot be at the start/end of a number.
 
-Sets are marked by `{...}`.
+- `"..."` represents a strings (as of yet, `"` cannot be escaped)
+- `[...]` represents an array
+- `{...}` represents a set
+
 
 ### Variables
 Variables store values in memory. There are some predefined variables (assuming `--define-vars` is truthy).
