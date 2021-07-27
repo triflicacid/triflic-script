@@ -5,7 +5,7 @@ const { VariableToken, TokenString } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest } = require("../maths/functions");
 const { print, sort, findIndex } = require("../utils");
 const { typeOf, types } = require("../evaluation/types");
-const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, MapValue, UndefinedValue } = require("../evaluation/values");
+const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
 
@@ -99,7 +99,7 @@ function define(rs) {
   }, 'list all defined variables in a given scope, or array of scopes'));
   rs.define(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
   rs.define(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Object.keys(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.eval(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.castTo(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, typeOf(o)), 'attempt a direct cast from object <o> to type <type>', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
   rs.define(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
@@ -178,7 +178,7 @@ function define(rs) {
         } else if (op.args === 1 || (Array.isArray(op.args) && op.args.includes(1))) {
           for (let i = 0; i < arr.value.length; i++) {
             let tmp = op[Array.isArray(op.args) ? 'fn1' : 'fn'](arr.value[i]);
-            if (tmp === undefined) throw new Error(`Syntax Error: no operator overload for '${action.value}' for { <${arr.value[i].type()}> ${arr.value[i].eval('string')} }`);
+            if (tmp === undefined) throw new Error(`Syntax Error: no operator overload for '${action.value}' for { <${arr.value[i].type()}> ${arr.value[i].castTo('string')} }`);
             arr.value[i] = tmp;
           }
           return arr;
@@ -199,7 +199,7 @@ function define(rs) {
             ts.rs.var('x', arr.value[i]);
             arr.value[i] = ts.eval();
           } catch (e) {
-            throw new Error(`${action.value} when x = ${arr.value[i].eval('string')}:\n${e}`);
+            throw new Error(`${action.value} when x = ${arr.value[i].toPrimitive('string')}:\n${e}`);
           }
         }
         ts.rs.popScope();

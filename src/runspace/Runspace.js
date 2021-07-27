@@ -91,7 +91,7 @@ class Runspace {
   eval(string) {
     const ts = new TokenString(this, string);
     let obj = ts.eval(); // Intermediate value
-    if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', obj.eval('any'), 'value returned by previous statement');
+    if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', obj.castTo('any'), 'value returned by previous statement');
     return obj.toString();
   }
 

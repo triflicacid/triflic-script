@@ -11,7 +11,7 @@ class Token {
     this.value = v;
     this.pos = pos; // Definition position
   }
-  eval(type) { throw new Error(`Overload Required (type provided: ${type})`); }
+  castTo(type) { throw new Error(`Overload Required (type provided: ${type})`); }
   is(klass, val = undefined) {
     return (this instanceof klass && (val != undefined && this.value === val));
   }
@@ -26,7 +26,7 @@ class ValueToken extends Token {
     super(tstring, value, pos);
   }
 
-  eval(type) { return this.value.eval(type); }
+  castTo(type) { return this.value.castTo(type); }
 }
 
 /** For brackets */
@@ -91,10 +91,10 @@ class VariableToken extends Token {
   type() {
     return this.isDeclaration ? `<symbol ${this.value}>` : str(this.getVar()?.value.type());
   }
-  eval(type) {
+  castTo(type) {
     let v = this.tstr.rs.var(this.value);
     if (v.value === this) throw new Error(`Self-referencing variable (infinite lookup prevented) - variable '${this.value}'`);
-    return v.eval(type);
+    return v.castTo(type);
   }
   toPrimitive(type) {
     return this.tstr.rs.var(this.value)?.toPrimitive(type);
@@ -127,47 +127,9 @@ class VariableToken extends Token {
     ts.tokens = [v];
     // Evaluate
     const obj = ts.eval(); // Intermediate
-    const varObj = this.tstr.rs.var(name, obj.eval('any'));
+    const varObj = this.tstr.rs.var(name, obj.castTo('any'));
     if (this.isDeclaration === 2) varObj.constant = true; // Is variable constant?
     return obj;
-  }
-}
-
-/** For functions e.g. 'f(...)' (non-definitions) */
-class FunctionToken extends Token {
-  /**
-   * @param {string} fname Name of function
-   * @param {string} argStr Raw string of function definition
-   * @param {TokenString[]} argTokens Array of token strings representing the function parameters 
-   */
-  constructor(tstring, fname, argStr, argTokens, pos) {
-    super(tstring, fname, pos);
-    this.raw = argStr;
-    this.args = argTokens;
-    this.isDeclaration = false; // Is this token on the RHS of assignment?
-  }
-  type() { return "func"; }
-
-  /** Evaluate as a function (non-casting) */
-  eval() {
-    const fn = this.tstr.rs.func(this.value);
-    if (fn === undefined) throw new Error(`Name Error: name '${this.value}' is not a function`);
-    // Check arg count
-    fn.checkArgCount(this.args);
-    // Args are given as TokenString[], so reduce to Token[]
-    let args = this.args.map(a => a == undefined ? undefined : a.eval());
-    // Reduce from Token[] to object[]?
-    if (fn.processArgs) args = fn.extractArgs(args);
-    const ret = fn.eval(args);
-    return ret;
-  }
-
-  exists() {
-    return this.tstr.rs.func(this.value) === undefined;
-  }
-
-  toString() {
-    return `${this.value}(${this.raw})`;
   }
 }
 
@@ -175,8 +137,7 @@ class FunctionToken extends Token {
 class TokenStringArray extends Token {
   /** @param {TokenString[]} tokens Array of tokens which were seperated by commas */
   constructor(tstring, tokens, pos) {
-    super(tstring, pos);
-    this.tokens = tokens;
+    super(tstring, tokens, pos);
   }
 }
 
@@ -278,7 +239,6 @@ class TokenString {
             const argStr = string.substr(i, (endPos - obj.pos) - 1);
             obj.pos = endPos;
             i += argStr.length + 1;
-
             const array = new TokenStringArray(this, argTokens, opening.pos);
             obj.tokens.push(array);
           }
@@ -458,12 +418,12 @@ class TokenString {
         const last = stack.pop(); // SHould be VariableToken
         if (!last) throw new Error(`Syntax Error: unexpected TokenStringArray in position ${T[i].pos}`);
         if (last.isDeclaration) { // Declare function
-          if (!(last instanceof VariableToken)) throw new Error(`Syntax Error: expected symbol to precede bracketed group in declaration (position ${last.pos})`);
+          if (!(last instanceof VariableToken)) throw new Error(`Syntax Error: expected symbol to precede bracketed group in declaration (position ${T[i].pos})`);
           const assignment = peek(T); // Should be assignment
-          if (!(assignment instanceof OperatorToken) && (assignment.value === '=' || assignment.value === ':=')) throw new Error(`Syntax Error: expected assignment operator after function declaration (position ${last.pos})`);
+          if (!(assignment instanceof OperatorToken) && (assignment.value === '=' || assignment.value === ':=')) throw new Error(`Syntax Error: expected assignment operator after function declaration (position ${T[i].pos})`);
           T.pop(); // Remove assignment operator
           const ref = new FunctionRefValue(this.rs, last.value), params = [];
-          for (const ts of T[i].tokens) {
+          for (const ts of T[i].value) {
             if (ts.tokens.length !== 1 || !(ts.tokens[0] instanceof VariableToken)) throw new Error(`Syntax Error: Illegal function declaration`);
             params.push(ts.tokens[0]);
           }
@@ -475,14 +435,14 @@ class TokenString {
           ref.defineFunction(params, body, assignment.pos, last.isDeclaration === 2, this.comment);
           stack.push(ref);
         } else { // Attempt to call last thing
-          const lastValue = last.eval("any");
-          if (typeof lastValue?.__call__ !== 'function') throw new Error(`Type Error: type ${lastValue.type()} is not callable (position ${last.pos})`);
+          const lastValue = last.castTo("any");
+          if (typeof lastValue?.__call__ !== 'function') throw new Error(`Type Error: type ${lastValue.type()} is not callable (position ${T[i].pos})`);
           let args = [];
           try {
-            args = T[i].tokens.map(t => t.eval());
+            args = T[i].value.map(t => t.eval()); // Evaluate TokenString arguments
             stack.push(lastValue.__call__(args));
           } catch (e) {
-            throw new Error(`Error while calling ${last}:\n${e}`);
+            throw new Error(`${last}:\n${e}`);
           }
         }
       } else {
@@ -507,7 +467,7 @@ class TokenString {
   _toRPN(tokens, bidmas = true) {
     const stack = [], output = [];
     for (let i = 0; i < tokens.length; i++) {
-      if (tokens[i] instanceof ValueToken || tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof FunctionToken || tokens[i] instanceof TokenStringArray) {
+      if (tokens[i] instanceof ValueToken || tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof TokenStringArray) {
         output.push(tokens[i]);
       } else if (tokens[i].is(BracketToken, '(')) {
         stack.push(tokens[i]);
@@ -537,4 +497,4 @@ class TokenString {
   }
 }
 
-module.exports = { Token, BracketToken, VariableToken, OperatorToken, FunctionToken, TokenString };
+module.exports = { Token, BracketToken, VariableToken, OperatorToken, TokenString };

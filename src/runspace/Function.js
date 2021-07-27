@@ -53,7 +53,7 @@ class RunspaceFunction {
   extractArgs(args) {
     let extracted = [], i = 0;
     for (let arg in this.args) {
-      extracted.push(args[i] == undefined ? undefined : args[i].eval(this.args[arg]));
+      extracted.push(args[i] == undefined ? undefined : args[i].castTo(this.args[arg]));
       i++;
     }
     return extracted;
@@ -101,7 +101,7 @@ class RunspaceUserFunction extends RunspaceFunction {
         i++;
       }
     }
-    const t = this.tstr.eval().eval('any'); // Return token and sort out any variables
+    const t = this.tstr.eval().castTo('any'); // Return token and sort out any variables
     this.rs.popScope();
     return t;
   }

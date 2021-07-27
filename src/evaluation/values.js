@@ -12,8 +12,8 @@ class Value {
 
   type() { throw new Error(`Requires Overload`); }
 
-  eval(type) {
-    if (type === 'any') return this;
+  castTo(type) {
+    if (type === 'any' || type === this.type()) return this;
     const mapObj = this.constructor.castMap;
     let value = mapObj && type in mapObj ? mapObj[type](this) : undefined;
     if (value == undefined) castingError(this, type);
@@ -21,14 +21,14 @@ class Value {
   }
 
   toPrimitive(type) {
-    const v = this.eval(type).value;
+    const v = this.castTo(type).value;
     if (type.startsWith('real')) return v.a; // Raw number only
     return v;
   }
   toString() { return this.toPrimitive('string'); }
 
   /** operator: u+ */
-  __pos__() { return this.eval('complex'); }
+  __pos__() { return this.castTo('complex'); }
 
   /** operator: u- */
   __neg__() { return new NumberValue(this.rs, this.toPrimitive('complex').mult(-1)); }
@@ -417,7 +417,7 @@ class SetValue extends Value {
 
   /** operator: ' */
   __not__() {
-    const us = this.rs.var('universal_set')?.eval('any');
+    const us = this.rs.var('universal_set')?.castTo('any');
     if (us == undefined) return new Error(`Type Error: variable universal_set is missing.`);
     if (us.type() !== 'set') return new Error(`Type Error: variable universal_set is not of type set (got ${us.type()})`);
     return new SetValue(this.rs, arrDifference(us.toPrimitive('array'), this.toPrimitive('array')));
