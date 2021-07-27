@@ -1,7 +1,7 @@
 const Complex = require("../maths/Complex");
 const { factorial, factorialReal } = require("../maths/functions");
 const { RunspaceUserFunction } = require("../runspace/Function");
-const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal } = require("../utils");
+const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal, peek } = require("../utils");
 const { castingError, isNumericType } = require("./types");
 const { errors } = require("../errors");
 
@@ -15,6 +15,7 @@ class Value {
 
   castTo(type) {
     if (type === 'any' || type === this.type()) return this;
+    if (peek(type) === '*') throw new Error(`[${errors.CAST_ERROR}] Type Error: Cannot cast object ${this.type()} to ${type} (reference)`);
     const mapObj = this.constructor.castMap;
     let value = mapObj && type in mapObj ? mapObj[type](this) : undefined;
     if (value == undefined) castingError(this, type);
@@ -27,6 +28,14 @@ class Value {
     return v;
   }
   toString() { return this.toPrimitive('string'); }
+
+  /** operator: u& */
+  __deref__() { throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot dereference a value of type ${this.type()}`); }
+
+  /** operator: u* */
+  __ref__() {
+    return new ReferenceValue(this.rs, rs => this);
+  }
 
   /** operator: u+ */
   __pos__() { return this.castTo('complex'); }
@@ -580,6 +589,36 @@ class FunctionRefValue extends Value {
   __eq__(a) { return new BoolValue(this.rs, a.type() === 'func' ? this.value === a.value : false); }
 }
 
+class ReferenceValue extends Value {
+  constructor(runspace, get, set) {
+    super(runspace, null);
+    this._get = get;
+    this._set = set;
+  }
+
+  type() { return this.__deref__().type() + '*'; }
+
+  castTo(type) {
+    if (type === 'any') return this;
+    castingError(this, type);
+  }
+
+  toString() { return `<ref ${this.type()}>`; }
+
+  /** Get value that this points to. operator: & */
+  __deref__() {
+    let x;
+    try { x = this._get(this); } catch { this._throwNullRef(); }
+    if (x == undefined) this._throwNullRef();
+    return x;
+  }
+
+  /** Throw NULL REFERENCE error */
+  _throwNullRef() {
+    throw new Error(`[${errors.NULL_REF}] Null Reference: null reference`);
+  }
+}
+
 
 /** Convert primitive JS value to Value class */
 function primitiveToValueClass(runspace, primitive) {
@@ -691,4 +730,4 @@ FunctionRefValue.castMap = {
   string: o => new StringValue(o.rs, o.toString()),
 };
 
-module.exports = { Value, UndefinedValue, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, primitiveToValueClass };
+module.exports = { Value, UndefinedValue, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, ReferenceValue, primitiveToValueClass };

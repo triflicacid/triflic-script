@@ -41,6 +41,24 @@ const operators = {
     desc: `Bitwise NOT`,
     syntax: '~x',
   },
+  "u&": {
+    name: 'dereference',
+    precedence: 17,
+    args: 1,
+    fn: t => t.castTo('any').__deref__(),
+    desc: `Get value pointer to by a reference type`,
+    syntax: '&t',
+    unary: 'u&',
+  },
+  "u*": {
+    name: 'reference',
+    precedence: 17,
+    args: 1,
+    fn: t => t.castTo('any').__ref__(),
+    desc: `Get a reference to a value`,
+    syntax: '*t',
+    unary: 'u*',
+  },
   "u+": {
     name: 'unary plus',
     precedence: 17,
@@ -107,6 +125,7 @@ const operators = {
     fn: (a, b) => a.castTo('any').__mul__?.(b.castTo('any')),
     desc: `a × b`,
     syntax: 'a * b',
+    unary: 'u*',
   },
   "∩": {
     name: 'intersection',
@@ -229,6 +248,7 @@ const operators = {
     fn: (a, b) => a.castTo('any').__bitwiseAnd__?.(b.castTo('any')),
     desc: `Bitwise AND`,
     syntax: 'a & b',
+    unary: 'u&',
   },
   "^": {
     name: 'bitwise xor',

@@ -5,7 +5,7 @@ const { consoleColours } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
-const { StringValue } = require("./src/evaluation/values");
+const { StringValue, ReferenceValue } = require("./src/evaluation/values");
 const { printError, errors } = require("./src/errors");
 
 // PARSE ARGV, SETUP RUNSPACE

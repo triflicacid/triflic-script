@@ -15,6 +15,7 @@ const errors = {
   ASSIGN: 'EASSGN', // Assignment error
   DEL: 'EDEL', // Error whilst deleting value
   TYPE_ERROR: 'ETYPE', // Error to do with types
+  CAST_ERROR: 'ECAST', // Error whilst casting
 };
 
 const errorDesc = {
@@ -32,6 +33,7 @@ const errorDesc = {
   [errors.ASSIGN]: `Error whilst assigning to a given object`,
   [errors.DEL]: `Error whilst attempting to delete (remove) an object`,
   [errors.TYPE_ERROR]: `One or more types is invalid, unexpected or incorrect for the given context`,
+  [errors.CAST_ERROR]: `Unable to cast the given value to the given type`,
 };
 
 /** Print error in a fancy way */

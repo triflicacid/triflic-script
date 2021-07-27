@@ -1,3 +1,5 @@
+const { errors } = require("../errors");
+
 const types = {
   any: 0, // Keep original Token type
   complex: 1, // Complex number 'a + bi'
@@ -16,8 +18,8 @@ const isNumericType = t => t === 'complex' || t === 'complex_int' || t === 'real
 const isIntType = t => t === 'real_int' || t === 'complex_int' || t === 'bool';
 
 function castingError(obj, type, implicit = false) {
-  if (type in types) throw new Error(`Type Error: Cannot ${implicit ? 'implicitly ' : ''}cast ${typeof obj} ${typeOf(obj)} to ${type}`);
-  throw new Error(`Type Error: unknown type '${type}'`);
+  if (type in types) throw new Error(`[${errors.CAST_ERROR}] Type Error: Cannot ${implicit ? 'implicitly ' : ''} cast ${typeof obj} ${typeOf(obj)} to ${type}`);
+  throw new Error(`[${errors.TYPE_ERROR}] Type Error: unknown type '${type}'`);
 }
 
 function typeOf(arg) {
