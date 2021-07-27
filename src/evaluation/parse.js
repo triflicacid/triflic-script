@@ -1,7 +1,6 @@
 /** NB Functions used in parsing */
 
 const operators = require("./operators");
-const { isDigit } = require("../utils");
 
 const bracketMap = {
   "[": "]", "]": "[",

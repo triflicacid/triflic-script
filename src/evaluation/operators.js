@@ -9,6 +9,8 @@
 //   unary: <string|null>     // If present, and if operator meets unary criteria, use this operator instead
 // },
 
+const { errors } = require("../errors");
+
 const operators = {
   ".": {
     name: 'member access',
@@ -16,7 +18,7 @@ const operators = {
     args: 2,
     fn: (obj, prop) => {
       obj = obj.castTo('any');
-      if (!obj.__get__) throw new Error(`Key Error: Cannot access property ${prop} of type ${obj.type()}`);
+      if (!obj.__get__) throw new Error(`[${errors.BAD_PROP}] Key Error: Cannot access property ${prop} of type ${obj.type()}`);
       return obj.castTo('any').__get__(prop.castTo('any'));
     },
     desc: `Access property <prop> of <obj>`,

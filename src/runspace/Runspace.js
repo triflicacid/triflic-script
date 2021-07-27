@@ -5,6 +5,7 @@ const { primitiveToValueClass, MapValue, NumberValue, Value, FunctionRefValue } 
 const path = require("path");
 const fs = require("fs");
 const { RunspaceFunction } = require("./Function");
+const { errors } = require("../errors");
 
 class Runspace {
   constructor(opts) {
@@ -88,9 +89,10 @@ class Runspace {
     return new TokenString(this, string);
   }
 
-  eval(string) {
-    const ts = new TokenString(this, string);
-    let obj = ts.eval(); // Intermediate value
+  /** Evaluate a string or a TokenString */
+  eval(input) {
+    let tokenString = input instanceof TokenString ? input : this.parseString(input);
+    let obj = tokenString.eval(); // Intermediate value
     if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', obj.castTo('any'), 'value returned by previous statement');
     return obj.toString();
   }
@@ -102,7 +104,7 @@ class Runspace {
     try {
       stats = fs.lstatSync(fpath);
     } catch (e) {
-      throw new Error(`Argument Error: invalid path '${fpath}':\n${e}`);
+      throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid path '${fpath}':\n${e}`);
     }
 
     if (stats.isFile()) {
@@ -112,15 +114,15 @@ class Runspace {
         try {
           fn = require(fpath);
         } catch (e) {
-          throw new Error(`Import Error: .js: error whilst requiring ${fpath}:\n${e}`);
+          throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: error whilst requiring ${fpath}:\n${e}`);
         }
-        if (typeof fn !== 'function') throw new Error(`Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
+        if (typeof fn !== 'function') throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
         let resp;
         try {
           resp = fn(this);
         } catch (e) {
           console.error(e);
-          throw new Error(`Import Error: .js: error whilst executing ${fpath}'s export function:\n${e}`);
+          throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: error whilst executing ${fpath}'s export function:\n${e}`);
         }
         return resp || new NumberValue(this.rs, 0);
       } else {
@@ -128,7 +130,7 @@ class Runspace {
         try {
           text = fs.readFileSync(fpath, 'utf8');
         } catch (e) {
-          throw new Error(`Import Error: ${ext}: unable to read file (full path: ${fpath}):\n${e}`);
+          throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: unable to read file (full path: ${fpath}):\n${e}`);
         }
 
         const lines = text.split('\n');
@@ -136,12 +138,12 @@ class Runspace {
           try {
             this.eval(lines[i]);
           } catch (e) {
-            throw new Error(`Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}), line ${i + 1}:\n${e}`);
+            throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}), line ${i + 1}:\n${e}`);
           }
         }
       }
     } else {
-      throw new Error(`Argument Error: path is not a file (full path: ${fpath})`);
+      throw new Error(`[${errors.BAD_ARG}] Argument Error: path is not a file (full path: ${fpath})`);
     }
   }
 }

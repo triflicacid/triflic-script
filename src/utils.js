@@ -52,6 +52,8 @@ const consoleColours = {
 };
 
 const isDigit = x => x >= "0" && x <= "9";
+const _regexWhitespace = /\s/;
+const isWhitespace = x => _regexWhitespace.test(x);
 
 const peek = a => a[a.length - 1];
 
@@ -169,5 +171,5 @@ function arrRepeat(array, count) {
 }
 
 module.exports = {
-  input, print, consoleColours, peek, isDigit, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat
+  input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat
 };

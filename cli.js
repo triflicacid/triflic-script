@@ -6,6 +6,7 @@ const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 const { StringValue } = require("./src/evaluation/values");
+const { printError } = require("./src/errors");
 
 // PARSE ARGV, SETUP RUNSPACE
 const opts = parseArgString(process.argv, true);
@@ -38,8 +39,15 @@ function attempt(fn) {
   try {
     return fn();
   } catch (e) {
-    e.toString().split('\n').forEach(line => rl.output.write(`${consoleColours.Bright}${consoleColours.FgRed}[!] ${consoleColours.Reset}${line}\n`));
+    printError(e, str => rl.output.write(str));
   }
+}
+
+// Evaluate some input
+function evaluate(input) {
+  let output = opts.niceErrors ? attempt(() => rs.eval(input)) : rs.eval(input);
+  if (output !== undefined) rl.output.write(output.toString() + '\n');
+  return output;
 }
 
 // Setup Readline interface for I/O
@@ -64,15 +72,31 @@ if (opts.intro) {
   rl.output.write('\n');
 }
 
-// Initial prompt
+// Initialialise prompt
 rl.prompt();
 
-rl.on('line', (line) => {
-  let out = opts.niceErrors ? attempt(() => rs.eval(line)) : rs.eval(line);
-  if (out !== undefined) rl.output.write(out.toString() + '\n');
+const lines = [];
 
-  rl.prompt();
-});
+if (opts.multiline) {
+  rl.on('line', (line) => {
+    if (line.length === 0) {
+      const input = lines.join('\n');
+      lines.length = 0;
+      evaluate(input);
+      rl.setPrompt(opts.prompt);
+    } else {
+      lines.push(line);
+      rl.setPrompt('.'.repeat(opts.prompt.length - 1) + ' ');
+    }
+
+    rl.prompt();
+  });
+} else {
+  rl.on('line', (line) => {
+    evaluate(line);
+    rl.prompt();
+  });
+}
 
 rl.on('close', () => {
   rl.output.write('^C\n');

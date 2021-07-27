@@ -1,8 +1,9 @@
 const Complex = require("../maths/Complex");
 const { factorial, factorialReal } = require("../maths/functions");
 const { RunspaceUserFunction } = require("../runspace/Function");
-const { str, bool, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal } = require("../utils");
-const { castingError, isNumericType, isIntType } = require("./types");
+const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal } = require("../utils");
+const { castingError, isNumericType } = require("./types");
+const { errors } = require("../errors");
 
 class Value {
   constructor(runspace, value) {
@@ -330,7 +331,7 @@ class ArrayValue extends Value {
 
   /** copy() function */
   __copy__() {
-    const emsg = (v, i) => `Error whilst copying type array: index ${i}: type ${v.type()} cannot be copied`;
+    const emsg = (v, i) => `[${errors.CANT_COPY}] Type Error: Error whilst copying type array: index ${i}: type ${v.type()} cannot be copied`;
     return new ArrayValue(this.rs, this.value.map((v, i) => {
       let copy;
       try { copy = v.__copy__?.(); } catch (e) { throw new Error(`${emsg(v, i)}\n${e}`); }
@@ -396,7 +397,7 @@ class SetValue extends Value {
 
   /** copy() function */
   __copy__() {
-    const emsg = (v, i) => `Error whilst copying type set: index ${i}: type ${v.type()} cannot be copied`;
+    const emsg = (v, i) => `[${errors.CANT_COPY}] Error whilst copying type set: index ${i}: type ${v.type()} cannot be copied`;
     return new SetValue(this.rs, this.value.map((v, i) => {
       let copy;
       try { copy = v.__copy__?.(); } catch (e) { throw new Error(`${emsg(v, i)}\n${e}`); }
@@ -494,7 +495,7 @@ class MapValue extends Value {
 
   /** copy() function */
   __copy__() {
-    const emsg = (v, key) => `Error whilst copying type map: key ${key}: type ${v.type()} cannot be copied`;
+    const emsg = (v, key) => `[${errors.CANT_COPY}] Error whilst copying type map: key ${key}: type ${v.type()} cannot be copied`;
     const map = new MapValue(this.rs);
     this.value.forEach((v, key) => {
       let copy;
@@ -543,7 +544,7 @@ class FunctionRefValue extends Value {
     params = params.map(param => param.value); // string[] of parameter names
 
     let fn = this.getFn();
-    if (fn?.constant) throw new Error(`Syntax Error: Assignment to constant function ${this.value} (position ${pos})`);
+    if (fn?.constant) throw new Error(`[${errors.ASSIGN}] Syntax Error: Assignment to constant function ${this.value} (position ${pos})`);
     fn = new RunspaceUserFunction(this.rs, this.value, params, body, comment, isConstant); // Define new function
     this.rs.func(this.value, fn);
     return this;
@@ -552,7 +553,7 @@ class FunctionRefValue extends Value {
   /** del() function */
   __del__() {
     const f = this.getFn();
-    if (f.constant) throw new Error(`Argument Error: Attempt to delete constant reference to ${this.toString()}`);
+    if (f.constant) throw new Error(`[${errors.DEL}] Argument Error: Attempt to delete constant reference to ${this.toString()}`);
     this.rs.func(this.value, null);
     return new NumberValue(this.rs, 0);
   }
@@ -563,8 +564,13 @@ class FunctionRefValue extends Value {
     if (fn) {
       return fn.call(args);
     } else {
-      throw new Error(`Null Reference: reference to undefined function ${this}`);
+      this._throwNullRef();
     }
+  }
+
+  /** Throw NULL REFERENCE error */
+  _throwNullRef() {
+    throw new Error(`[${errors.NULL_REF}] Null Reference: reference to undefined function ${this}`);
   }
 
   /** copy() function */

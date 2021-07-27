@@ -28,6 +28,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `gamma-factorial` : `boolean`. Use `gamma` function for factorial operator `!` (use `factorial` or `factorialReal`) ?
 - `reveal-headers` : `boolean`. Reveal CLI options and other information to Runspace as `headers` map?
 - `define-aliases` : `boolean`. Define aliases for some variables/functions e.g. `W` for `lambertW` and `π` for `pi` (NB these are not aliases, but copies, so `pi` is independant from `π`)
+- `multiline` : `boolean`. Does the CLI allow multiline input?
 
 ## Built-Ins
 Base definitions to an `Environment` are present in `src/def.js`

@@ -1,9 +1,10 @@
-const { peek, str, createTokenStringParseObj } = require("../utils");
+const { peek, str, createTokenStringParseObj, isWhitespace } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
 const { RunspaceUserFunction, RunspaceBuiltinFunction } = require("../runspace/Function");
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue } = require("./values");
 const { isNumericType } = require("./types");
 const operators = require("./operators");
+const { errors } = require("../errors");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -29,7 +30,6 @@ class ValueToken extends Token {
   castTo(type) { return this.value.castTo(type); }
 }
 
-/** For brackets */
 class BracketToken extends Token {
   constructor(tstring, x, pos) {
     super(tstring, x, pos);
@@ -56,11 +56,11 @@ class OperatorToken extends Token {
   eval(...args) {
     const info = this.info();
     let fn = Array.isArray(info.args) ? info['fn' + args.length] : info.fn;
-    if (typeof fn !== 'function') throw new Error(`Argument Error: no overload for operator function ${this.value} with ${args.length} args`);
+    if (typeof fn !== 'function') throw new Error(`[${errors.ARG_COUNT}] Argument Error: no overload for operator function ${this.value} with ${args.length} args`);
     let r;
     try { r = fn(...args); } catch (e) { throw new Error(`Operator ${this.value}:\n${e}`); }
     if (r instanceof Error) throw r; // May return custom errors
-    if (r === undefined) throw new Error(`Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
+    if (r === undefined) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
     return r;
   }
 
@@ -72,7 +72,7 @@ class OperatorToken extends Token {
     let i = operators[this.value];
     if (this.isUnary) {
       i = operators[i.unary];
-      if (i === undefined) throw new Error(`Operator ${this.toString()} has no unary counterpart (isUnary=${this.isUnary})`);
+      if (i === undefined) throw new Error(`[${errors.ARG_COUNT}] Operator ${this.toString()} has no unary counterpart (isUnary=${this.isUnary})`);
     }
     return i;
   }
@@ -112,7 +112,7 @@ class VariableToken extends Token {
   /** function: del() */
   __del__() {
     const v = this.getVar();
-    if (v.constant) throw new Error(`Argument Error: Attempt to delete a constant variable ${this.value}`);
+    if (v.constant) throw new Error(`[${errors.DEL}] Argument Error: Attempt to delete a constant variable ${this.value}`);
     this.tstr.rs.var(this.value, null);
     return new NumberValue(this.tstr.rs, 0);
   }
@@ -120,8 +120,8 @@ class VariableToken extends Token {
   /** operator: = */
   __assign__(v) {
     const name = this.value;
-    if (this.tstr.rs.func(name)) throw new Error(`Syntax Error: Invalid syntax - symbol '${name}' is a function but treated as a variable at position ${this.pos}`);
-    if (this.tstr.rs.var(name)?.constant) throw new Error(`Syntax Error: Assignment to constant variable ${name} (position ${this.pos})`);
+    // if (this.tstr.rs.func(name)) throw new Error(`[${errors.ARG_COUNT}] Syntax Error: Invalid syntax - symbol '${name}' is a function but treated as a variable at position ${this.pos}`);
+    if (this.tstr.rs.var(name)?.constant) throw new Error(`[${errors.ASSIGN}] Syntax Error: Assignment to constant variable ${name} (position ${this.pos})`);
     // Setup TokenString
     const ts = new TokenString(this.tstr.rs, '');
     ts.tokens = [v];
@@ -162,7 +162,6 @@ class TokenString {
   /** Parse a raw input string. Populate tokens array. */
   _parse(obj) {
     let string = obj.string, inString = false, strPos, str = ''; // isDeclaration: are we declaring a function? (alters behaviour of lexer - 0:no, 1:yes, 2:yes,constant)
-    const brackets = [];
 
     for (let i = 0; i < string.length;) {
       // Start/End string?
@@ -194,7 +193,7 @@ class TokenString {
         break;
       }
 
-      if (string[i] === ' ') {
+      if (isWhitespace(string[i])) {
         i++;
         obj.pos++;
         continue; // WHITESPACE - IGNORE
@@ -208,7 +207,9 @@ class TokenString {
 
       // Bracket Group?
       if (string[i] in bracketValues) {
-        if (string[i] === '(') {
+        if (bracketValues[string[i]] === -1) { // Should never come across a closing bracket
+          this._throwMatchingBracketError(string[i], bracketMap[string[i]], obj.pos);
+        } else if (string[i] === '(') {
           const opening = new BracketToken(this, '(', obj.pos);
           i++;
           obj.pos++;
@@ -216,8 +217,7 @@ class TokenString {
           // Normal bracket group? (evaluate normally) or evaluate as calling group
           const topmost = peek(obj.tokens);
           if (!topmost || topmost instanceof OperatorToken) {
-
-            if (i >= string.length) throw new Error(`Syntax Error: unexpected token '${string[i]}' (position ${obj.pos}); no matching '${bracketMap[string[i]]}' found.`);
+            if (i >= string.length) this._throwMatchingBracketError(opening.value, bracketMap[opening.value], obj.pos);
             const pobj = createTokenStringParseObj(string.substr(i), obj.pos, obj.depth + 1, [')']);
             this._parse(pobj);
 
@@ -234,7 +234,7 @@ class TokenString {
             // throw new Error(`Syntax Error: ) must follow an operator`);
             const argTokens = [];
             const [done, endPos] = this._parseCommaSeperated(argTokens, string.substr(i), obj.pos, obj.depth + 1, bracketMap[opening.value]);
-            if (!done) throw new Error(`Syntax Error: unexpected token '${opening.value}' (position ${obj.pos}); no matching '${bracketMap[opening.value]}' found.`);
+            if (!done) this._throwMatchingBracketError(opening.value, bracketMap[opening.value], obj.pos);
 
             const argStr = string.substr(i, (endPos - obj.pos) - 1);
             obj.pos = endPos;
@@ -242,17 +242,7 @@ class TokenString {
             const array = new TokenStringArray(this, argTokens, opening.pos);
             obj.tokens.push(array);
           }
-        } else if (bracketValues[string[i]] === -1) {
-          const lastOpened = peek(brackets);
-          if (lastOpened === undefined) {
-            throw new Error(`Syntax Error: unexpected token '${string[i]}'(position ${obj.pos}); no matching '${bracketMap[string[i]]}' found.`);
-          } else {
-            if (bracketMap[lastOpened.value] === string[i]) {
-              brackets.pop(); // Matches, so remove
-            } else {
-              throw new Error(`Syntax Error: unexpected token '${string[i]}'.Expected '${bracketMap[lastOpened.value]}' following '${lastOpened.value}' at position ${lastOpened.pos}.`);
-            }
-          }
+          continue;
         } else if (string[i] === '[' || string[i] === '{') {
           const opening = new BracketToken(this.rs, string[i], obj.pos);
           i++;
@@ -260,7 +250,7 @@ class TokenString {
 
           const itemTokens = [];
           const [done, endPos] = this._parseCommaSeperated(itemTokens, string.substr(i), obj.pos, obj.depth, bracketMap[opening.value]);
-          if (!done) throw new Error(`Syntax Error: expected '${bracketMap[opening.value]}' after array declaration following '${opening.value}'(position ${opening.pos})`);
+          if (!done) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected '${bracketMap[opening.value]}' after array declaration following '${opening.value}'(position ${opening.pos})`);
 
           const argStr = string.substr(i, (endPos - obj.pos) - 1);
           obj.pos += argStr.length + 1;
@@ -270,11 +260,9 @@ class TokenString {
           let value = new Klass(this.rs, itemTokens.map(ts => ts.eval()));
           let valuet = new ValueToken(this, value, obj.pos);
           obj.tokens.push(valuet);
-        } else {
-          throw new Error(`SYntax Error: unexpected token '${string[i]}' at position ${obj.pos} `);
-        }
 
-        continue;
+          continue;
+        }
       }
 
       // Operator?
@@ -315,13 +303,9 @@ class TokenString {
         continue;
       }
 
-      throw new Error(`Syntax Error: unexpected token '${string[i]}' at ${obj.pos} `);
+      throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '${string[i]}' (${string[i].charCodeAt(0)}) at position ${obj.pos} `);
     }
-    if (inString) throw new Error(`Syntax Error: unterminated string literal at position ${strPos} `);
-    if (brackets.length !== 0) {
-      const bracket = peek(brackets);
-      throw new Error(`Syntax Error: unterminated bracketed group at position ${bracket.pos}; expected ${bracketMap[bracket.value]} `);
-    }
+    if (inString) throw new Error(`[${errors.UNTERM_STRING}] Syntax Error: unterminated string literal at position ${strPos} `);
 
     // Special actions:
     // - If a variable is followed by a '=', set .isDeclaration=1
@@ -390,10 +374,10 @@ class TokenString {
       if (T[i] instanceof Value) {
         stack.push(T[i]);
       } else if (T[i] instanceof VariableToken) {
-        if (!T[i].isDeclaration && !T[i].exists()) throw new Error(`Name Error: name '${T[i].value}' does not exist (position ${T[i].pos})`);
+        if (!T[i].isDeclaration && !T[i].exists()) throw new Error(`[${errors.NAME}] Name Error: name '${T[i].value}' does not exist (position ${T[i].pos})`);
         stack.push(T[i]);
       } else if (T[i] instanceof FunctionRefValue) {
-        if (!T[i].isDeclaration && !T[i].exists()) throw new Error(`Reference Error: null reference ${T[i]} (position ${T[i].pos})`);
+        if (!T[i].isDeclaration && !T[i].exists()) throw new Error(`[${errors.NULL_REF}] Reference Error: null reference ${T[i]} (position ${T[i].pos})`);
         stack.push(T[i]);
       } else if (T[i] instanceof OperatorToken) {
         const info = T[i].info();
@@ -408,23 +392,23 @@ class TokenString {
         } else {
           argCount = info.args;
         }
-        if (stack.length < argCount) throw new Error(`Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - stack underflow(expects ${argCount} values, got ${stack.length})(while evaluating)`);
-        if (argCount === undefined) throw new Error(`Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - no overload found for <= ${stack.length} parameters(while evaluating)`);
+        if (stack.length < argCount) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - stack underflow (expects ${argCount} values, got ${stack.length}) (while evaluating)`);
+        if (argCount === undefined) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - no overload found for <= ${stack.length} parameters (while evaluating)`);
         let args = [];
         for (let i = 0; i < argCount; i++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
         const val = T[i].eval(...args);
         stack.push(val);
       } else if (T[i] instanceof TokenStringArray) {
         const last = stack.pop(); // SHould be VariableToken
-        if (!last) throw new Error(`Syntax Error: unexpected TokenStringArray in position ${T[i].pos}`);
+        if (!last) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected TokenStringArray in position ${T[i].pos}`);
         if (last.isDeclaration) { // Declare function
-          if (!(last instanceof VariableToken)) throw new Error(`Syntax Error: expected symbol to precede bracketed group in declaration (position ${T[i].pos})`);
+          if (!(last instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected symbol to precede bracketed group in declaration (position ${T[i].pos})`);
           const assignment = peek(T); // Should be assignment
-          if (!(assignment instanceof OperatorToken) && (assignment.value === '=' || assignment.value === ':=')) throw new Error(`Syntax Error: expected assignment operator after function declaration (position ${T[i].pos})`);
+          if (!(assignment instanceof OperatorToken) && (assignment.value === '=' || assignment.value === ':=')) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected assignment operator after function declaration (position ${T[i].pos})`);
           T.pop(); // Remove assignment operator
           const ref = new FunctionRefValue(this.rs, last.value), params = [];
           for (const ts of T[i].value) {
-            if (ts.tokens.length !== 1 || !(ts.tokens[0] instanceof VariableToken)) throw new Error(`Syntax Error: Illegal function declaration`);
+            if (ts.tokens.length !== 1 || !(ts.tokens[0] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Illegal function declaration`);
             params.push(ts.tokens[0]);
           }
 
@@ -436,7 +420,7 @@ class TokenString {
           stack.push(ref);
         } else { // Attempt to call last thing
           const lastValue = last.castTo("any");
-          if (typeof lastValue?.__call__ !== 'function') throw new Error(`Type Error: type ${lastValue.type()} is not callable (position ${T[i].pos})`);
+          if (typeof lastValue?.__call__ !== 'function') throw new Error(`[${errors.NOT_CALLABLE}] Type Error: type ${lastValue.type()} is not callable (position ${T[i].pos})`);
           let args = [];
           try {
             args = T[i].value.map(t => t.eval()); // Evaluate TokenString arguments
@@ -446,11 +430,11 @@ class TokenString {
           }
         }
       } else {
-        throw new Error(`Syntax Error: invalid syntax at position ${T[i].pos}: ${T[i]} `);
+        throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax at position ${T[i].pos}: ${T[i]} `);
       }
     }
     if (stack.length === 0) return new NumberValue(this.rs, 0);
-    if (stack.length !== 1) throw new Error(`Syntax Error: Invalid syntax (evaluation failed to reduce expression to single number)`);
+    if (stack.length !== 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax (evaluation failed to reduce expression to single number)`);
     return stack[0];
   }
 
@@ -489,11 +473,16 @@ class TokenString {
           stack.push(tokens[i]);
         }
       } else {
-        throw new Error(`Unknown token: ${typeof tokens[i]} ${tokens[i].constructor.name} `);
+        throw new Error(`[${errors.SYNTAX}] Unknown token: ${typeof tokens[i]} ${tokens[i].constructor.name} `);
       }
     }
     while (stack.length !== 0) output.push(stack.pop()); // Dump the stack
     return output;
+  }
+
+  /** Error with matching brackets */
+  _throwMatchingBracketError(open, close, pos) {
+    throw new Error(`[${errors.UNMATCHED_BRACKET}] Syntax Error: unexpected bracket token '${open}' at position ${pos}; no matching '${close}' found.`);
   }
 }
 
