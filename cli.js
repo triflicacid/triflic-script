@@ -6,7 +6,7 @@ const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 const { StringValue } = require("./src/evaluation/values");
-const { printError } = require("./src/errors");
+const { printError, errors } = require("./src/errors");
 
 // PARSE ARGV, SETUP RUNSPACE
 const opts = parseArgString(process.argv, true);
@@ -45,9 +45,16 @@ function attempt(fn) {
 
 // Evaluate some input
 function evaluate(input) {
-  let output = opts.niceErrors ? attempt(() => rs.eval(input)) : rs.eval(input);
-  if (output !== undefined) rl.output.write(output.toString() + '\n');
-  return output;
+  let tokenString = opts.niceErrors ? attempt(() => rs.parseString(input)) : rs.parseString(input);
+  if (!tokenString) return;
+  let outsideFirstStatement = input.replace(tokenString.string, '').trim();
+  if (outsideFirstStatement.length > 0) {
+    printError(new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '${outsideFirstStatement[0]}' (${outsideFirstStatement[0].charCodeAt(0)})\n  (One statement expected, got multiple)`), str => rl.output.write(str));
+  } else {
+    let output = opts.niceErrors ? attempt(() => rs.eval(tokenString)) : rs.eval(tokenString);
+    if (output !== undefined) rl.output.write(output.toString() + '\n');
+    return output;
+  }
 }
 
 // Setup Readline interface for I/O
@@ -71,9 +78,6 @@ if (opts.intro) {
   notes.forEach(note => rl.output.write(`${consoleColours.Bright}${consoleColours.FgWhite}${consoleColours.Reverse}Note${consoleColours.Reset} ${note}\n`));
   rl.output.write('\n');
 }
-
-// Initialialise prompt
-rl.prompt();
 
 const lines = [];
 
@@ -104,4 +108,5 @@ rl.on('close', () => {
   process.exit(); // As a fallback
 });
 
-rs.import('matrix.js');
+// Initialialise prompt
+rl.prompt();

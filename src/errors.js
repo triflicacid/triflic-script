@@ -39,4 +39,9 @@ function printError(e, printFunction) {
   e.toString().split('\n').forEach(line => printFunction(`${consoleColours.Bright}${consoleColours.FgRed}[!] ${consoleColours.Reset}${line}\n`));
 }
 
-module.exports = { errors, errorDesc, printError };
+/** Print warning message in a fancy way */
+function printWarn(msg, printFunction) {
+  msg.toString().split('\n').forEach(line => printFunction(`${consoleColours.Bright}${consoleColours.FgYellow}[!] ${consoleColours.Reset}${line}\n`));
+}
+
+module.exports = { errors, errorDesc, printError, printWarn };

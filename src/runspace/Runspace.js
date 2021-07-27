@@ -84,17 +84,29 @@ class Runspace {
     return this.func(fn.name, fn);
   }
 
-  /** Return a new TokenString */
+  /** Return a new TokenString. Return rest of string which was not parsed. */
   parseString(string) {
     return new TokenString(this, string);
   }
 
-  /** Evaluate a string or a TokenString */
+  /** Evaluate a single string or a TokenString */
   eval(input) {
     let tokenString = input instanceof TokenString ? input : this.parseString(input);
-    let obj = tokenString.eval(); // Intermediate value
-    if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', obj.castTo('any'), 'value returned by previous statement');
-    return obj.toString();
+    let obj = tokenString.eval().castTo('any');
+    if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', obj, 'value returned by previous statement');
+    return obj;
+  }
+
+  /** Interpret a whole string of code, up to a statement limit. Return { string // What is left //, value // value of latest evaluation //  } */
+  interpret(string, statementLimit = Infinity) {
+    let statements = 0, value;
+    while (string.length !== 0 && statements < statementLimit) {
+      const ts = new TokenString(this, string);
+      value = this.eval(ts);
+      string = string.substring(ts.string.length);
+      statements++;
+    }
+    return { string, value };
   }
 
   /** Attempt to import a file */
@@ -133,13 +145,10 @@ class Runspace {
           throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: unable to read file (full path: ${fpath}):\n${e}`);
         }
 
-        const lines = text.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-          try {
-            this.eval(lines[i]);
-          } catch (e) {
-            throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}), line ${i + 1}:\n${e}`);
-          }
+        try {
+          this.interpret(text);
+        } catch (e) {
+          throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}):\n${e}`);
         }
       }
     } else {

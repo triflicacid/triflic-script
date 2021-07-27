@@ -152,11 +152,14 @@ class TokenString {
     if (string) this.parse();
   }
 
+  /** Parse self's string. Return end position. */
   parse() {
     const obj = createTokenStringParseObj(this.string, 0, 0);
     this._parse(obj);
     this.tokens = obj.tokens;
     this.comment = obj.comment;
+    this.string = this.string.substring(0, obj.pos);
+    return obj.pos;
   }
 
   /** Parse a raw input string. Populate tokens array. */
@@ -193,10 +196,16 @@ class TokenString {
         break;
       }
 
-      if (isWhitespace(string[i])) {
+      if (obj.depth === 0 && (string[i] === '\n' || string[i] === ';')) { // Break; from execution
         i++;
         obj.pos++;
-        continue; // WHITESPACE - IGNORE
+        break;
+      }
+
+      if (isWhitespace(string[i])) { // WHITESPACE - IGNORE
+        i++;
+        obj.pos++;
+        continue;
       }
 
       // Comment? (only recognise in depth=0)
