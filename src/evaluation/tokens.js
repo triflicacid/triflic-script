@@ -335,12 +335,12 @@ class TokenString {
       }
 
       // Number?
-      let o = parseNumber(string.substr(i));
-      if (o.nStr.length !== 0) {
-        const t = new ValueToken(this, new NumberValue(this.rs, o.n), obj.pos);
+      const numObj = parseNumber(string.substr(i));
+      if (numObj.str.length > 0) {
+        const t = new ValueToken(this, new NumberValue(this.rs, numObj.num), obj.pos);
         obj.tokens.push(t);
-        i += o.pos;
-        obj.pos += o.pos;
+        i += numObj.pos;
+        obj.pos += numObj.pos;
         continue;
       }
 

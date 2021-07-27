@@ -42,69 +42,78 @@ function getMatchingBracket(pos, program) {
   throw new Error("No matching bracket found for '" + program[pos] + "' in position " + pos);
 }
 
+const radices = { x: 16, d: 10, b: 2, o: 8 };
+const radicesRegex = { 16: /[0-9A-Fa-f]/, 10: /[0-9]/, 2: /[01]/, 8: /[0-7]/ };
 /**
  * Like parseFloat
  * @param {string} string
- * @returns {{ n: number, pos: number }} Return number extracted and end pos
+ * @param {boolean} allowExponent allow exponent '...e...' in number?
+ * @param {string} seperator permitted seperator between digits. Must be of length = 1
+ * @returns {object} Return information about extracted number, such as string, sign, exponent, radix...
  */
-function parseNumber(string) {
-  // Stages 0 - start, 1 - encountered sign, 2 - encountered '.', 3 - encountered 'e'
-  let nStr = '', stage = 0, i;
-  for (i = 0; i < string.length; i++) {
-    // Dot?
-    if (string[i] === '.') {
-      if (stage === 0 || stage === 1) {
-        nStr += '.';
-        stage = 2;
-      } else {
-        break;
-      }
-    }
+function parseNumber(string, allowExponent = true, seperator = '_') {
+  let pos = 0, sign = 1, strBeforeDot = '', strAfterDot = '', radix = 10, exp = null;
+  let metSign = false, metDigitBeforeDecimal = false, metDot = false, metDigitAfterDecimal = false, metE = false;
 
-    // Sign?
-    else if (string[i] === '+' || string[i] === '-') {
-      if (stage === 0 && nStr.length === 0) {
-        nStr += string[i];
-        stage = 1;
+  for (pos = 0; pos < string.length; pos++) {
+    if (!metSign && (string[pos] === '-' || string[pos] === '+')) {
+      metSign = true;
+      sign = string[pos] === '-' ? -1 : 1;
+    } else if (string[pos] in radices) {
+      if (strBeforeDot === '0') {
+        strBeforeDot = '';
+        radix = radices[string[pos]];
       } else {
-        break;
+        break; // INVALID
       }
-    }
-
-    // 'e' ?
-    else if (string[i] === 'e') {
-      if (stage === 0) {
-        break; // Here? What?
-      } else if (stage >= 3) {
+    } else if (radicesRegex[radix].test(string[pos])) {
+      if (!metSign) metSign = true; // Default to '+'
+      if (metDot) {
+        strAfterDot += string[pos];
+        metDigitAfterDecimal = true;
+      } else {
+        strBeforeDot += string[pos];
+        metDigitBeforeDecimal = true;
+      }
+    } else if (string[pos] === '.') {
+      if (!metDot) {
+        metDot = true;
+      } else {
+        break; // INVALID
+      }
+    } else if (string[pos].toLowerCase() === 'e') {
+      if (allowExponent) {
+        const obj = parseNumber(string.substr(pos + 1), false, seperator);
+        if (obj.str === '') break;
+        pos += 1 + obj.pos;
+        exp = obj;
         break;
       } else {
-        nStr += 'e';
-        if (string[i + 1] === '+' || string[i + 1] === '-') nStr += string[++i];
-        stage = 3;
+        break; // INVALID
       }
-    }
-
-    // Digit
-    else if (isDigit(string[i])) {
-      if (stage === 0) stage = 1; // Implicit sign
-      nStr += string[i];
+    } else if (string[pos] === seperator) {
+      if (metDot && !metDigitAfterDecimal) break;
+      if (!metDigitBeforeDecimal) break;
     } else {
-      break;
+      break; // INVALID
     }
   }
 
-  // Check for incomplete 'e' power
-  let last2 = nStr[nStr.length - 2] + nStr[nStr.length - 1];
-  if (last2 === 'e-' || last2 === 'e+') {
-    nStr = nStr.substr(0, nStr.length - 2);
-    i -= 2;
+  if (strBeforeDot !== '') strBeforeDot = parseInt(strBeforeDot, radix);
+  if (strAfterDot !== '') strAfterDot = parseInt(strAfterDot, radix);
+  let str = strBeforeDot + (metDot ? '.' + strAfterDot : '');
+  if (str === '.' || str.startsWith('.e')) {
+    pos = 0;
+    str = '';
   }
-  // Incomplete decimal? Incomplete sign?
-  if (nStr === '.' || nStr === '-' || nStr === '+') {
-    nStr = "";
-    i--;
+
+  let num = sign * +str, base = num;
+  if (exp) {
+    num *= Math.pow(10, exp.num);
+    str += 'e' + exp.str;
+    exp = exp.num;
   }
-  return { nStr, n: +nStr, pos: i };
+  return { pos, str: string.substring(0, pos), sign, base, exp, radix, num };
 }
 
 /** Requires Runspace instance */
