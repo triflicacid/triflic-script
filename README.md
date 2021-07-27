@@ -58,7 +58,7 @@ The input will be pre-processed in the `eval()` method itself before being parse
 
 ### General Syntax
 
-Comments may be includes as `# ...`. Enything after `#` will be ignored. If a comment is included in a function/variable definition, the contents of this comment will be displayed when `help(<thing>)` is called.
+Comments may be includes as `# ...`. Enything after `#` will be ignored until a newline is reached. If a comment is included in a function/variable definition, the contents of this comment will be displayed when `help(<thing>)` is called.
 
 ### Literals
 These are structures in the code which define values:

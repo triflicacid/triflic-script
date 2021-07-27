@@ -201,8 +201,13 @@ class TokenString {
 
       // Comment? (only recognise in depth=0)
       if (obj.depth === 0 && string[i] === '#') {
-        obj.comment = string.substr(i + 2).trim();
-        break;
+        let comment = '';
+        for (; i < string.length; i++, obj.pos++) {
+          if (string[i] === '\n') break;
+          comment += string[i];
+        }
+        obj.comment = comment;
+        continue;
       }
 
       // Bracket Group?
