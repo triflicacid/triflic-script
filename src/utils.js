@@ -55,7 +55,7 @@ const isDigit = x => x >= "0" && x <= "9";
 const _regexWhitespace = /\s/;
 const isWhitespace = x => _regexWhitespace.test(x);
 
-const peek = a => a[a.length - 1];
+const peek = (a, b = 1) => a[a.length - b];
 
 /** Check that all input variables are real */
 function assertReal(...args) {

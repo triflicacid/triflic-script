@@ -29,6 +29,8 @@ class Value {
   }
   toString() { return this.toPrimitive('string'); }
 
+  __assign__() { throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot assign to object ${this.type()}`); }
+
   /** operator: u& */
   __deref__() { throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot dereference a value of type ${this.type()}`); }
 
