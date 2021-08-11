@@ -1,12 +1,12 @@
 const Runspace = require("./src/runspace/Runspace");
 const readline = require("readline");
 const { define, defineVars, defineFuncs } = require("./src/init/def");
-const { consoleColours } = require("./src/utils");
+const { consoleColours, printError } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
-const { StringValue, ReferenceValue } = require("./src/evaluation/values");
-const { printError, errors } = require("./src/errors");
+const { StringValue } = require("./src/evaluation/values");
+const { errors } = require("./src/errors");
 
 // PARSE ARGV, SETUP RUNSPACE
 const opts = parseArgString(process.argv, true);
@@ -28,7 +28,7 @@ rs.define(new RunspaceBuiltinFunction(rs, 'print', { o: 'any', newline: '?bool' 
 }, 'prints object to the screen'));
 rs.define(new RunspaceBuiltinFunction(rs, 'clear', {}, () => {
   rl.output.write('\033c');
-  return new StringValue(0, "");
+  return new StringValue(rs, "");
 }, 'clears the screen'));
 rs.define(new RunspaceBuiltinFunction(rs, 'error', { msg: '?string' }, ({ msg }) => {
   throw new Error(msg ?? "<no message>");

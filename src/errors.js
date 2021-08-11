@@ -1,5 +1,3 @@
-const { consoleColours } = require("./utils");
-
 const errors = {
   BAD_ARG: 'EARG', // Argument error GENERAL
   ARG_COUNT: 'EARGCNT', // Argument Error: bad number of arguments
@@ -10,7 +8,7 @@ const errors = {
   UNTERM_STRING: 'ESTR', // Unterminated string
   NAME: 'ENAME', // Name Error
   NULL_REF: 'ENULLREF', // Null reference error
-  NOT_CALLABLE: 'ENCALL', // Unable to call given object
+  NOT_CALLABLE: 'ECALL', // Unable to call given object
   CANT_COPY: 'ECOPY', // Error whilst copying type
   ASSIGN: 'EASSGN', // Assignment error
   DEL: 'EDEL', // Error whilst deleting value
@@ -36,14 +34,4 @@ const errorDesc = {
   [errors.CAST_ERROR]: `Unable to cast the given value to the given type`,
 };
 
-/** Print error in a fancy way */
-function printError(e, printFunction) {
-  e.toString().split('\n').forEach(line => printFunction(`${consoleColours.Bright}${consoleColours.FgRed}[!] ${consoleColours.Reset}${line}\n`));
-}
-
-/** Print warning message in a fancy way */
-function printWarn(msg, printFunction) {
-  msg.toString().split('\n').forEach(line => printFunction(`${consoleColours.Bright}${consoleColours.FgYellow}[!] ${consoleColours.Reset}${line}\n`));
-}
-
-module.exports = { errors, errorDesc, printError, printWarn };
+module.exports = { errors, errorDesc };

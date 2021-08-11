@@ -1,6 +1,5 @@
 const { peek, str, createTokenStringParseObj, isWhitespace } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
-const { RunspaceUserFunction, RunspaceBuiltinFunction } = require("../runspace/Function");
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue } = require("./values");
 const { isNumericType } = require("./types");
 const operators = require("./operators");
@@ -89,24 +88,32 @@ class VariableToken extends Token {
     this.isDeclaration = false; // Is this token on the RHS of assignment?
   }
   type() {
-    return this.isDeclaration ? `<symbol ${this.value}>` : str(this.getVar()?.value.type());
+    return this.isDeclaration ? `<symbol ${this.value}>` : str(this.getVar().value.type());
   }
   castTo(type) {
-    let v = this.tstr.rs.var(this.value);
+    if (this.isDeclaration) throw new Error(`Attempting to cast variable where isDeclaration=${this.isDeclaration} to type ${type} - will fail, as variable does not exist`);
+    let v = this.getVar();
     if (v.value === this) throw new Error(`Self-referencing variable (infinite lookup prevented) - variable '${this.value}'`);
     return v.castTo(type);
   }
   toPrimitive(type) {
-    return this.tstr.rs.var(this.value)?.toPrimitive(type);
+    return this.tstr.rs.var(this.value).toPrimitive(type);
   }
   exists() {
     return this.tstr.rs.var(this.value) !== undefined;
   }
   getVar() {
-    return this.tstr.rs.var(this.value);
+    const v = this.tstr.rs.var(this.value);
+    if (v === undefined) this._throwNameError();
+    return v;
   }
   toString() {
     return this.isDeclaration ? this.value : str(this.getVar()?.value);
+  }
+
+  /** Throw Name Error */
+  _throwNameError() {
+    throw new Error(`[${errors.NAME}] Name Error: name '${this.value}' does not exist (position ${this.pos})`);
   }
 
   /** function: del() */
@@ -332,6 +339,7 @@ class TokenString {
         // Set isDeclaration of every Token before we meet a VariableToken = 1
         for (let j = i; j >= 0; j--) {
           obj.tokens[j].isDeclaration = declType;
+          obj.tokens[j].assigOp = obj.tokens[i + 1];
           if (obj.tokens[j] instanceof VariableToken) break;
         }
       }
@@ -385,10 +393,10 @@ class TokenString {
 
     const T = this.toRPN(), stack = []; // STACK SHOULD ONLY CONTAIN COMPLEX()
     for (let i = 0; i < T.length; i++) {
-      if (T[i] instanceof Value) {
+      if (T[i] instanceof Value || T[i] instanceof ValueToken) {
         stack.push(T[i]);
       } else if (T[i] instanceof VariableToken) {
-        if (!T[i].isDeclaration && !T[i].exists()) throw new Error(`[${errors.NAME}] Name Error: name '${T[i].value}' does not exist (position ${T[i].pos})`);
+        // if (!T[i].isDeclaration && !T[i].exists()) T[i]._throwNameError();
         stack.push(T[i]);
       } else if (T[i] instanceof FunctionRefValue) {
         if (!T[i].isDeclaration && !T[i].exists()) throw new Error(`[${errors.NULL_REF}] Reference Error: null reference ${T[i]} (position ${T[i].pos})`);
@@ -397,9 +405,9 @@ class TokenString {
         const info = T[i].info();
         let argCount;
         if (Array.isArray(info.args)) {
-          for (let i = 0; i < info.args.length; i++) {
-            if (info.args[i] <= stack.length) {
-              argCount = info.args[i];
+          for (let j = 0; j < info.args.length; j++) {
+            if (info.args[j] <= stack.length) {
+              argCount = info.args[j];
               break;
             }
           }
@@ -409,17 +417,16 @@ class TokenString {
         if (stack.length < argCount) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - stack underflow (expects ${argCount} values, got ${stack.length}) (while evaluating)`);
         if (argCount === undefined) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - no overload found for <= ${stack.length} parameters (while evaluating)`);
         let args = [];
-        for (let i = 0; i < argCount; i++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
+        for (let j = 0; j < argCount; j++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
         const val = T[i].eval(...args);
         stack.push(val);
       } else if (T[i] instanceof TokenStringArray) {
-        const last = stack.pop(); // SHould be VariableToken
+        const last = stack.pop(); // Should be VariableToken
         if (!last) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected TokenStringArray in position ${T[i].pos}`);
         if (last.isDeclaration) { // Declare function
           if (!(last instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected symbol to precede bracketed group in declaration (position ${T[i].pos})`);
-          const assignment = peek(T); // Should be assignment
-          if (!(assignment instanceof OperatorToken) && (assignment.value === '=' || assignment.value === ':=')) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected assignment operator after function declaration (position ${T[i].pos})`);
-          T.pop(); // Remove assignment operator
+          const assignment = last.assigOp; // Should be set
+          if (!(assignment instanceof OperatorToken && (assignment.value === '=' || assignment.value === ':='))) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected assignment operator after function declaration (position ${T[i].pos})`);
           const ref = new FunctionRefValue(this.rs, last.value), params = [];
           for (const ts of T[i].value) {
             if (ts.tokens.length !== 1 || !(ts.tokens[0] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Illegal function declaration`);
@@ -448,7 +455,7 @@ class TokenString {
       }
     }
     if (stack.length === 0) return new NumberValue(this.rs, 0);
-    if (stack.length !== 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax (evaluation failed to reduce expression to single number)`);
+    if (stack.length !== 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax${stack[0].pos === undefined ? '' : ` at position ${stack[0].pos}`}\n (evaluation failed to reduce expression to single number)`);
     return stack[0];
   }
 
