@@ -50,9 +50,10 @@ class Value {
 
   /** operator: in */
   __in__(arg) {
-    const argt = arg.type();
-    if (argt === 'array' || argt === 'set') return new BoolValue(this.rs, findIndex(this, arg.toPrimitive('array')) !== -1);
-    if (argt === 'string') return new BoolValue(this.rs, arg.toString().indexOf(this.toString()) !== -1);
+    throw new Error("[ENIMP] Not Implemeted");
+    // const argt = arg.type();
+    // if (argt === 'array' || argt === 'set') return new BoolValue(this.rs, findIndex(this, arg.toPrimitive('array')) !== -1);
+    // if (argt === 'string') return new BoolValue(this.rs, arg.toString().indexOf(this.toString()) !== -1);
   }
 
   /** operator: != */
