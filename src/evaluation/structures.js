@@ -99,6 +99,47 @@ class DoWhileStructure extends Structure {
   }
 }
 
+class UntilStructure extends Structure {
+  constructor(pos, condition = undefined, body = undefined) {
+    super("UNTIL", pos);
+    this.condition = condition;
+    this.body = body;
+  }
+
+  validate() {
+    // Check that condition only has ONE line
+    if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
+    if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
+  }
+
+  eval() {
+    while (!this.condition.eval().toPrimitive("bool")) {
+      this.body.eval();
+    }
+  }
+}
+
+class DoUntilStructure extends Structure {
+  constructor(pos, condition = undefined, body = undefined) {
+    super("DOUNTIL", pos);
+    this.condition = condition;
+    this.body = body;
+  }
+
+  validate() {
+    // Check that condition only has ONE line
+    if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
+    if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
+  }
+
+  eval() {
+    while (true) {
+      this.body.eval();
+      if (this.condition.eval().toPrimitive("bool")) break;
+    }
+  }
+}
+
 class ForStructure extends Structure {
   constructor(pos, loop, body) {
     super("FOR", pos);
@@ -121,4 +162,4 @@ class ForStructure extends Structure {
   }
 }
 
-module.exports = { Structure, IfStructure, WhileStructure, DoWhileStructure, ForStructure };
+module.exports = { Structure, IfStructure, WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, ForStructure };

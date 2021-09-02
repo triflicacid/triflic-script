@@ -4,7 +4,7 @@ const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue,
 const { isNumericType } = require("./types");
 const operators = require("./operators");
 const { errors } = require("../errors");
-const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure } = require("./structures");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure } = require("./structures");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -37,7 +37,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "for", "foreach", "break", "continue"];
+KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "foreach", "break", "continue"];
 
 class BracketToken extends Token {
   constructor(tstring, x, pos) {
@@ -323,6 +323,24 @@ class TokenLine {
             else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '{') {
               // ! WHILE
               structure = new WhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
+              this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal WHILE construct at position ${this.tokens[i].pos}`);
+            }
+            structure.validate();
+            break;
+          }
+          case "until": {
+            let structure;
+            if (this.tokens[i - 1] instanceof BracketedTokenLines && this.tokens[i - 1].opening === '{' && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
+              // ! DO-UNTIL
+              structure = new DoUntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
+              this.tokens.splice(i - 1, 3, structure); // Remove "{...}" "while" "(...)", insert strfucture
+            }
+
+            else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '{') {
+              // ! UNTIL
+              structure = new UntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
               this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
             } else {
               throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal WHILE construct at position ${this.tokens[i].pos}`);
