@@ -36,7 +36,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do"];
+KeywordToken.keywords = ["if", "else", "do", "while"];
 
 class BracketToken extends Token {
   constructor(tstring, x, pos) {
@@ -566,6 +566,34 @@ class TokenString {
             if (this.tokens[i + 1] instanceof BracketedTokenString && this.tokens[i + 1].opening === '{') {
               this.tokens.splice(i, 1); // Remove "do"
             }
+            break;
+          }
+          case "while": {
+            if (this.tokens[i - 1] instanceof BracketedTokenString && this.tokens[i - 1].opening === '{' && this.tokens[i + 1] instanceof BracketedTokenString && this.tokens[i + 1].opening === '(') {
+              // DO-WHILE
+              const body = this.tokens[i - 1].value, condition = this.tokens[i + 1].value;
+              this.tokens.splice(i - 1, 3); // Remove "{...}" "while" "(...)"
+
+              while (true) {
+                body.eval();
+                let bool = condition.eval().castTo("bool");
+                if (!bool.value) break;
+              }
+            }
+
+            else if (this.tokens[i + 1] instanceof BracketedTokenString && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenString && this.tokens[i + 2].opening === '{') {
+              // WHILE
+              const condition = this.tokens[i + 1].value, body = this.tokens[i + 2].value;
+              this.tokens.splice(i, 3); // Remove "while" "(...)" "{...}"
+
+              while (condition.eval().castTo("bool").value) {
+                body.eval();
+              }
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal WHILE construct at position ${this.tokens[i].pos}`);
+            }
+
+            break;
           }
         }
       }

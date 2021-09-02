@@ -138,3 +138,7 @@ If the `<condition>` is truthy, the `<block>` is executed and the rest of the st
 Syntax: `do {<block>}`
 
 Defines following `{...}` as a block (not as a set) and executes it
+
+### `while`
+Syntax `{<block>} while (<condition>)` or `while (<condition>) {<block>}`
+Either (1) Execute `<block>` and keep executing while `<condition>` is true or (2) Execute `<block>` while `<condition>` is true
