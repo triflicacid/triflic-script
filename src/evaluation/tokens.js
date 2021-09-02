@@ -4,6 +4,7 @@ const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue 
 const { isNumericType } = require("./types");
 const operators = require("./operators");
 const { errors } = require("../errors");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure } = require("./structures");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -509,10 +510,10 @@ class TokenString {
       } else if (this.tokens[i] instanceof KeywordToken) {
         switch (this.tokens[i].value) {
           case "if": {
-            let conditionals = [], elseBlock; // conditionals - array of tuples of [condition, block]
             if (this.tokens[i + 1] instanceof BracketedTokenString && this.tokens[i + 1].opening === "(") {
               if (this.tokens[i + 2] instanceof BracketedTokenString && this.tokens[i + 2].opening === "{") {
-                conditionals.push([this.tokens[i + 1].value, this.tokens[i + 2].value]);
+                const structure = new IfStructure(this.tokens[i].pos);
+                structure.addBranch(this.tokens[i + 1].value, this.tokens[i + 2].value);
                 this.tokens.splice(i, 3); // Remove "if" "(...)" "{...}"
 
                 // Else statement?
@@ -521,7 +522,7 @@ class TokenString {
                   if (this.tokens[i + 1] instanceof KeywordToken && this.tokens[i + 1].value === 'if') {
                     if (this.tokens[i + 2] instanceof BracketedTokenString && this.tokens[i + 2].opening === '(') {
                       if (this.tokens[i + 3] instanceof BracketedTokenString && this.tokens[i + 3].opening === '{') {
-                        conditionals.push([this.tokens[i + 2].value, this.tokens[i + 3].value]);
+                        structure.addBranch(this.tokens[i + 2].value, this.tokens[i + 3].value);
                         this.tokens.splice(i, 4); // Remove "else" "if" "(...)" "{...}"
                       } else {
                         throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 3] ?? 'end of input'} at ${this.tokens[i].pos}`);
@@ -532,7 +533,7 @@ class TokenString {
                   } else {
                     let block = this.tokens[i + 1];
                     if (block instanceof BracketedTokenString && block.opening === '{') {
-                      elseBlock = block.value;
+                      structure.addElse(block.value);
                       this.tokens.splice(i, 2); // Remove "else" "{...}"
                       break;
                     } else {
@@ -541,19 +542,7 @@ class TokenString {
                   }
                 }
 
-                // Loop through conditionals...
-                let foundTruthy = false;
-                for (const [condition, block] of conditionals) {
-                  let ret = condition.eval(), bool = ret.castTo("bool"); // Execute condition
-                  if (bool.value) { // If conditon is truthy...
-                    foundTruthy = true;
-                    block.eval(); // Evaluate code block
-                    break;
-                  }
-                }
-                if (!foundTruthy && elseBlock) { // If no condition was truthy and there is an else block...
-                  elseBlock.eval();
-                }
+                this.tokens.splice(i, 0, structure);
               } else {
                 throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected block {...} got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
               }
@@ -571,24 +560,14 @@ class TokenString {
           case "while": {
             if (this.tokens[i - 1] instanceof BracketedTokenString && this.tokens[i - 1].opening === '{' && this.tokens[i + 1] instanceof BracketedTokenString && this.tokens[i + 1].opening === '(') {
               // DO-WHILE
-              const body = this.tokens[i - 1].value, condition = this.tokens[i + 1].value;
-              this.tokens.splice(i - 1, 3); // Remove "{...}" "while" "(...)"
-
-              while (true) {
-                body.eval();
-                let bool = condition.eval().castTo("bool");
-                if (!bool.value) break;
-              }
+              const structure = new DoWhileStructure(this.tokens[i].pos, this.tokens[i + 1].value, this.tokens[i - 1].value);
+              this.tokens.splice(i - 1, 3, structure); // Remove "{...}" "while" "(...)", insert strfucture
             }
 
             else if (this.tokens[i + 1] instanceof BracketedTokenString && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenString && this.tokens[i + 2].opening === '{') {
               // WHILE
-              const condition = this.tokens[i + 1].value, body = this.tokens[i + 2].value;
-              this.tokens.splice(i, 3); // Remove "while" "(...)" "{...}"
-
-              while (condition.eval().castTo("bool").value) {
-                body.eval();
-              }
+              const structure = new WhileStructure(this.tokens[i].pos, this.tokens[i + 1].value, this.tokens[i + 2].value)
+              this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
             } else {
               throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal WHILE construct at position ${this.tokens[i].pos}`);
             }
@@ -665,6 +644,8 @@ class TokenString {
         }
       } else if (T[i] instanceof BracketedTokenString && T[i].opening === '{') {
         stack.push(T[i].value.eval()); // Code block
+      } else if (T[i] instanceof Structure) {
+        T[i].eval(); // Execute structure body 
       } else if (T[i] instanceof KeywordToken) {
         throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax '${T[i].value}' at position ${this.tokens[i].pos}`);
       } else {
@@ -693,7 +674,7 @@ class TokenString {
   _toRPN(tokens, bidmas = true) {
     const stack = [], output = [];
     for (let i = 0; i < tokens.length; i++) {
-      if (tokens[i] instanceof ValueToken || tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof TokenString || tokens[i] instanceof TokenStringArray || tokens[i] instanceof BracketedTokenString || tokens[i] instanceof KeywordToken) {
+      if (tokens[i] instanceof ValueToken || tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof TokenString || tokens[i] instanceof TokenStringArray || tokens[i] instanceof BracketedTokenString || tokens[i] instanceof KeywordToken || tokens[i] instanceof Structure) {
         output.push(tokens[i]);
       } else if (tokens[i].is?.(BracketToken, '(')) {
         stack.push(tokens[i]);
