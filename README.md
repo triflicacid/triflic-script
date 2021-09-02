@@ -127,3 +127,14 @@ There are two types of functions: `built-in`s and `user-defined`
 | := | Constant Assignment | 3 | Assigns the RHS to the LHS as a constant | `PI := 3.14159` => `3.14159` |
 | = | Assignment | 3 | Assigns the RHS to the LHS | `name := "john"` => `"john"` |
 | , | Comma | 1 | Returns RHS argument | `1, 2` => `2` |
+
+## keywords
+### `if`, `else`
+Syntax: `if (<condition>) {<block>} [else if (<condition> <block>), [...]] [else <block>]`
+
+If the `<condition>` is truthy, the `<block>` is executed and the rest of the structure is skipped. If not `if` or `else if` is executed, the `else` block will execute.
+
+### `do`
+Syntax: `do {<block>}`
+
+Defines following `{...}` as a block (not as a set) and executes it

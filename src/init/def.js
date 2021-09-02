@@ -259,7 +259,7 @@ function define(rs) {
   }, 'Convert <arg> from base <from> to base <to>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.interpret(str.toString()).value, 'evaluate an input'));
   rs.define(new RunspaceBuiltinFunction(rs, 'rpn', { str: 'string' }, ({ str }) => new StringValue(rs, rs.parseString(str.toString()).toRPN().join(' ')), 'transform input to RPN notation'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'if', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'iif', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'Inline IF: If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
   rs.define(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => {
     rs.import(file);
     return new NumberValue(rs, 0);

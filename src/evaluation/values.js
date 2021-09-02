@@ -668,6 +668,7 @@ UndefinedValue.castMap = {
   complex_int: o => new NumberValue(o.rs, NaN),
   real: o => new NumberValue(o.rs, NaN),
   real_int: o => new NumberValue(o.rs, NaN),
+  bool: o => new BoolValue(o.rs, false),
 };
 
 NumberValue.castMap = {
@@ -731,6 +732,7 @@ MapValue.castMap = {
 FunctionRefValue.castMap = {
   func: o => o,
   string: o => new StringValue(o.rs, o.toString()),
+  bool: o => new BoolValue(o.rs, true),
 };
 
 module.exports = { Value, UndefinedValue, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, ReferenceValue, primitiveToValueClass };
