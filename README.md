@@ -7,6 +7,7 @@ Input maths problems to be solved. Supports dynamic operators, variables and fun
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
 - `discord.js` - connect to a discord bot and listens on a particular channel (defined as `BOT_TOKEN` and `CHANNEL` in `.env`)
   Type `!start` to start the maths environment. Everything after this point will be fed into the engine. Type `!close` to close session.
+- `file.js` - takes a filename to execute
 
 ## CLI - Command-line Arguments
 All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. They are all optional.

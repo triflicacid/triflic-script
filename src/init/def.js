@@ -1,7 +1,7 @@
 const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { parseVariable } = require("../evaluation/parse");
-const { VariableToken, TokenString } = require("../evaluation/tokens");
+const { VariableToken, KeywordToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest } = require("../maths/functions");
 const { print, sort, findIndex } = require("../utils");
 const { typeOf, types } = require("../evaluation/types");
@@ -34,17 +34,19 @@ function define(rs) {
     let help = '';
     if (item === undefined) {
       help = `help(?s) \t Get help on a specific symbol\nerror_code(code) \t Return brief help on a given error code\nvars() \t List all variables\nfuncs() \t List all functions\noperators() \t List all operators\nexit() \t Terminate the program`;
-    } else if (item instanceof FunctionRefValue) {
-      let fn = item.getFn();
-      if (fn === undefined) {
-        item._throwNullRef();
-      } else {
-        let type = (fn instanceof RunspaceBuiltinFunction ? 'built-in' : 'user-defined') + (fn.constant ? '; constant' : '');
-        help = `Type: function [${type}]\nDesc: ${fn.about()}\nSyntax: ${fn.defString()}`;
-      }
     } else if (item instanceof VariableToken) {
       let v = item.getVar();
-      help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.toPrimitive('string')}`;
+      if (v.value instanceof FunctionRefValue) {
+        let fn = v.value.getFn();
+        if (fn === undefined) {
+          item._throwNullRef();
+        } else {
+          let type = (fn instanceof RunspaceBuiltinFunction ? 'built-in' : 'user-defined') + (fn.constant ? '; constant' : '');
+          help = `Type: function [${type}]\nDesc: ${fn.about()}\nSyntax: ${fn.defString()}`;
+        }
+      } else {
+        help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.toPrimitive('string')}`;
+      }
     } else if (item instanceof StringValue && operators[item.value] !== undefined) { // Operator
       const info = operators[item.value];
       const argStr = Array.isArray(info.args) ? `${info.args.join(' or ')} (${info.args.length} overloads)` : info.args;
@@ -106,6 +108,7 @@ function define(rs) {
     }
     return new ArrayValue(rs, vars);
   }, 'list all defined variables in a given scope, or array of scopes'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'keywords', {}, () => new ArrayValue(rs, KeywordToken.keywords), 'list all keywords'));
   rs.define(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
   rs.define(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Object.keys(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
   rs.define(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.castTo(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
@@ -195,23 +198,23 @@ function define(rs) {
           throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot apply operator '${action.value}' to array`);
         }
       } else {
-        let ts;
+        let tl;
         try {
-          ts = new TokenString(rs, action.value);
+          tl = rs.parse(action.value);
         } catch (e) {
           throw new Error(`Apply action: ${action.value}:\n${e}`);
         }
 
-        ts.rs.pushScope();
+        tl.rs.pushScope();
         for (let i = 0; i < arr.value.length; i++) {
           try {
-            ts.rs.var('x', arr.value[i]);
-            arr.value[i] = ts.eval();
+            tl.rs.var('x', arr.value[i]);
+            arr.value[i] = tl.eval();
           } catch (e) {
             throw new Error(`${action.value} when x = ${arr.value[i].toPrimitive('string')}:\n${e}`);
           }
         }
-        ts.rs.popScope();
+        tl.rs.popScope();
         return arr;
       }
     } else if (action instanceof FunctionRefValue) {
@@ -387,24 +390,24 @@ function defineFuncs(rs) {
       }
     } else if (action instanceof NumberValue) { // Stored value
       sum = Complex.mult(action.toPrimitive('complex'), Complex.sub(limit, start).add(1));
-    } else if (action instanceof StringValue) { // Evaluate action as a TokenString
-      let ts;
+    } else if (action instanceof StringValue) { // Evaluate action as source code
+      let tl;
       try {
-        ts = new TokenString(rs, action.value);
+        tl = rs.parse(action.value);
       } catch (e) {
         throw new Error(`Summation action: ${action.value}:\n${e}`);
       }
 
-      ts.rs.pushScope();
+      tl.rs.pushScope();
       for (let i = start; i <= limit; i++) {
         try {
-          ts.rs.var(sumVar, i);
-          sum.add(ts.eval().toPrimitive('complex'));
+          tl.rs.var(sumVar, i);
+          sum.add(tl.eval().toPrimitive('complex'));
         } catch (e) {
           throw new Error(`${action.value} when ${sumVar} = ${i}:\n${e}`);
         }
       }
-      ts.rs.popScope();
+      tl.rs.popScope();
     } else {
       throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid summation action`);
     }

@@ -1,6 +1,7 @@
 const Complex = require("./maths/Complex");
 const readline = require("readline");
 const { isNumericType } = require("./evaluation/types");
+const { errors } = require("./errors");
 
 const STDIN = process.stdin, STDOUT = process.stdout;
 
@@ -99,13 +100,15 @@ const bool = x => {
   return !!x;
 };
 
-const createTokenStringParseObj = (str, pos, depth, terminateOn = []) => ({
+const createTokenStringParseObj = (rs, str, pos, depth, terminateOn = [], allowMultiline = true) => ({
+  rs,
   string: str,
   pos,
-  depth,
-  tokens: [],
+  depth, // Array of TokenLine objects
+  lines: [],
   comment: '',
   terminateOn, // When depth>0 and this this found, set value to what caused the breakage and break
+  allowMultiline,
 });
 
 /** Check if prititive arrays are equal */
@@ -180,6 +183,16 @@ function printWarn(msg, printFunction) {
   msg.toString().split('\n').forEach(line => printFunction(`${consoleColours.Bright}${consoleColours.FgYellow}[!] ${consoleColours.Reset}${line}\n`));
 }
 
+/** Error with matching brackets */
+function throwMatchingBracketError(open, close, pos) {
+  throw new Error(`[${errors.UNMATCHED_BRACKET}] Syntax Error: unexpected bracket token '${open}' at position ${pos}; no matching '${close}' found.`);
+}
+
+/** Error for too many statements. Got is a Token */
+function expectedSyntaxError(expected, got) {
+  throw new Error(`[${errors.SYNTAX}] Syntax Error: expected ${expected} but got ${got} at position ${got.pos}`);
+}
+
 module.exports = {
-  input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn,
+  input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError
 };

@@ -17,7 +17,7 @@ class RunspaceFunction {
     this.argCount = 0; // Number of arguments
     this.optional = 0; // Number of OPTIONAL arguments
     this.name = name;
-    this.desc = desc === undefined ? '[no information]' : desc;
+    this.desc = desc ?? '[no information]';
     this.processArgs = processArgs;
     this.constant = false;
 
@@ -77,7 +77,7 @@ class RunspaceFunction {
 class RunspaceUserFunction extends RunspaceFunction {
   /**
    * @param {string[]} args Array of string arguments
-   * @param {TokenString} body 
+   * @param {TokenLine} body 
    */
   constructor(rs, name, args, body, desc = 'user-defined', constant = false) {
     const argObj = args.reduce((o, k) => ({ ...o, [k]: 'any' }), {});

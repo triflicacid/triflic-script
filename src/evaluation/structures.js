@@ -1,17 +1,21 @@
+const { errors } = require("../errors");
+const { expectedSyntaxError, peek } = require("../utils");
+
 class Structure {
   constructor(name, pos) {
     this.name = name;
     this.pos = pos;
   }
 
-  eval() { throw new Error(`Structure.eval: overload required`); }
+  eval() { throw new Error(`${this}.eval: overload required`); }
+  validate() { throw new Error(`${this}.validate: overload required`); }
 
   toString() { return `<Structure ${this.name}>`; }
 }
 
 class IfStructure extends Structure {
   /**
-   * @param conditionals - array of [condition, body]
+   * @param conditionals - array of [condition: BracketedTokenLines, body: BracketedTokenLines]
    * @param elseBlock - else block
    */
   constructor(pos, conditionals = [], elseBlock = undefined) {
@@ -20,12 +24,20 @@ class IfStructure extends Structure {
     this.elseBlock = elseBlock;
   }
 
-  addBranch(condition, block) {
-    this.conditionals.push([condition, block]);
+  addBranch(condition, body) {
+    this.conditionals.push([condition, body]);
   }
 
   addElse(block) {
     this.elseBlock = block;
+  }
+
+  validate() {
+    // Check that each condition only has ONE line
+    for (const [condition, block] of this.conditionals) {
+      if (condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
+      if (condition.value.length > 1) throw new expectedSyntaxError(')', peek(condition.value[0].tokens));
+    }
   }
 
   eval() {
@@ -52,6 +64,12 @@ class WhileStructure extends Structure {
     this.body = body;
   }
 
+  validate() {
+    // Check that condition only has ONE line
+    if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
+    if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
+  }
+
   eval() {
     while (this.condition.eval().toPrimitive("bool")) {
       this.body.eval();
@@ -64,6 +82,12 @@ class DoWhileStructure extends Structure {
     super("DOWHILE", pos);
     this.condition = condition;
     this.body = body;
+  }
+
+  validate() {
+    // Check that condition only has ONE line
+    if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
+    if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
   }
 
   eval() {

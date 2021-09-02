@@ -1,6 +1,6 @@
 const RunspaceVariable = require("./Variable");
-const { TokenString } = require("../evaluation/tokens");
-const { peek } = require("../utils");
+const { TokenString, TokenLine, parse } = require("../evaluation/tokens");
+const { peek, createTokenStringParseObj } = require("../utils");
 const { primitiveToValueClass, MapValue, NumberValue, Value, FunctionRefValue } = require("../evaluation/values");
 const path = require("path");
 const fs = require("fs");
@@ -8,13 +8,13 @@ const { RunspaceFunction } = require("./Function");
 const { errors } = require("../errors");
 
 class Runspace {
-  constructor(opts) {
+  constructor(opts = {}) {
     this._vars = [{}]; // { variable: RunspaceVariable }[]
     this._funcs = [{}]; // { func: RunspaceFunction }[]
     this.dir = path.join(__dirname, "../../"); // Requires setting externally
 
     this.opts = opts;
-    this.storeAns(opts.ans);
+    this.storeAns(!!opts.ans);
 
     if (opts.revealHeaders) {
       const map = new MapValue(this);
@@ -84,29 +84,25 @@ class Runspace {
     return this.func(fn.name, fn);
   }
 
-  /** Return a new TokenString. Return rest of string which was not parsed. */
-  parseString(string) {
-    return new TokenString(this, string);
+  /** Parse a program; returns array of TokenLine objects */
+  parse(source, singleStatement = false) {
+    return parse(this, source, singleStatement);
   }
 
-  /** Evaluate a single string or a TokenString */
-  eval(input) {
-    let tokenString = input instanceof TokenString ? input : this.parseString(input);
-    let obj = tokenString.eval().castTo('any');
-    if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', obj, 'value returned by previous statement');
-    return obj;
-  }
-
-  /** Interpret a whole string of code, up to a statement limit. Return { string // What is left //, value // value of latest evaluation //  } */
-  interpret(string, statementLimit = Infinity) {
-    let statements = 0, value;
-    while (string.length !== 0 && statements < statementLimit) {
-      const ts = new TokenString(this, string);
-      value = this.eval(ts);
-      string = string.substring(ts.string.length);
-      statements++;
+  /** Execute parsed lines */
+  interpret(lines) {
+    let last;
+    for (const line of lines) {
+      last = line.eval().castTo("any");
+      if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', last, 'value returned by previous statement');
     }
-    return { string, value };
+    return last;
+  }
+
+
+  /** Execute source code */
+  execute(source, singleStatement = undefined) {
+    return this.interpret(this.parse(source, singleStatement));
   }
 
   /** Attempt to import a file */
@@ -146,7 +142,7 @@ class Runspace {
         }
 
         try {
-          this.interpret(text);
+          this.execute(text);
         } catch (e) {
           throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}):\n${e}`);
         }

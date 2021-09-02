@@ -1,14 +1,14 @@
-/** FILE FOR TEST SCRIPTS */
+const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
+const Runspace = require("./src/runspace/Runspace");
+const process = require("process");
 
-const Complex = require("./src/maths/Complex");
-const Matrix = require("./src/maths/Matrix");
+const rs = new Runspace();
 
-// const a = Matrix.fromString('2 4 2; 6 8 4; 6 8 5;');
-// console.log(`a = ${a}`);
-// const b = Matrix.fromString('1 7 4; 2 0 0; 12 4 3;');
-// console.log(`b = ${b}`);
+rs.define(new RunspaceBuiltinFunction(rs, 'print', { o: '...any' }, ({ o }) => {
+  process.stdout.write(o.map(x => x.toString()).join(' '));
+  return o;
+}, 'prints object to the screen'));
 
-// const x = Matrix.mult(a, b);
-// console.log(`${x}`);
 
-console.log(Complex.assert(-2));
+let x = rs.execute("a = 5; b = 10; print(a); print(b);");
+console.log(x);

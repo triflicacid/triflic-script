@@ -45,16 +45,10 @@ function attempt(fn) {
 
 // Evaluate some input
 function evaluate(input) {
-  let tokenString = opts.niceErrors ? attempt(() => rs.parseString(input)) : rs.parseString(input);
-  if (!tokenString) return;
-  let outsideFirstStatement = input.replace(tokenString.string, '').trim();
-  if (outsideFirstStatement.length > 0) {
-    printError(new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '${outsideFirstStatement[0]}' (${outsideFirstStatement[0].charCodeAt(0)})\n  (One statement expected, got multiple)`), str => rl.output.write(str));
-  } else {
-    let output = opts.niceErrors ? attempt(() => rs.eval(tokenString)) : rs.eval(tokenString);
-    if (output !== undefined) rl.output.write(output.toString() + '\n');
-    return output;
-  }
+  let func = () => rs.execute(input, true);
+  let output = opts.niceErrors ? attempt(func) : func();
+  if (output !== undefined) rl.output.write(output.toString() + '\n');
+  return output;
 }
 
 // Setup Readline interface for I/O
@@ -104,7 +98,7 @@ if (opts.multiline) {
 
 rl.on('close', () => {
   rl.output.write('^C\n');
-  rs.eval('exit()'); // Simulate call to exit()
+  rs.execute('exit()'); // Simulate call to exit()
   process.exit(); // As a fallback
 });
 
