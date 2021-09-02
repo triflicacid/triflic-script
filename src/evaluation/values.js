@@ -1,5 +1,5 @@
 const Complex = require("../maths/Complex");
-const { factorial, factorialReal } = require("../maths/functions");
+const { factorial, factorialReal, range } = require("../maths/functions");
 const { RunspaceUserFunction } = require("../runspace/Function");
 const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal, peek } = require("../utils");
 const { castingError, isNumericType } = require("./types");
@@ -204,6 +204,15 @@ class NumberValue extends Value {
       if (t === 'real') return new NumberValue(this.rs, factorialReal(this.toPrimitive('real')));
     }
   }
+
+  /** Operator: : */
+  __seq__(val) {
+    const t = val.type();
+    if (isNumericType(t)) {
+      let rng = range(this.toPrimitive('real_int'), val.toPrimitive('real_int'));
+      return new ArrayValue(this.rs, rng.map(n => new NumberValue(this.rs, n)));
+    }
+  }
 }
 
 class StringValue extends Value {
@@ -258,6 +267,17 @@ class StringValue extends Value {
 
   /** operator: + */
   __add__(n) { return new StringValue(this.rs, this.toPrimitive('string') + n.toPrimitive('string')); }
+
+  /** Operator: : */
+  __seq__(val) {
+    const t = val.type();
+    if (t === 'string') {
+      if (this.value.length !== 1) throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected char, got string "${this.value}"`);
+      if (val.value.length !== 1) throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected char, got string "${val.value}"`);
+      let rng = range(this.value.charCodeAt(0), val.value.charCodeAt(0));
+      return new ArrayValue(this.rs, rng.map(n => new StringValue(this.rs, String.fromCharCode(n))));
+    }
+  }
 }
 
 class BoolValue extends Value {

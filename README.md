@@ -108,6 +108,7 @@ There are two types of functions: `built-in`s and `user-defined`
 | ' | Logical Not | 17 | Returns opposite boolean value | `0'` => `true` |
 | ! | Factorial | 17 | Returns factorial of value | `5!` => `120` or `120.00000000000017` |
 | ** | Exponentation | 16 | Returns LHS to the power of the RHS | `2 ** 4` => `16` |
+| : | Sequence | 16 | Attempts to create sequence from LHS to RHS | `3:7` => `[3,4,5,6]`, `"a":"f"` => `["a","b","c","d","e"]` |
 | // | Integer division | 15 | Divide LHS by RHS, return as an integer | `5 // 2` => `2` |
 | / | Division | 15 | Divide LHS by RHS | `5 / 2` => `2.5` |
 | % | Modulo/Remainder | 15 | Return remainder of LHS divided by RHS | `5 % 2` => `1` |

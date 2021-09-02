@@ -159,4 +159,15 @@ function nextNearest(value, direction) {
   return f64[0];
 }
 
-module.exports = { lambertw, factorialReal, LCF, primeFactors, isPrime, generatePrimes, mean, PMCC, variance, gamma, factorial, nextNearest, wrightomega };
+/** Generate range between a..b */
+function range(a, b, step = 1) {
+  let range = [];
+  if (a < b) {
+    for (let n = a; n < b; n += step) range.push(n);
+  } else {
+    for (let n = a; n > b; n -= step) range.push(n);
+  }
+  return range;
+}
+
+module.exports = { lambertw, factorialReal, LCF, primeFactors, isPrime, generatePrimes, mean, PMCC, variance, gamma, factorial, nextNearest, wrightomega, range };
