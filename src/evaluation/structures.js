@@ -1,5 +1,6 @@
 const { errors } = require("../errors");
 const { expectedSyntaxError, peek } = require("../utils");
+const { parseSymbol } = require("./parse");
 
 class Structure {
   constructor(name, pos) {
@@ -98,4 +99,26 @@ class DoWhileStructure extends Structure {
   }
 }
 
-module.exports = { Structure, IfStructure, WhileStructure, DoWhileStructure };
+class ForStructure extends Structure {
+  constructor(pos, loop, body) {
+    super("FOR", pos);
+    this.loop = loop;
+    this.body = body;
+  }
+
+  validate() {
+    // LOOP must have 3 items
+    if (this.loop.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
+    if (this.loop.value.length > 3) throw new expectedSyntaxError(')', peek(this.loop.value[2].tokens));
+  }
+
+  eval() {
+    this.loop.value[0].eval();
+    while (this.loop.value[1].eval().toPrimitive("bool")) {
+      this.body.eval();
+      this.loop.value[2].eval();
+    }
+  }
+}
+
+module.exports = { Structure, IfStructure, WhileStructure, DoWhileStructure, ForStructure };

@@ -288,9 +288,9 @@ function defineVars(rs) {
   if (rs.opts.defineAliases) rs.var('Ω', rs.var('omega'));
   rs.var('phi', PHI, 'Phi, the golden ratio, approx (1 + √5)/2', true); // phi, golden ratio
   if (rs.opts.defineAliases) rs.var('φ', rs.var('phi'));
-  rs.var('tau', TWO_PI, 'A constant representing the ratio between circumference and radius of a circle', true); // tau
+  rs.var('tau', TWO_PI, 'A constant representing the ratio between circumference and radius of a circle'); // tau
   if (rs.opts.defineAliases) rs.var('τ', rs.var('tau'));
-  rs.var(Complex.imagLetter, Complex.I(), '√(-1)', true);
+  rs.var(Complex.imagLetter, Complex.I(), '√(-1)');
   rs.var('ln2', Math.LN2, 'Natural logarithm of 2');
   rs.var('ln10', Math.LN10, 'Natural logarithm of 10');
   rs.var('log2e', Math.LOG2E, 'Base-2 logarithm of e');

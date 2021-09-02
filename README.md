@@ -141,5 +141,11 @@ Syntax: `do {<block>}`
 Defines following `{...}` as a block (not as a set) and executes it
 
 ### `while`
-Syntax `{<block>} while (<condition>)` or `while (<condition>) {<block>}`
+Syntax: `{<block>} while (<condition>)` or `while (<condition>) {<block>}`
 Either (1) Execute `<block>` and keep executing while `<condition>` is true or (2) Execute `<block>` while `<condition>` is true
+
+### `for`
+Syntax: `for (<action>) {<block>}` where `<action>` comprises of THREE parts `(init; cond; step)`
+- `init` : this is executed before the loop begins
+- `cond` : the loop runs while `<cond>` is truthy
+- `step` : this is executed after each loop iteration
