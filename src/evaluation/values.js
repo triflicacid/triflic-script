@@ -531,28 +531,32 @@ class MapValue extends Value {
   }
 }
 
-/** Reference to function without calling. this.value = function name */
+/** Reference to function without calling. this.value = function name. May store the function directly - anonymous function. */
 class FunctionRefValue extends Value {
-  constructor(runspace, fname) {
+  constructor(runspace, fname, func = undefined) {
     super(runspace, fname);
+    this.func = func;
   }
 
   type() { return "func"; }
 
   exists() {
+    if (this.func) return true;
     return this.rs.func(this.value) !== undefined;
   }
 
   getFn() {
+    if (this.func) return this.func;
     return this.rs.func(this.value);
   }
 
   toString() {
-    return `<function ${this.value}>`;
+    return `<function ${this.func ? 'anonymous' : this.value}>`;
   }
 
   /** Define a function, given array of VariableToken arguments and tokens as the function bosy */
   defineFunction(params, body, pos, isConstant = false, comment = undefined) {
+    if (this.func) throw new Error(`FunctionRefValue.defineFunction - defining anonymous function`);
     params = params.map(param => param.value); // string[] of parameter names
 
     let fn = this.getFn();
@@ -564,6 +568,7 @@ class FunctionRefValue extends Value {
 
   /** del() function */
   __del__() {
+    if (this.func) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot delete unbound function`);
     const f = this.getFn();
     if (f.constant) throw new Error(`[${errors.DEL}] Argument Error: Attempt to delete constant reference to ${this.toString()}`);
     this.rs.func(this.value, null);
@@ -674,7 +679,7 @@ UndefinedValue.castMap = {
 NumberValue.castMap = {
   complex: o => o,
   complex_int: o => new NumberValue(o.rs, Complex.floor(o.value)),
-  real: o => new NumberValue(o.rs, Complex.floor(o.value)),
+  real: o => new NumberValue(o.rs, o.value.a),
   real_int: o => new NumberValue(o.rs, Math.floor(o.value.a)),
   string: o => new StringValue(o.rs, str(o.value)),
   bool: o => {

@@ -94,6 +94,14 @@ const operators = {
     desc: `exponentation: raise a to the b`,
     syntax: 'a ** b',
   },
+  ":": {
+    name: 'sequence',
+    precedence: 16,
+    args: 2,
+    fn: (a, b) => a.castTo('any').__seq__?.(b.castTo('any')),
+    desc: `generates sequence a to b`,
+    syntax: 'a:b',
+  },
   "//": {
     name: 'interger division',
     precedence: 15,

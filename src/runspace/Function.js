@@ -30,12 +30,12 @@ class RunspaceFunction {
         let isOptional = type[0] === '?';
         if (isOptional) type = type.substr(1);
 
-        if (!(type in types)) throw new Error(`new RunspaceFunction(): argument '${arg}: ${type}': invalid type '${type}' (function: ${name})`);
+        if (!(type in types)) throw new Error(`[${errors.TYPE_ERROR}] Type Error: argument '${arg}: ${type}': invalid type '${type}' (function: ${name})`);
         if (isOptional) {
           metOptn = true;
           this.optional++;
         } else {
-          if (metOptn) throw new Error(`new RunspaceFunction(): argument cannot follow optional argument : '${arg}' (function: ${name})`);
+          if (metOptn) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument cannot follow optional argument : '${arg}' (function: ${name})`);
         }
         this.args[arg] = type;
         this.argCount++;
@@ -76,12 +76,11 @@ class RunspaceFunction {
 /** User defined function using a TokenList */
 class RunspaceUserFunction extends RunspaceFunction {
   /**
-   * @param {string[]} args Array of string arguments
-   * @param {TokenLine} body 
+   * @param {{[arg:string]:string}} args Map argument names to types
+   * @param {TokenLine | BracketedTokenLines} body Body of function (basically, anything with eval() method)
    */
   constructor(rs, name, args, body, desc = 'user-defined', constant = false) {
-    const argObj = args.reduce((o, k) => ({ ...o, [k]: 'any' }), {});
-    super(rs, name, argObj, desc);
+    super(rs, name, args, desc);
     this.tstr = body;
     this.constant = constant;
   }
@@ -98,7 +97,13 @@ class RunspaceUserFunction extends RunspaceFunction {
     let i = 0;
     for (let arg in this.args) {
       if (this.args.hasOwnProperty(arg)) {
-        this.rs.var(arg, args[i]);
+        let casted;
+        try {
+          casted = args[i].castTo(this.args[arg]);
+        } catch (e) {
+          throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${this.args[arg]} (function ${this.name}):\n ${e}`);
+        }
+        this.rs.var(arg, casted);
         i++;
       }
     }

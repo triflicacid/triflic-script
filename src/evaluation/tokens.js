@@ -4,7 +4,7 @@ const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue,
 const { isNumericType } = require("./types");
 const operators = require("./operators");
 const { errors } = require("../errors");
-const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure } = require("./structures");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure } = require("./structures");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -37,7 +37,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "foreach", "break", "continue"];
+KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "foreach", "break", "continue", "func"];
 
 class BracketToken extends Token {
   constructor(tstring, x, pos) {
@@ -213,6 +213,7 @@ class TokenLine {
   }
 
   eval() {
+    return this._eval();
     try {
       return this._eval();
     } catch (e) {
@@ -360,6 +361,26 @@ class TokenLine {
             structure.validate();
             break;
           }
+          case "func": {
+            let structure = new FuncStructure(this.tokens[i].pos, this.rs);
+
+            // Name?
+            if (this.tokens[i + 1] instanceof VariableToken) {
+              structure.name = this.tokens[i + 1].value;
+              this.tokens.splice(i, 1);
+            }
+
+            if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '{') {
+              structure.args = this.tokens[i + 1];
+              structure.body = this.tokens[i + 2];
+              this.tokens.splice(i, 3, structure);
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FUNC construct at position ${structure.pos}`);
+            }
+
+            structure.validate();
+            break;
+          }
         }
       }
     }
@@ -419,7 +440,8 @@ class TokenLine {
       } else if (T[i] instanceof BracketedTokenLines && T[i].opening === '{') {
         stack.push(T[i].eval()); // Code block
       } else if (T[i] instanceof Structure) {
-        T[i].eval(); // Execute structure body
+        let ret = T[i].eval(); // Execute structure body
+        if (ret !== undefined) stack.push(ret);
       } else if (T[i] instanceof KeywordToken) {
         throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax '${T[i].value}' at position ${this.tokens[i].pos}`);
       } else {
@@ -430,6 +452,7 @@ class TokenLine {
         throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax at position ${pos ?? T[i].pos}: ${str ?? T[i].toString()} `);
       }
     }
+    while (peek(stack) instanceof UndefinedValue) stack.pop(); // Remove all Undefined values from top of stack
     if (stack.length === 0) return new UndefinedValue(this.rs);
     if (stack.length !== 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax ${stack[0].pos === undefined ? '' : ` at position ${stack[0].pos}`}\n (evaluation failed to reduce expression to single number)`);
     return stack[0];

@@ -1,6 +1,8 @@
 const { errors } = require("../errors");
+const { RunspaceUserFunction } = require("../runspace/Function");
 const { expectedSyntaxError, peek } = require("../utils");
 const { parseSymbol } = require("./parse");
+const { FunctionRefValue } = require("./values");
 
 class Structure {
   constructor(name, pos) {
@@ -8,7 +10,7 @@ class Structure {
     this.pos = pos;
   }
 
-  eval() { throw new Error(`${this}.eval: overload required`); }
+  eval(rs) { throw new Error(`${this}.eval: overload required`); }
   validate() { throw new Error(`${this}.validate: overload required`); }
 
   toString() { return `<Structure ${this.name}>`; }
@@ -162,4 +164,49 @@ class ForStructure extends Structure {
   }
 }
 
-module.exports = { Structure, IfStructure, WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, ForStructure };
+class FuncStructure extends Structure {
+  constructor(pos, rs, args, body, name = undefined) {
+    super("FUNC", pos);
+    this.rs = rs;
+    this.name = name;
+    this.args = args;
+    this.body = body;
+  }
+
+  validate() {
+    if (this.args.value.length > 1) throw new expectedSyntaxError(')', peek(this.args.value[2].tokens));
+  }
+
+  eval() {
+    let argObj = {};
+    if (this.args.value.length === 1) {
+      let args = this.args.value[0].splitByCommas();
+      for (let arg of args) {
+        if (arg.tokens[0] === undefined || arg.tokens[0].constructor.name !== 'VariableToken') throw new Error(`[${errors.SYNTAX}] Syntax Error: expected parameter name, got ${arg.tokens[0]} at position ${arg.tokens[0]?.pos}`);
+        if (arg.tokens.length === 1) { // "<arg>"
+          argObj[arg.tokens[0].value] = 'any';
+        } else if (arg.tokens.length === 3) { // "<arg>" ":" "<type>"
+          if (arg.tokens[1].constructor.name === 'OperatorToken' && arg.tokens[1].value === ':' && arg.tokens[2].constructor.name === 'VariableToken') {
+            argObj[arg.tokens[0].value] = arg.tokens[2].value;
+          } else {
+            throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax`);
+          }
+        }
+      }
+    }
+
+    let ref = new FunctionRefValue(this.rs, this.name ?? 'anonymous');
+    let fn = new RunspaceUserFunction(this.rs, ref.value, argObj, this.body);
+
+    if (this.name) { // Not anonymous - define function
+      this.rs.func(ref.value, fn);
+      return;
+    } else {
+      ref.func = fn; // Bind to reference
+      return ref; // Return reference
+    }
+
+  }
+}
+
+module.exports = { Structure, IfStructure, WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, ForStructure, FuncStructure };

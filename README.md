@@ -3,6 +3,11 @@ A simple maths interpreter for the console
 
 Input maths problems to be solved. Supports dynamic operators, variables and functions.
 
+## Important Notes
+- Inline function definitions in format `<name>(<args>) = ...` has been disabled 
+- Optional arguments in `func` are not implemented
+- `&&` operator short-circuiting does not work
+
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
 - `discord.js` - connect to a discord bot and listens on a particular channel (defined as `BOT_TOKEN` and `CHANNEL` in `.env`)
@@ -144,8 +149,21 @@ Defines following `{...}` as a block (not as a set) and executes it
 Syntax: `{<block>} while (<condition>)` or `while (<condition>) {<block>}`
 Either (1) Execute `<block>` and keep executing while `<condition>` is true or (2) Execute `<block>` while `<condition>` is true
 
+### `until`
+Syntax: `{<block>} until (<condition>)` or `until (<condition>) {<block>}`
+Either (1) Execute `<block>` and keep executing until `<condition>` is true or (2) Execute `<block>` until `<condition>` is true
+
 ### `for`
 Syntax: `for (<action>) {<block>}` where `<action>` comprises of THREE parts `(init; cond; step)`
 - `init` : this is executed before the loop begins
 - `cond` : the loop runs while `<cond>` is truthy
 - `step` : this is executed after each loop iteration
+
+### `func`
+Syntax: `func [name] (<args>) {<block>}`
+
+- `<args>` is a comma-seperated list of identifiers. Types may be defined as a `?` before the type i.e.:
+  - `func fn(a)` -> function `fn` takes an argument `a` of type `any`
+  - `func fn(a: ?any)` -> function `fn` takes an optional argument `a` of type `any` (*NB for optional arguments, a type must be present*)
+  - `func fn(a: real)` -> function `fn` takes an argument `a` of type `real`
+  - `func fn(a: ?real)` -> function `fn` takes an optional argument `a` of type `real`

@@ -18,7 +18,7 @@ const isNumericType = t => t === 'complex' || t === 'complex_int' || t === 'real
 const isIntType = t => t === 'real_int' || t === 'complex_int' || t === 'bool';
 
 function castingError(obj, type, implicit = false) {
-  if (type in types) throw new Error(`[${errors.CAST_ERROR}] Type Error: Cannot ${implicit ? 'implicitly ' : ''} cast ${typeof obj} ${typeOf(obj)} to ${type}`);
+  if (type in types) throw new Error(`[${errors.CAST_ERROR}] Type Error: Cannot ${implicit ? 'implicitly ' : ''}cast ${typeof obj} ${typeOf(obj)} to ${type}`);
   throw new Error(`[${errors.TYPE_ERROR}] Type Error: unknown type '${type}'`);
 }
 
