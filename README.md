@@ -1,7 +1,7 @@
-# NodeJS Console Maths Interpreter
-A simple maths interpreter for the console
+# NodeJS Scripting Language
+Started as a single-line maths-focused interpreter, allowing for maths involving complex number
 
-Input maths problems to be solved. Supports dynamic operators, variables and functions.
+Now, supports multi-line programs with basic control structures. Due to origins this program, the interpreter has some quirks.
 
 ## Important Notes
 - Inline function definitions in format `<name>(<args>) = ...` has been disabled 
@@ -38,7 +38,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `multiline` : `boolean`. Does the CLI allow multiline input?
 
 ## Built-Ins
-Base definitions to an `Environment` are present in `src/def.js`
+Base definitions to a `Runspace` instance are present in `src/def.js`
 For more information on built-ins, enter `help()`.
 
 ### `import(file: string)`
@@ -55,13 +55,14 @@ If the file is a `.js` (JavaScript) file:
 - `module.exports` is called with one argument, being the active `Runspace` instance.
 
 Any other extension:
-- The file is read, and the contents are split line-by-line
-- Each line is evaluated as if it were input via `Runspace#eval`
+- The file is read
+- The file contents are passed into `Runspace#execute`
 
 ## Input
-Lines may be inputted and process by using `Environment#eval()`.
+A program may be interpreted and executed via `Runspace#execute`
 
-The input will be pre-processed in the `eval()` method itself before being parsed as a `TokenString` and evaluated/stored.
+- `Runspace#parse` takes source code and returns an array of `TokenLine` objects
+- `Runspace#interpret` takes `TokenLine[]` and evaluates them
 
 ### General Syntax
 
@@ -79,9 +80,9 @@ These are structures in the code which define values:
   - An exponent `e`, followed by another valid number (note, this number may not contain `e`)
   *N.B.* Numbers may contain the seperator `_`. This cannot be at the start/end of a number.
 
-- `"..."` represents a strings (as of yet, `"` cannot be escaped)
+- `"..."` represents a strings
 - `[...]` represents an array
-- `{...}` represents a set
+- `{...}` represents a set or a block
 
 
 ### Variables
@@ -96,11 +97,13 @@ Functions recieve arguments and return a value.
 
 There are two types of functions: `built-in`s and `user-defined`
 - `built-in`s are pre-defined internally using JavaScript.
-- `user-defined`s are defined by the user via the syntax `<name>(<arg1>[, <arg2>[, ...]]) = ...`. `=` may be switched to `:=` for constant assignment.
+- `user-defined`s are defined by the user
+  - Inline via `<name>(<arg1>[, <arg2>[, ...]]) = ...`
+  - Via `func` keyword
 
 ### Operators
 | Operator | Name | Precedence | Associativity | Description | Example |
-| -------- | ---- | ---------- | ----------- | ------- |
+| -- | -- | -- | -- | -- | -- |
 | . | Member Access | 20 | ltr | Get member on RHS of object on LHS | `headers."time"` => `1630433878509` |
 | deg | Degrees | 18 | rtl | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` |
 | ~ | Bitwise NOT | 17 | rtl | Bitwise NOT value on LHS | `~20` => `-21` |
@@ -131,10 +134,14 @@ There are two types of functions: `built-in`s and `user-defined`
 | ^ | Bitwise Xor | 9 | ltr | Apply a bitwise XOR to LHS and RHS | `5 ^ 3` => `6` |
 | \| | Bitwise Or | 8 | ltr | Apply bitwise OR to LHS and RHS | `5 | 3` => `7` |
 | && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` |
-| \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 || 1` => `1` |
+| \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` |
 | := | Constant Assignment | 3 | rtl | Assigns the RHS to the LHS as a constant | `PI := 3.14159` => `3.14159` |
 | = | Assignment | 3 | rtl | Assigns the RHS to the LHS | `name := "john"` => `"john"` |
 | , | Comma | 1 | ltr | Returns RHS argument | `1, 2` => `2` |
+
+*ltr = left-to-right*
+
+*rtl = right-to-left*
 
 ## keywords
 ### `if`, `else`

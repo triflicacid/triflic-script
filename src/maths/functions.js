@@ -132,12 +132,12 @@ const gamma = (z, EPSILON = 1e-7) => {
 /** Factorial using gamma function */
 const factorial = n => gamma(Complex.add(n, 1));
 
-/* Return the next representable double from value towards direction */
+/* Return the next representable double from value towards next */
 // https://stackoverflow.com/questions/27659675/get-next-smallest-nearest-number-to-a-decimal
-function nextNearest(value, direction) {
-  if (isNaN(value) || isNaN(direction)) return NaN;
+function nextNearest(value, next) {
+  if (isNaN(value) || isNaN(next)) return NaN;
   if (!isFinite(value)) return value;
-  if (value === direction) return value;
+  if (value === next) return value;
 
   let buffer = new ArrayBuffer(8);
   let f64 = new Float64Array(buffer);
@@ -147,8 +147,8 @@ function nextNearest(value, direction) {
 
   if (value === 0) {
     u32[0] = 1;
-    u32[1] = direction < 0 ? 1 << 31 : 0;
-  } else if ((value > 0) && (value < direction) || (value < 0) && (value > direction)) {
+    u32[1] = next < 0 ? 1 << 31 : 0;
+  } else if ((value > 0) && (value < next) || (value < 0) && (value > next)) {
     if (u32[0]++ === 0xFFFFFFFF)
       u32[1]++;
   } else {

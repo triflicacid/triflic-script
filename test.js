@@ -1,3 +1,3 @@
-const { range } = require("./src/maths/functions");
+const Complex = require("./src/maths/Complex");
 
-console.log(range(15, 10));
+console.log(Complex.assert("1+i"));

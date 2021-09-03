@@ -125,6 +125,7 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
    * @param {{ [param: string]: string }} args Object mapping parameter name to the type expected (param may be prefixes be '?' to show optionality) 
    * @param {Function} fn Anonymous JS function 
    * @param {string} desc Description of function. Used in help() 
+   * @param {boolean} processArgs true: calls castTo(type) on each argument (eliminates variables) 
    */
   constructor(rs, name, args, fn, desc = '[built-in function]', processArgs = true) {
     super(rs, name, args, desc, processArgs);

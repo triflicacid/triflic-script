@@ -4,7 +4,7 @@ const { parseVariable } = require("../evaluation/parse");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest } = require("../maths/functions");
 const { print, sort, findIndex } = require("../utils");
-const { typeOf, types } = require("../evaluation/types");
+const { typeOf, types, isNumericType } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
@@ -59,7 +59,6 @@ function define(rs) {
     return new StringValue(rs, help);
   }, 'Get general help or help on a provided argument', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, ({ obj, key }) => {
-    if (obj instanceof VariableToken && key !== undefined) obj = obj.getVar().value;
     const v = obj.__del__?.(key);
     if (v === undefined) throw new Error(`[${errors.DEL}] Argument Error: cannot del() object of type ${obj.type()}`);
     return v;
@@ -121,7 +120,7 @@ function define(rs) {
     return value;
   }, 'create new value of type <t>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'copy', { o: 'any' }, ({ o }) => {
-    const copy = o.__copy__?.();
+    const copy = o.castTo("any").__copy__?.();
     if (copy === undefined) throw new Error(`[${errors.CANT_COPY}] Type Error: Type ${o.type()} cannot be copied`);
     return copy;
   }, 'Return a copy of object <o>'));
@@ -138,37 +137,43 @@ function define(rs) {
     return new ArrayValue(rs, range);
   }, 'Return array populated with numbers between <a>-<b> step <c>. 1 arg=range(0,<a>,1); 2 args=range(<a>,<b>,1); 3 args=range(<a>,<b>,<c>)'));
   rs.define(new RunspaceBuiltinFunction(rs, 'len', { o: 'any' }, ({ o }) => {
-    const length = o.__len__?.();
+    const length = o.castTo("any").__len__?.();
     if (length === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no len()`);
     return new NumberValue(rs, length === undefined ? NaN : length);
   }, 'return length of argument'));
   rs.define(new RunspaceBuiltinFunction(rs, 'abs', { o: 'any' }, ({ o }) => {
-    const abs = o.__abs__?.();
+    const abs = o.castTo("any").__abs__?.();
     if (abs === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no abs()`);
     return new NumberValue(rs, abs === undefined ? NaN : abs);
   }, 'return length of argument'));
   rs.define(new RunspaceBuiltinFunction(rs, 'get', { arg: 'any', key: 'any' }, ({ arg, key }) => {
+    arg = arg.castTo("any");
     if (typeof arg.__get__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot get() type ${arg.type()}`);
     return arg.__get__(key);
   }, 'get item at <i> in <arg>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'set', { arg: 'any', key: 'any', value: 'any' }, ({ arg, key, value }) => {
+    arg = arg.castTo("any");
+    item = item.castTo('any');
     if (typeof arg.__set__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot set() type ${arg.type()}`);
     return arg.__set__(key, value);
   }, 'set item at <i> in array <arr> to <item>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }) => {
+    arr = arr.castTo('any');
+    item = item.castTo('any');
     if (arr instanceof ArrayValue) return new NumberValue(rs, arr.value.push(item));
     if (arr instanceof SetValue) { arr.run(() => arr.value.push(item)); return new NumberValue(rs, arr.value.length); }
-    throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected arraylike, got ${arr.type()}`);
+    throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected collection, got ${arr.type()}`);
   }, 'push item <item> to array <arr>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'pop', { arr: 'array' }, ({ arr }) => {
+    arr = arr.castTo("any");
     if (arr instanceof ArrayValue || arr instanceof SetValue) return arr.value.pop();
     throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected array, got ${arr.type()}`);
   }, 'pop item from array <arr>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'reverse', { arg: 'any' }, ({ arg }) => {
-    if (arg instanceof ArrayValue || arg instanceof SetValue) arg.value.reverse();
-    else if (arg instanceof StringValue) arg.value = arg.value.split('').reverse().join('');
-    else throw new Error(`[${errors.TYPE_ERROR}] Type Error: unable to reverse object of type ${arg.type()}`);
-    return arg;
+    arg = arg.castTo('any');
+    let rev = arg.__reverse__?.();
+    if (rev === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot reverse() type ${arg.type()}`);
+    return rev;
   }, 'reverse argument <arg>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'sort', { arr: 'array' }, ({ arr }) => {
     return new ArrayValue(rs, sort(arr.toPrimitive('array').map((v, i) => {
@@ -176,102 +181,102 @@ function define(rs) {
       return v.toPrimitive('real');
     })).map(n => new NumberValue(rs, n)));
   }, 'sort array numerically'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'apply', { arr: 'array', action: 'any' }, ({ arr, action }) => {
-    if (!(arr instanceof ArrayValue)) throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected array, got ${arr.type()}`);
+  // rs.define(new RunspaceBuiltinFunction(rs, 'apply', { arr: 'array', action: 'any' }, ({ arr, action }) => {
+  //   arr = arr.castTo("any");
+  //   action = action.castTo("any");
 
-    if (action instanceof StringValue) {
-      const op = operators[action.value];
-      if (op) {
-        if (op.args === 2 || (Array.isArray(op.args) && op.args.includes(2))) {
-          let acc = new NumberValue(rs, 0);
-          const func = op[Array.isArray(op.args) ? 'fn2' : 'fn'];
-          for (let i = 0; i < arr.value.length; i++) acc = func(acc, arr.value[i]);
-          return acc;
-        } else if (op.args === 1 || (Array.isArray(op.args) && op.args.includes(1))) {
-          for (let i = 0; i < arr.value.length; i++) {
-            let tmp = op[Array.isArray(op.args) ? 'fn1' : 'fn'](arr.value[i]);
-            if (tmp === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: no operator overload for '${action.value}' for { <${arr.value[i].type()}> ${arr.value[i].castTo('string')} }`);
-            arr.value[i] = tmp;
-          }
-          return arr;
-        } else {
-          throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot apply operator '${action.value}' to array`);
-        }
-      } else {
-        let tl;
-        try {
-          tl = rs.parse(action.value);
-        } catch (e) {
-          throw new Error(`Apply action: ${action.value}:\n${e}`);
-        }
+  //   if (action instanceof StringValue) {
+  //     const op = operators[action.value];
+  //     if (op) {
+  //       if (op.args === 2 || (Array.isArray(op.args) && op.args.includes(2))) {
+  //         let acc = new NumberValue(rs, 0);
+  //         const func = op[Array.isArray(op.args) ? 'fn2' : 'fn'];
+  //         for (let i = 0; i < arr.value.length; i++) acc = func(acc, arr.value[i]);
+  //         return acc;
+  //       } else if (op.args === 1 || (Array.isArray(op.args) && op.args.includes(1))) {
+  //         for (let i = 0; i < arr.value.length; i++) {
+  //           let tmp = op[Array.isArray(op.args) ? 'fn1' : 'fn'](arr.value[i]);
+  //           if (tmp === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: no operator overload for '${action.value}' for { <${arr.value[i].type()}> ${arr.value[i].castTo('string')} }`);
+  //           arr.value[i] = tmp;
+  //         }
+  //         return arr;
+  //       } else {
+  //         throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot apply operator '${action.value}' to array`);
+  //       }
+  //     } else {
+  //       let tl;
+  //       try {
+  //         tl = rs.parse(action.value);
+  //       } catch (e) {
+  //         throw new Error(`Apply action: ${action.value}:\n${e}`);
+  //       }
 
-        tl.rs.pushScope();
-        for (let i = 0; i < arr.value.length; i++) {
-          try {
-            tl.rs.var('x', arr.value[i]);
-            arr.value[i] = tl.eval();
-          } catch (e) {
-            throw new Error(`${action.value} when x = ${arr.value[i].toPrimitive('string')}:\n${e}`);
-          }
-        }
-        tl.rs.popScope();
-        return arr;
-      }
-    } else if (action instanceof FunctionRefValue) {
-      const fn = action.getFn(), args = Object.entries(fn.args);
-      for (let i = 0, ans; i < arr.value.length; i++) {
-        try {
-          if (args.length === 1) ans = fn.eval([arr.value[i].eval(args[0][1])]);
-          else if (args.length === 2) ans = fn.eval([arr.value[i].eval(args[0][1]), new NumberValue(rs, i).eval(args[1][1])]);
-          else if (args.length === 3) ans = fn.eval([arr.value[i].eval(args[0][1]), new NumberValue(rs, i).eval(args[1][1]), arr.eval(args[2][1])]);
-          else throw new Error(`[${errors.ARG_COUNT}] Argument Error: cannot apply ${action} to array: unsupported argument count ${args.length}`);
-          arr.value[i] = ans;
-        } catch (e) {
-          throw new Error(`${fn.defString()}:\n${e}`);
-        }
-      }
-      return arr;
-    } else {
-      for (let i = 0; i < arr.value.length; i++) {
-        arr.value[i] = action;
-      }
-      return arr;
-    }
-  }, 'Apply <action> to an array: operator, function [f(<item>) or f(<item>,<index>) or f(<item>,<index>,<array>)]. Else, eveything in array is set to <action>'));
+  //       tl.rs.pushScope();
+  //       for (let i = 0; i < arr.value.length; i++) {
+  //         try {
+  //           tl.rs.var('x', arr.value[i]);
+  //           arr.value[i] = tl.eval();
+  //         } catch (e) {
+  //           throw new Error(`${action.value} when x = ${arr.value[i].toPrimitive('string')}:\n${e}`);
+  //         }
+  //       }
+  //       tl.rs.popScope();
+  //       return arr;
+  //     }
+  //   } else if (action instanceof FunctionRefValue) {
+  //     const fn = action.getFn(), args = Object.entries(fn.args);
+  //     for (let i = 0, ans; i < arr.value.length; i++) {
+  //       try {
+  //         if (args.length === 1) ans = fn.eval([arr.value[i].eval(args[0][1])]);
+  //         else if (args.length === 2) ans = fn.eval([arr.value[i].eval(args[0][1]), new NumberValue(rs, i).eval(args[1][1])]);
+  //         else if (args.length === 3) ans = fn.eval([arr.value[i].eval(args[0][1]), new NumberValue(rs, i).eval(args[1][1]), arr.eval(args[2][1])]);
+  //         else throw new Error(`[${errors.ARG_COUNT}] Argument Error: cannot apply ${action} to array: unsupported argument count ${args.length}`);
+  //         arr.value[i] = ans;
+  //       } catch (e) {
+  //         throw new Error(`${fn.defString()}:\n${e}`);
+  //       }
+  //     }
+  //     return arr;
+  //   } else {
+  //     for (let i = 0; i < arr.value.length; i++) {
+  //       arr.value[i] = action;
+  //     }
+  //     return arr;
+  //   }
+  // }, 'Apply <action> to an array: operator, function [f(<item>) or f(<item>,<index>) or f(<item>,<index>,<array>)]. Else, eveything in array is set to <action>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'filter', { arr: 'array', fn: 'func' }, ({ arr, fn }) => {
     const array = [];
-    fn = fn.getFn();
+    fn = fn.castTo("any").getFn();
     arr = arr.toPrimitive('array');
     for (let i = 0; i < arr.length; i++) {
-      let b = fn.argCount === 1 ? fn.eval([arr[i]]) : fn.eval([arr[i], new NumberValue(rs, i)]);
+      let b = fn.argCount === 1 ? fn.call([arr[i]]) : fn.call([arr[i], new NumberValue(rs, i)]);
       if (b.toPrimitive('bool')) array.push(arr[i]);
     }
     return new ArrayValue(rs, array);
   }, 'Remove all values from arr for which fn(value, ?index) is false'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'find', { item: 'any', o: 'any' }, ({ item, o }) => {
-    if (o instanceof ArrayValue || o instanceof SetValue) return new NumberValue(rs, findIndex(item, o.value));
-    if (o instanceof StringValue) return new NumberValue(rs, o.value.indexOf(item.toString()));
-    throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot search type ${o.type()}`);
-  }, 'Return index of <item> in <o> or -1'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'find', { obj: 'any', item: 'any' }, ({ obj, item }) => {
+    item = item.castTo("any");
+    obj = obj.castTo("any");
+    let ret = obj.__find__?.(item);
+    if (ret === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot search type ${o.type()}`);
+    return ret;
+  }, 'Find <item> in <o>. Collections: return index of <item> or -1. Map: return key of item with value <item> or undefined.'));
   rs.define(new RunspaceBuiltinFunction(rs, 'base', { arg: 'string', from: 'real_int', to: 'real_int' }, ({ arg, from, to }) => {
     from = from.toPrimitive('real_int');
     to = to.toPrimitive('real_int');
     if (from < 2 || from > 36) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid base: <from> = ${from}`);
     if (to < 2 || to > 36) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid base: <to> = ${to}`);
-    return StringValue(rs, parseInt(arg.toString(), from).toString(to));
+    return new StringValue(rs, parseInt(arg.toString(), from).toString(to));
   }, 'Convert <arg> from base <from> to base <to>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.interpret(str.toString()).value, 'evaluate an input'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'rpn', { str: 'string' }, ({ str }) => new StringValue(rs, rs.parseString(str.toString()).toRPN().join(' ')), 'transform input to RPN notation'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.execute(str.toString()), 'evaluate an input'));
   rs.define(new RunspaceBuiltinFunction(rs, 'iif', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'Inline IF: If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => {
-    rs.import(file);
-    return new NumberValue(rs, 0);
-  }, 'Import <file> - see README.md for more details'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => rs.import(file.toString()), 'Import <file> - see README.md for more details'));
   rs.define(new RunspaceBuiltinFunction(rs, 'error_code', { code: 'string' }, ({ code }) => {
+    code = code.toPrimitive("string");
     if (code in errorDesc) {
       return new StringValue(rs, errorDesc[code]);
     } else {
-      throw new Error(`[${errors.BAD_ARG}] Argument Error: no such error code: [${code}]`);
+      throw new Error(`[${errors.BAD_ARG}] Argument Error: no such error code [${code}]`);
     }
   }, 'Return brief description of an error code (the [...] in an error message)'));
 
@@ -315,7 +320,15 @@ function defineFuncs(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'conj', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').conjugate()), 'return z* (the configate) of z'));
   rs.define(new RunspaceBuiltinFunction(rs, 'cos', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.cos(z.toPrimitive('complex'))), 'return cosine of x')); // cosine
   rs.define(new RunspaceBuiltinFunction(rs, 'cosh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.cosh(z.toPrimitive('complex'))), 'return hyperbolic cosine of x')); // hyperbolic cosine
-  rs.define(new RunspaceBuiltinFunction(rs, 'time', {}, () => new NumberValue(rs, Date.now()), 'returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'time', { msOffset: '?real_int' }, ({ msOffset }) => new NumberValue(rs, (msOffset ? new Date(msOffset.toPrimitive('real_int')) : new Date()).getTime()), 'returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'date', { arg: '?any' }, ({ arg }) => {
+    let date, type = arg?.type();
+    if (arg === undefined) date = new Date();
+    else if (type === 'real') date = new Date(arg.toPrimitive('real_int'));
+    else if (type === 'string') date = new Date(arg.toPrimitive('string'));
+    else throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot construct date from type ${type}`);
+    return new StringValue(rs, date.toString());
+  }, 'returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC'));
   rs.define(new RunspaceBuiltinFunction(rs, 'exp', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.exp(z.toPrimitive('complex'))), 'return e^x')); // raise e to the x
   rs.define(new RunspaceBuiltinFunction(rs, 'floor', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.floor(z.toPrimitive('complex'))), 'round x down to the nearest integer')); // floor (round down)
   rs.define(new RunspaceBuiltinFunction(rs, 'isNaN', { z: 'complex' }, ({ z }) => new BoolValue(rs, Complex.isNaN(z.toPrimitive('complex'))), 'return 0 or 1 depending on is x is NaN'));
@@ -368,51 +381,51 @@ function defineFuncs(rs) {
   rs.define(new RunspaceBuiltinFunction(rs, 'sinh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sinh(z.toPrimitive('complex'))), 'return hyperbolic sine of z')); // hyperbolic sine
   rs.define(new RunspaceBuiltinFunction(rs, 'sqrt', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sqrt(z.toPrimitive('complex'))), 'return square root of z')); // cube root
   // if (rs.opts.defineAliases) rs.funcAlias('sqrt', '√');
-  rs.define(new RunspaceBuiltinFunction(rs, 'summation', { start: 'any', limit: 'any', action: 'any', svar: '?any' }, ({ start, limit, action, svar }) => {
-    let sumVar = 'x', sum = new Complex(0);
-    start = start.toPrimitive('real_int');
-    limit = limit.toPrimitive('real_int');
-    if (svar !== undefined) {
-      if (svar instanceof StringValue) {
-        sumVar = svar.toString();
-        let extract = parseVariable(sumVar);
-        if (sumVar !== extract) throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid variable provided '${sumVar}'`);
-      } else throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid value for <svar>`);
-    }
-    if (action instanceof FunctionRefValue) { // Execute action as a function
-      const fn = action.getFn();
-      for (let i = start; i <= limit; i++) {
-        try {
-          sum.add(fn.eval([new NumberValue(rs, i)]).toPrimitive('complex'));
-        } catch (e) {
-          throw new Error(`${fn.defString()}:\n${e}`);
-        }
-      }
-    } else if (action instanceof NumberValue) { // Stored value
-      sum = Complex.mult(action.toPrimitive('complex'), Complex.sub(limit, start).add(1));
-    } else if (action instanceof StringValue) { // Evaluate action as source code
-      let tl;
-      try {
-        tl = rs.parse(action.value);
-      } catch (e) {
-        throw new Error(`Summation action: ${action.value}:\n${e}`);
-      }
+  // rs.define(new RunspaceBuiltinFunction(rs, 'summation', { start: 'any', limit: 'any', action: 'any', svar: '?any' }, ({ start, limit, action, svar }) => {
+  //   let sumVar = 'x', sum = new Complex(0);
+  //   start = start.toPrimitive('real_int');
+  //   limit = limit.toPrimitive('real_int');
+  //   if (svar !== undefined) {
+  //     if (svar instanceof StringValue) {
+  //       sumVar = svar.toString();
+  //       let extract = parseVariable(sumVar);
+  //       if (sumVar !== extract) throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid variable provided '${sumVar}'`);
+  //     } else throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid value for <svar>`);
+  //   }
+  //   if (action instanceof FunctionRefValue) { // Execute action as a function
+  //     const fn = action.getFn();
+  //     for (let i = start; i <= limit; i++) {
+  //       try {
+  //         sum.add(fn.eval([new NumberValue(rs, i)]).toPrimitive('complex'));
+  //       } catch (e) {
+  //         throw new Error(`${fn.defString()}:\n${e}`);
+  //       }
+  //     }
+  //   } else if (action instanceof NumberValue) { // Stored value
+  //     sum = Complex.mult(action.toPrimitive('complex'), Complex.sub(limit, start).add(1));
+  //   } else if (action instanceof StringValue) { // Evaluate action as source code
+  //     let tl;
+  //     try {
+  //       tl = rs.parse(action.value);
+  //     } catch (e) {
+  //       throw new Error(`Summation action: ${action.value}:\n${e}`);
+  //     }
 
-      tl.rs.pushScope();
-      for (let i = start; i <= limit; i++) {
-        try {
-          tl.rs.var(sumVar, i);
-          sum.add(tl.eval().toPrimitive('complex'));
-        } catch (e) {
-          throw new Error(`${action.value} when ${sumVar} = ${i}:\n${e}`);
-        }
-      }
-      tl.rs.popScope();
-    } else {
-      throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid summation action`);
-    }
-    return new NumberValue(rs, sum);
-  }, 'Calculate a summation series between <start> and <limit>, executing <action> (may be constant, function or string). Use variable <svar> as counter.'));
+  //     tl.rs.pushScope();
+  //     for (let i = start; i <= limit; i++) {
+  //       try {
+  //         tl.rs.var(sumVar, i);
+  //         sum.add(tl.eval().toPrimitive('complex'));
+  //       } catch (e) {
+  //         throw new Error(`${action.value} when ${sumVar} = ${i}:\n${e}`);
+  //       }
+  //     }
+  //     tl.rs.popScope();
+  //   } else {
+  //     throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid summation action`);
+  //   }
+  //   return new NumberValue(rs, sum);
+  // }, 'Calculate a summation series between <start> and <limit>, executing <action> (may be constant, function or string). Use variable <svar> as counter.'));
   // if (rs.opts.defineAliases) rs.funcAlias('summation', '∑');
   rs.define(new RunspaceBuiltinFunction(rs, 'tan', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tan(z.toPrimitive('complex'))), 'return tangent of z')); // tangent
   rs.define(new RunspaceBuiltinFunction(rs, 'tanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tanh(z.toPrimitive('complex'))), 'return hyperbolic tangent of z')); // hyperbolic tangent
@@ -422,7 +435,7 @@ function defineFuncs(rs) {
   // if (rs.opts.defineAliases) rs.funcAlias('wrightomega', 'ω');
   rs.define(new RunspaceBuiltinFunction(rs, 'gamma', { z: 'complex' }, ({ z }) => new NumberValue(rs, gamma(z.toPrimitive('complex'))), 'Return the gamma function at z'));
   // if (rs.opts.defineAliases) rs.funcAlias('gamma', 'Γ');
-  rs.define(new RunspaceBuiltinFunction(rs, 'nextNearest', { n: 'real', dir: 'real' }, ({ n, dir }) => new NumberValue(rs, nextNearest(n.toPrimitive('real'), dir.toPrimitive('real'))), 'Return the next representable double from value <n> towards direction <dir>'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'nextNearest', { n: 'real', next: 'real' }, ({ n, next }) => new NumberValue(rs, nextNearest(n.toPrimitive('real'), next.toPrimitive('real'))), 'Return the next representable double from value <n> towards <next>'));
 }
 
 module.exports = { define, defineVars, defineFuncs };

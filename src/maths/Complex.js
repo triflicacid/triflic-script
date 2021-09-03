@@ -359,12 +359,15 @@ Complex.assert = function (z) {
   if (typeof z === 'number' || typeof z === 'boolean') return new Complex(z, 0);
   if (typeof z === 'string') {
     let parts = z.split(/(?=[\-\+])/).map(x => x.trim()).filter(x => x.length > 0);
-    if (parts.length === 1) return new Complex(parseFloat(parts[0]), 0);
-    if (parts.length === 2 && parts[1].indexOf(Complex.imagLetter) !== -1) {
+    let complex;
+    if (parts.length === 1) {
+      complex = new Complex(+parts[0], 0);
+    } else if (parts.length === 2 && parts[1].indexOf(Complex.imagLetter) !== -1) {
       let imag = parts[1].replace(Complex.imagLetter, '');
       if (imag === '-' || imag === '+') imag += '1';
-      return new Complex(parseFloat(parts[0]), parseFloat(imag));
+      complex = new Complex(+parts[0], +imag);
     }
+    if (complex && !Complex.isNaN(complex)) return complex;
   }
   throw new TypeError(`Expected Complex, got ${typeof z} ${z}`);
 };

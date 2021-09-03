@@ -1,7 +1,7 @@
 const RunspaceVariable = require("./Variable");
-const { TokenString, TokenLine, parse } = require("../evaluation/tokens");
-const { peek, createTokenStringParseObj } = require("../utils");
-const { primitiveToValueClass, MapValue, NumberValue, Value, FunctionRefValue } = require("../evaluation/values");
+const { parse } = require("../evaluation/tokens");
+const { peek } = require("../utils");
+const { primitiveToValueClass, MapValue, NumberValue, Value, FunctionRefValue, UndefinedValue } = require("../evaluation/values");
 const path = require("path");
 const fs = require("fs");
 const { RunspaceFunction } = require("./Function");
@@ -105,7 +105,7 @@ class Runspace {
     return this.interpret(this.parse(source, singleStatement));
   }
 
-  /** Attempt to import a file */
+  /** Attempt to import a file. Throws error of returns Value instance. */
   import(file) {
     const fpath = path.join(this.dir, "imports/", file.toString());
     let stats;
@@ -132,7 +132,7 @@ class Runspace {
           console.error(e);
           throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: error whilst executing ${fpath}'s export function:\n${e}`);
         }
-        return resp || new NumberValue(this.rs, 0);
+        return resp ?? new UndefinedValue(this);
       } else {
         let text;
         try {
@@ -141,11 +141,14 @@ class Runspace {
           throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: unable to read file (full path: ${fpath}):\n${e}`);
         }
 
+        let ret;
         try {
-          this.execute(text);
+          ret = this.execute(text);
         } catch (e) {
           throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}):\n${e}`);
         }
+
+        return ret ?? new UndefinedValue(this);
       }
     } else {
       throw new Error(`[${errors.BAD_ARG}] Argument Error: path is not a file (full path: ${fpath})`);

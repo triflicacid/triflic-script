@@ -96,6 +96,13 @@ class NumberValue extends Value {
   /** copy() function - <#Complex> has a copy method available */
   __copy__() { return new NumberValue(this.rs, this.value.copy()); }
 
+  /** reverse() function */
+  __reverse__() {
+    let real = this.value.a.toLocaleString('fullwide', { useGrouping: false }).split('').reverse().join('');
+    let complex = this.value.b.toLocaleString('fullwide', { useGrouping: false }).split('').reverse().join('');
+    return new NumberValue(this.rs, new Complex(+real, +complex));
+  }
+
   /** operator: deg */
   __deg__() { return new NumberValue(this.rs, Complex.mult(this.value, Math.PI / 180)); }
 
@@ -250,6 +257,16 @@ class StringValue extends Value {
     return new StringValue(this.rs, chr);
   }
 
+  /** find() function */
+  __find__(item) {
+    return new NumberValue(this.rs, this.value.indexOf(item.toPrimitive('string')));
+  }
+
+  /** reverse() function */
+  __reverse__() {
+    return new StringValue(this.rs, this.value.split('').reverse().join(''));
+  }
+
   /** copy() function */
   __copy__() { return new StringValue(this.rs, this.value); }
 
@@ -361,6 +378,17 @@ class ArrayValue extends Value {
     return new NumberValue(this.rs, i);
   }
 
+  /** reverse() function */
+  __reverse__() {
+    this.value.reverse();
+    return this;
+  }
+
+  /** find() function */
+  __find__(item) {
+    return new NumberValue(this.rs, findIndex(item, this.value));
+  }
+
   /** copy() function */
   __copy__() {
     const emsg = (v, i) => `[${errors.CANT_COPY}] Type Error: Error whilst copying type array: index ${i}: type ${v.type()} cannot be copied`;
@@ -426,6 +454,17 @@ class SetValue extends Value {
 
   /** abs() function */
   __abs__() { return this.value.length; }
+
+  /** reverse() function */
+  __reverse__() {
+    this.value.reverse();
+    return this;
+  }
+
+  /** find() function */
+  __find__(item) {
+    return new NumberValue(this.rs, findIndex(item, this.value));
+  }
 
   /** copy() function */
   __copy__() {
@@ -523,6 +562,14 @@ class MapValue extends Value {
     const val = this.value.get(key);
     this.value.delete(key);
     return val;
+  }
+
+  /** find() function */
+  __find__(item) {
+    for (const [key, value] of this.value.entries()) {
+      if (equal(item, value)) return new StringValue(this.rs, key);
+    }
+    return new UndefinedValue(this.rs);
   }
 
   /** copy() function */
@@ -665,7 +712,7 @@ function primitiveToValueClass(runspace, primitive) {
   }
   if (Array.isArray(primitive)) return new ArrayValue(runspace, primitive.map(p => primitiveToValueClass(runspace, p)));
   if (runspace.func(primitive) !== undefined) return new FunctionRefValue(runspace, primitive);
-  return new StringValue(undefined, primitive);
+  return new StringValue(runspace, primitive);
 }
 
 /** This is used for Value.__new__ */
