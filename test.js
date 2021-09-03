@@ -1,3 +1,9 @@
-const Complex = require("./src/maths/Complex");
+function func(obj) {
+  obj.a = 5;
+  obj.b = 5;
+}
 
-console.log(Complex.assert("1+i"));
+let obj = {};
+console.log(obj);
+func(obj);
+console.log(obj);

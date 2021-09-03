@@ -153,7 +153,8 @@ function define(rs) {
   }, 'get item at <i> in <arg>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'set', { arg: 'any', key: 'any', value: 'any' }, ({ arg, key, value }) => {
     arg = arg.castTo("any");
-    item = item.castTo('any');
+    key = key.castTo('any');
+    value = value.castTo('any');
     if (typeof arg.__set__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot set() type ${arg.type()}`);
     return arg.__set__(key, value);
   }, 'set item at <i> in array <arr> to <item>'));

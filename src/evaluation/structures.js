@@ -2,7 +2,7 @@ const { errors } = require("../errors");
 const { RunspaceUserFunction } = require("../runspace/Function");
 const { expectedSyntaxError, peek } = require("../utils");
 const { parseSymbol } = require("./parse");
-const { FunctionRefValue } = require("./values");
+const { FunctionRefValue, ArrayValue, SetValue, MapValue } = require("./values");
 
 class Structure {
   constructor(name, pos) {
@@ -14,6 +14,66 @@ class Structure {
   validate() { throw new Error(`${this}.validate: overload required`); }
 
   toString() { return `<Structure ${this.name}>`; }
+}
+
+/** Structure to build an array */
+class ArrayStructure extends Structure {
+  constructor(rs, elements, pos) {
+    super("ARRAY", pos);
+    this.rs = rs;
+    this.elements = elements;
+  }
+
+  validate() { }
+
+  eval() {
+    const values = this.elements.map(el => el.eval()); // Evaluate each element
+    return new ArrayValue(this.rs, values);
+  }
+}
+
+/** Structure to build a Map */
+class MapStructure extends Structure {
+  constructor(rs, pos) {
+    super("MAP", pos);
+    this.rs = rs;
+    this.keys = [];
+    this.values = [];
+  }
+
+  /** key: Value. value: TokenLine */
+  addPair(key, value) {
+    this.keys.push(key);
+    this.values.push(value);
+  }
+
+  validate() {
+    if (this.keys.length !== this.values.length) throw new Error(`${this}: keys and values arrays must be equal lengths`);
+  }
+
+  eval() {
+    let map = new MapValue(this.rs);
+    for (let i = 0; i < this.keys.length; i++) {
+      map.__set__(this.keys[i], this.values[i].eval());
+    }
+    return map;
+  }
+}
+
+/** Structure to build a set */
+class SetStructure extends Structure {
+  constructor(rs, elements, pos) {
+    super("SET", pos);
+    this.rs = rs;
+    this.elements = elements;
+  }
+
+  validate() { }
+
+  eval() {
+    const values = this.elements.map(el => el.eval());
+    return new SetValue(this.rs, values);
+  }
 }
 
 class IfStructure extends Structure {
@@ -209,4 +269,4 @@ class FuncStructure extends Structure {
   }
 }
 
-module.exports = { Structure, IfStructure, WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, ForStructure, FuncStructure, };
+module.exports = { Structure, ArrayStructure, SetStructure, MapStructure, IfStructure, WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, ForStructure, FuncStructure, };

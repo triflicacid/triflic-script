@@ -1,10 +1,10 @@
 const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracketError, expectedSyntaxError } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
-const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue } = require("./values");
+const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue } = require("./values");
 const { isNumericType } = require("./types");
 const operators = require("./operators");
 const { errors } = require("../errors");
-const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure } = require("./structures");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure } = require("./structures");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -232,32 +232,48 @@ class TokenLine {
           if (this.tokens[i].value.length === 0) elements = [];
           else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas();
           else throw new expectedSyntaxError(']', peek(this.tokens[i].value[0].tokens));
-          const values = elements.map(el => el.eval()); // Evaluate each element
-          const arr = new ArrayValue(this.rs, values);
-          this.tokens[i] = arr;
+
+          let structure = new ArrayStructure(this.rs, elements, this.tokens[i].pos);
+          structure.validate();
+          this.tokens[i] = structure;
         } else if (this.tokens[i].opening === '(') { // *** CALL STRING / EXPRESSION
           // If first item, or after an operator, this is an expression group
           if (i === 0 || this.tokens[i - 1] instanceof OperatorToken) {
             if (this.tokens[i].value.length == 0) {
               this.tokens.splice(i, 1); // Simply ignore as empty
             } else {
-              if (this.tokens[i].value.length > 1) throw new expectedSyntaxError(')', this.tokens[i].value[0].tokens[0]);
               // Replace [BracketedTokenString, ...] with ["(", ...tokens, ")", ...]
+              if (this.tokens[i].value.length > 1) throw new expectedSyntaxError(')', this.tokens[i].value[0].tokens[0]);
               this.tokens.splice(i, 1, new BracketToken(this, '(', this.tokens[i].pos), ...this.tokens[i].value[0].tokens, new BracketToken(this, ')', peek(this.tokens[i].value[0].tokens).pos + 1)); // Insert tokens in bracket group into tokens array
               i--;
             }
           } else if (this.tokens[i + 1] instanceof OperatorToken && (this.tokens[i + 1].value === '=' || this.tokens[i + 1].value === ':=')) {
             this.tokens[i].isDeclaration = this.tokens[i + 1].value === ':=' ? 1 : 2;
           }
-        } else if (this.tokens[i].opening === '{') { // *** SET OR CODE BLOCK
-          if (i === 0 || this.tokens[i - 1] instanceof OperatorToken) { // Set if (1) first token (2) preceeded by operator
+        } else if (this.tokens[i].opening === '{') { // *** SET OR MAP OR CODE BLOCK
+          if (i === 0 || this.tokens[i - 1] instanceof OperatorToken) { // Set/Map if (1) first token (2) preceeded by operator
             let elements;
             if (this.tokens[i].value.length === 0) elements = [];
             else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas();
             else throw new expectedSyntaxError('}', peek(this.tokens[i].value[0].tokens));
-            const values = elements.map(el => el.eval()); // Evaluate each element
-            const arr = new SetValue(this.rs, values);
-            this.tokens[i] = arr;
+
+            let structure;
+            // MAP if first item is in syntax "a : ..."
+            if (elements.length > 0 && elements[0].tokens.length > 0 && elements[0].tokens[1] instanceof OperatorToken && elements[0].tokens[1].value === ':') {
+              structure = new MapStructure(this.rs, this.tokens[i].pos);
+
+              for (const pair of elements) {
+                if (pair.tokens[1] instanceof OperatorToken && pair.tokens[1].value === ':') {
+                  structure.addPair(pair.tokens[0], new TokenLine(structure.rs, pair.tokens.slice(2)));
+                } else {
+                  throw new Error(`[${errors.SYNTAX}]: Syntax Error: expected ':' but got ${pair.tokens[1] ?? '}'}${pair.tokens[1]?.pos ? ` at position ${pair.tokens[1].pos}` : ''}\n(interpreting {...} as a map as '<x> : ...' was found in first element. If you meant the operator ':', encase the first element in parenthesis)`);
+                }
+              }
+            } else {
+              structure = new SetStructure(this.rs, elements, this.tokens[i].pos);
+            }
+            structure.validate();
+            this.tokens[i] = structure;
           }
         }
 
@@ -473,7 +489,7 @@ class TokenLine {
 
   /** Return array of tokens of this tokenString RPNd */
   toRPN() {
-    return this._toRPN(this.tokens, this.rs.opts.bidmas);
+    return this._toRPN(this.tokens, this.rs.opts?.bidmas);
   }
 
   /** Token array from infix to postfix */

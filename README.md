@@ -8,6 +8,10 @@ Now, supports multi-line programs with basic control structures. Due to origins 
 - Optional arguments in `func` are not implemented
 - `&&` operator short-circuiting does not work
 
+## TODO
+- Nested-expression shortcut
+Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
+
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
 - `discord.js` - connect to a discord bot and listens on a particular channel (defined as `BOT_TOKEN` and `CHANNEL` in `.env`)
@@ -82,7 +86,10 @@ These are structures in the code which define values:
 
 - `"..."` represents a strings
 - `[...]` represents an array
-- `{...}` represents a set or a block
+- `{...}` represents a set, map or a block
+  - Block if keyword structure expects a block and `{...}` is present e.g. `do {...}`, `if (...) {...}`
+  - Map if first element matches `<x>: ...`. To use to `:` as an operator, therefore, one must wrap `<x>:...` in parenthesis
+  `{3:7}` would be interpreted as a map, but `{(3:7)}` would not
 
 
 ### Variables
