@@ -20,6 +20,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 ### Position
 - `cli.js` - Arguments proceed `node cli.js`
 - `discord.js` - Arguments proceed `!start`
+- `file.js` - Arguments proceed `node file.js <file>`
 
 ### Arguments
 - `strict` : `boolean`. Strict mode? (actions are more tightly controlled).

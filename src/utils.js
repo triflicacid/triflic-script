@@ -131,7 +131,7 @@ function equal(a, b) {
 
   let bool;
   try {
-    bool = a.__eq__(b);
+    bool = a.castTo('any').__eq__(b);
   } catch (e) {
     return false;
   }
