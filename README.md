@@ -7,7 +7,6 @@ Now, supports multi-line programs with basic control structures. Due to origins 
 - Inline function definitions in format `<name>(<args>) = ...` has been disabled 
 - Optional arguments in `func` are not implemented
 - `&&` operator short-circuiting does not work
-- `in` operator is not implemented
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.

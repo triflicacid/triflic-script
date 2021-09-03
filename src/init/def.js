@@ -328,7 +328,7 @@ function defineFuncs(rs) {
     else if (type === 'string') date = new Date(arg.toPrimitive('string'));
     else throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot construct date from type ${type}`);
     return new StringValue(rs, date.toString());
-  }, 'returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC'));
+  }, 'returns date string constructed from <arg>'));
   rs.define(new RunspaceBuiltinFunction(rs, 'exp', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.exp(z.toPrimitive('complex'))), 'return e^x')); // raise e to the x
   rs.define(new RunspaceBuiltinFunction(rs, 'floor', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.floor(z.toPrimitive('complex'))), 'round x down to the nearest integer')); // floor (round down)
   rs.define(new RunspaceBuiltinFunction(rs, 'isNaN', { z: 'complex' }, ({ z }) => new BoolValue(rs, Complex.isNaN(z.toPrimitive('complex'))), 'return 0 or 1 depending on is x is NaN'));

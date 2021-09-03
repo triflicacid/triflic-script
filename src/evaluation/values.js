@@ -49,11 +49,12 @@ class Value {
   __not__() { return new BoolValue(this.rs, !this.toPrimitive('bool')); }
 
   /** operator: in */
-  __in__(arg) {
-    throw new Error("[ENIMP] Not Implemeted");
-    // const argt = arg.type();
-    // if (argt === 'array' || argt === 'set') return new BoolValue(this.rs, findIndex(this, arg.toPrimitive('array')) !== -1);
-    // if (argt === 'string') return new BoolValue(this.rs, arg.toString().indexOf(this.toString()) !== -1);
+  __in__(collection) {
+    const type = collection.type();
+    if (type === 'array' || type === 'set') return new BoolValue(this.rs, findIndex(this, collection.toPrimitive('array')) !== -1);
+    if (type === 'string') return new BoolValue(this.rs, collection.toString().indexOf(this.toString()) !== -1);
+    if (type === 'map') return new BoolValue(this.rs, collection.value.has(this.toString()));
+    throw new Error(`[${errors.TYPE_ERROR}] Type Error: object ${type} is not a collection`);
   }
 
   /** operator: != */

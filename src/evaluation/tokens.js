@@ -66,11 +66,11 @@ class OperatorToken extends Token {
   eval(...args) {
     const info = this.info();
     let fn = info.fn;
-    if (typeof fn !== 'function') throw new Error(`[${errors.ARG_COUNT}] Argument Error: no overload for operator function ${this} with ${args.length} args`);
+    if (typeof fn !== 'function') throw new Error(`[${errors.ARG_COUNT}] Argument Error: no overload for operator function ${this.toString().trim()} with ${args.length} args`);
     let r;
-    try { r = fn(...args, this.data); } catch (e) { throw new Error(`Operator ${this}:\n${e}`); }
+    try { r = fn(...args, this.data); } catch (e) { throw new Error(`Operator ${this.toString().trim()}:\n${e}`); }
     if (r instanceof Error) throw r; // May return custom errors
-    if (r === undefined) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${this} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
+    if (r === undefined) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${this.toString().trim()} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
     return r;
   }
 
@@ -215,7 +215,6 @@ class TokenLine {
   }
 
   eval() {
-    return this._eval();
     try {
       return this._eval();
     } catch (e) {
