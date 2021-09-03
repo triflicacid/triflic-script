@@ -59,17 +59,18 @@ class OperatorToken extends Token {
     super(tstring, op, pos);
     if (operators[op] === undefined) throw new Error(`new OperatorToken() : '${op}' is not an operator`);
     this.isUnary = false;
+    this.data = undefined; // Extra data to pass to operator
   }
 
   /** Eval as operators */
   eval(...args) {
     const info = this.info();
-    let fn = Array.isArray(info.args) ? info['fn' + args.length] : info.fn;
-    if (typeof fn !== 'function') throw new Error(`[${errors.ARG_COUNT}] Argument Error: no overload for operator function ${this.value} with ${args.length} args`);
+    let fn = info.fn;
+    if (typeof fn !== 'function') throw new Error(`[${errors.ARG_COUNT}] Argument Error: no overload for operator function ${this} with ${args.length} args`);
     let r;
-    try { r = fn(...args); } catch (e) { throw new Error(`Operator ${this.value}:\n${e}`); }
+    try { r = fn(...args, this.data); } catch (e) { throw new Error(`Operator ${this}:\n${e}`); }
     if (r instanceof Error) throw r; // May return custom errors
-    if (r === undefined) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${this.value} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
+    if (r === undefined) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${this} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
     return r;
   }
 
@@ -87,6 +88,7 @@ class OperatorToken extends Token {
   }
 
   toString() {
+    if (this.value === '<cast>') return '<' + this.data + '>';
     return this.isUnary ? operators[this.value].unary : this.value;
   }
 }
@@ -261,6 +263,11 @@ class TokenLine {
         }
 
         if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax '${this.tokens[i].opening}' at position ${this.tokens[i].pos}`);
+      } else if (this.tokens[i] instanceof OperatorToken && this.tokens[i].value === '<' && this.tokens[i + 1] instanceof VariableToken && this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === '>') {
+        // Cast?
+        let op = new OperatorToken(this, "<cast>", this.tokens[i].pos);
+        op.data = this.tokens[i + 1].value;
+        this.tokens.splice(i, 3, op); // Remove "<" "type" ">"
       } else if (this.tokens[i] instanceof KeywordToken) {
         switch (this.tokens[i].value) {
           case "if": {
@@ -454,7 +461,10 @@ class TokenLine {
     }
     while (peek(stack) instanceof UndefinedValue) stack.pop(); // Remove all Undefined values from top of stack
     if (stack.length === 0) return new UndefinedValue(this.rs);
-    if (stack.length !== 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax ${stack[0].pos === undefined ? '' : ` at position ${stack[0].pos}`}\n (evaluation failed to reduce expression to single number)`);
+    if (stack.length !== 1) {
+      let errors = stack.map(x => x + (x.pos === undefined ? '' : ` (position ${x.pos})`));
+      throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax ${errors.join(', ')}. Did you miss an EOL token ${EOLToken.symbol} (${EOLToken.symbol.charCodeAt(0)}) ?\n(evaluation failed to reduce expression to single value)`);
+    }
     return stack[0];
   }
 
@@ -482,16 +492,16 @@ class TokenLine {
         stack.pop(); // Remove ) from stack
       } else if (tokens[i] instanceof OperatorToken) {
         const info = tokens[i].info();
-        if (info.preservePosition) {
-          output.push(tokens[i]);
-        } else {
-          if (bidmas) {
+        if (bidmas) {
+          if (info.assoc === 'ltr') {
             while (stack.length !== 0 && tokens[i].priority() <= peek(stack).priority()) output.push(stack.pop());
           } else {
-            while (stack.length !== 0) output.push(stack.pop());
+            while (stack.length !== 0 && tokens[i].priority() < peek(stack).priority()) output.push(stack.pop());
           }
-          stack.push(tokens[i]);
+        } else {
+          while (stack.length !== 0) output.push(stack.pop());
         }
+        stack.push(tokens[i]);
       } else if (tokens[i] instanceof EOLToken) {
         if (i !== tokens.length - 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token ${tokens[i]}`);
       } else {

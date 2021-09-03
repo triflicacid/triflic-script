@@ -7,6 +7,7 @@ Input maths problems to be solved. Supports dynamic operators, variables and fun
 - Inline function definitions in format `<name>(<args>) = ...` has been disabled 
 - Optional arguments in `func` are not implemented
 - `&&` operator short-circuiting does not work
+- `in` operator is not implemented
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -98,42 +99,42 @@ There are two types of functions: `built-in`s and `user-defined`
 - `user-defined`s are defined by the user via the syntax `<name>(<arg1>[, <arg2>[, ...]]) = ...`. `=` may be switched to `:=` for constant assignment.
 
 ### Operators
-| Operator | Name | Precedence | Description | Example |
+| Operator | Name | Precedence | Associativity | Description | Example |
 | -------- | ---- | ---------- | ----------- | ------- |
-| . | Member Access | 20 | Get member on RHS of object on LHS | `headers."time"` => `1630433878509` |
-| deg | Degrees | 18 | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` |
-| ~ | Bitwise NOT | 17 | Bitwise NOT value on LHS | `~20` => `-21` |
-| + | Unary plus | 17 | Convert LHS to number | `+"14"` => `14` |
-| - | Unary minus | 17 | Convert LHS to number and negate | `-"14"` => `-14` |
-| ' | Logical Not | 17 | Returns opposite boolean value | `0'` => `true` |
-| ! | Factorial | 17 | Returns factorial of value | `5!` => `120` or `120.00000000000017` |
-| ** | Exponentation | 16 | Returns LHS to the power of the RHS | `2 ** 4` => `16` |
-| : | Sequence | 16 | Attempts to create sequence from LHS to RHS | `3:7` => `[3,4,5,6]`, `"a":"f"` => `["a","b","c","d","e"]` |
-| // | Integer division | 15 | Divide LHS by RHS, return as an integer | `5 // 2` => `2` |
-| / | Division | 15 | Divide LHS by RHS | `5 / 2` => `2.5` |
-| % | Modulo/Remainder | 15 | Return remainder of LHS divided by RHS | `5 % 2` => `1` |
-| * | Multiplication | 15 | Multiply LHS by RHS | `5 * 2` => `10` |
-| ∩ | Intersection | 15 | Find the intersection between the LHS and RHS | `{1,2} ∩ {2,3}` => `{2}` |
-| ∪ | Union | 14 | Find the union between the LHS and RHS | `{1,2} ∩ {2,3}` => `{1,2,3}` |
-| + | Addition | 14 | Add RHS to LHS | `5 + 2` => `7` |
-| - | Subtraction | 14 | Subtract RHS from LHS | `5 - 2` => `3` |
-| << | Right Shift | 13 | Bit shift LHS right by RHS places | `5 << 2` => `20` |
-| >> | Left Shift | 13 | Bit shift LHS left by RHS places | `5 << 2` => `1` |
-| <= | Less Than or Equal To | 12 | Return boolean result of comparison between LHS and RHS | `5 <= 5` => `true` |
-| < | Less Than | 12 | Return boolean result of comparison between LHS and RHS | `4 < 5` => `true` |
-| >= | Greater Than or Equal To | 12 | Return boolean result of comparison between LHS and RHS | `5 >= 5` => `true` |
-| > | Greater Than | 12 | Return boolean result of comparison between LHS and RHS | `4 > 5` => `false` |
-| in | Member Test | 12 | Is LHS member of RHS (must have space after i.e. "in ") | `"time" in headers` => `true` |
-| == | Equality | 11 | Is the LHS equal to the RHS? | `5 == 5` => `true`, `2 == "2"` => `false` |
-| != | Not Equality | 11 | Is the LHS not equal to the RHS? | `5 != 5` => `false`, `2 != "2"` => `true` |
-| & | Bitwise And | 10 | Apply a bitwise AND to LHS and RHS | `5 & 3` => `1` |
-| ^ | Bitwise Xor | 9 | Apply a bitwise XOR to LHS and RHS | `5 ^ 3` => `6` |
-| \| | Bitwise Or | 8 | Apply bitwise OR to LHS and RHS | `5 | 3` => `7` |
-| && | Logical And | 7 | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` |
-| \|\| | Logical Or | 6 | Is either LHS or RHS truthy? | `0 || 1` => `1` |
-| := | Constant Assignment | 3 | Assigns the RHS to the LHS as a constant | `PI := 3.14159` => `3.14159` |
-| = | Assignment | 3 | Assigns the RHS to the LHS | `name := "john"` => `"john"` |
-| , | Comma | 1 | Returns RHS argument | `1, 2` => `2` |
+| . | Member Access | 20 | ltr | Get member on RHS of object on LHS | `headers."time"` => `1630433878509` |
+| deg | Degrees | 18 | rtl | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` |
+| ~ | Bitwise NOT | 17 | rtl | Bitwise NOT value on LHS | `~20` => `-21` |
+| + | Unary plus | 17 | rtl | Convert LHS to number | `+"14"` => `14` |
+| - | Unary minus | 17 | rtl | Convert LHS to number and negate | `-"14"` => `-14` |
+| ' | Logical Not | 17 | rtl | Returns opposite boolean value | `0'` => `true` |
+| ! | Factorial | 17 | rtl | Returns factorial of value | `5!` => `120` or `120.00000000000017` |
+| ** | Exponentation | 16 | rtl | Returns LHS to the power of the RHS | `2 ** 4` => `16` |
+| : | Sequence | 16 | rtl | Attempts to create sequence from LHS to RHS | `3:7` => `[3,4,5,6]`, `"a":"f"` => `["a","b","c","d","e"]` |
+| // | Integer division | 15 | ltr | Divide LHS by RHS, return as an integer | `5 // 2` => `2` |
+| / | Division | 15 | ltr | Divide LHS by RHS | `5 / 2` => `2.5` |
+| % | Modulo/Remainder | 15 | ltr | Return remainder of LHS divided by RHS | `5 % 2` => `1` |
+| * | Multiplication | 15 | ltr | Multiply LHS by RHS | `5 * 2` => `10` |
+| ∩ | Intersection | 15 | ltr | Find the intersection between the LHS and RHS | `{1,2} ∩ {2,3}` => `{2}` |
+| ∪ | Union | 14 | ltr | Find the union between the LHS and RHS | `{1,2} ∩ {2,3}` => `{1,2,3}` |
+| + | Addition | 14 | ltr | Add RHS to LHS | `5 + 2` => `7` |
+| - | Subtraction | 14 | ltr | Subtract RHS from LHS | `5 - 2` => `3` |
+| << | Right Shift | 13 | ltr | Bit shift LHS right by RHS places | `5 << 2` => `20` |
+| >> | Left Shift | 13 | ltr | Bit shift LHS left by RHS places | `5 << 2` => `1` |
+| <= | Less Than or Equal To | 12 | ltr | Return boolean result of comparison between LHS and RHS | `5 <= 5` => `true` |
+| < | Less Than | 12 | ltr | Return boolean result of comparison between LHS and RHS | `4 < 5` => `true` |
+| >= | Greater Than or Equal To | 12 | ltr | Return boolean result of comparison between LHS and RHS | `5 >= 5` => `true` |
+| > | Greater Than | 12 | ltr | Return boolean result of comparison between LHS and RHS | `4 > 5` => `false` |
+| in | Member Test | 12 | rtl | Is LHS member of RHS (must have space after i.e. "in ") | `"time" in headers` => `true` |
+| == | Equality | 11 | ltr | Is the LHS equal to the RHS? | `5 == 5` => `true`, `2 == "2"` => `false` |
+| != | Not Equality | 11 | ltr | Is the LHS not equal to the RHS? | `5 != 5` => `false`, `2 != "2"` => `true` |
+| & | Bitwise And | 10 | ltr | Apply a bitwise AND to LHS and RHS | `5 & 3` => `1` |
+| ^ | Bitwise Xor | 9 | ltr | Apply a bitwise XOR to LHS and RHS | `5 ^ 3` => `6` |
+| \| | Bitwise Or | 8 | ltr | Apply bitwise OR to LHS and RHS | `5 | 3` => `7` |
+| && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` |
+| \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 || 1` => `1` |
+| := | Constant Assignment | 3 | rtl | Assigns the RHS to the LHS as a constant | `PI := 3.14159` => `3.14159` |
+| = | Assignment | 3 | rtl | Assigns the RHS to the LHS | `name := "john"` => `"john"` |
+| , | Comma | 1 | ltr | Returns RHS argument | `1, 2` => `2` |
 
 ## keywords
 ### `if`, `else`
