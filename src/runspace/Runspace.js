@@ -1,3 +1,5 @@
+const readline = require("readline");
+const process = require("process");
 const RunspaceVariable = require("./Variable");
 const { parse } = require("../evaluation/tokens");
 const { peek } = require("../utils");
@@ -22,6 +24,13 @@ class Runspace {
       Object.entries(this.opts).forEach(([k, v]) => map.value.set(k, primitiveToValueClass(this, v)));
       this.var('headers', map, 'Config headers of current runspace [readonly]', true);
     }
+
+    this.stdin = process.stdin;
+    this.stdout = process.stdout;
+    this.io = readline.createInterface({
+      input: this.stdin,
+      output: this.stdout,
+    });
   }
 
   var(name, value = undefined, desc = undefined, constant = false) {

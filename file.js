@@ -11,14 +11,6 @@ const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 const { printError, consoleColours } = require("./src/utils");
 const { UndefinedValue } = require("./src/evaluation/values");
 
-function attempt(fn) {
-  try {
-    return fn();
-  } catch (e) {
-    printError(e, str => process.stdout.write(str));
-  }
-}
-
 if (process.argv.includes("--help")) {
   console.log(`Syntax: 'node file.js <file> [args]'`);
 } else {
@@ -48,15 +40,15 @@ if (process.argv.includes("--help")) {
 
   rs.define(new RunspaceBuiltinFunction(rs, 'print', { o: '?any', newline: '?bool' }, ({ o, newline }) => {
     if (o === undefined) {
-      process.stdout.write('\n');
+      rs.io.output.write('\n');
     } else {
       newline = newline === undefined ? true : newline.toPrimitive('bool');
-      process.stdout.write(o.toString() + (newline ? '\n' : ''));
+      rs.io.output.write(o.toString() + (newline ? '\n' : ''));
     }
     return new UndefinedValue(rs);
   }, 'prints object to the screen'));
   rs.define(new RunspaceBuiltinFunction(rs, 'clear', {}, () => {
-    process.stdout.write('\033c');
+    rs.io.output.write('\033c');
     return new UndefinedValue(rs);
   }, 'clears the screen'));
   rs.define(new RunspaceBuiltinFunction(rs, 'error', { msg: '?string' }, ({ msg }) => {
@@ -70,14 +62,16 @@ if (process.argv.includes("--help")) {
     error = e;
   }
 
-  process.stdout.write(`${'-'.repeat(25)}\nExecution terminated with code ${error ? 1 : 0} in ${Date.now() - start} ms\n`);
+  rs.io.output.write(`${'-'.repeat(25)}\nExecution terminated with code ${error ? 1 : 0} in ${Date.now() - start} ms\n`);
   if (error) {
     if (opts.niceErrors) {
-      printError(error, x => process.stdout.write(x));
+      printError(error, x => rs.io.output.write(x));
     } else {
       console.trace(error);
     }
   } else {
-    process.stdout.write(`Value returned: ${ret}`);
+    rs.io.output.write(`Value returned: ${ret}`);
   }
+
+  rs.io.close(); // Close IO stream
 }

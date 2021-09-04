@@ -38,7 +38,7 @@ function createRunspace(argString = '') {
       rs.discordLatestMsg.reply(o.toString());
       return new UndefinedValue(rs);
     } else {
-      throw new Error(`Fatal Error: could not end session. Please type '!close'.`);
+      throw new Error(`Fatal Error: cunable to print`);
     }
   }, 'End the discord maths session'));
   rs.func('import', null); // Remove function 'import'
