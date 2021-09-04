@@ -75,6 +75,7 @@ Comments may be includes as `# ...`. Enything after `#` will be ignored until a 
 ### Literals
 These are structures in the code which define values:
 
+- `#...` - comment is ignored
 - `123...` define numbers. Numbers:
   - May start with a sign `+/-`. Default is `+`.
   - Radix indicator `0[x|b|o|d]`. Default is `d`.
@@ -92,6 +93,7 @@ These are structures in the code which define values:
   `{3:7}` would be interpreted as a map, but `{(3:7)}` would not.
   One cannot use this syntax to define an empty max, as `{}` would create a set.
   - Else, **set**.
+- `'...'` is a character literal. Must be empty or contain one character.
 
 
 ### Variables

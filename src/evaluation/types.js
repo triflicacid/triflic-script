@@ -7,15 +7,17 @@ const types = {
   real: 3, // Real number 'a + 0i'
   real_int: 4, // Real number where {a} is an integer
   string: 5,
-  bool: 6,
-  array: 7,
-  set: 8,
-  map: 9,
-  func: 10,
+  char: 6,
+  bool: 7,
+  array: 8,
+  set: 9,
+  map: 10,
+  func: 11,
 };
 
-const isNumericType = t => t === 'complex' || t === 'complex_int' || t === 'real' || t === 'real_int' || t === 'bool';
-const isIntType = t => t === 'real_int' || t === 'complex_int' || t === 'bool';
+const isNumericType = t => t === 'complex' || t === 'complex_int' || t === 'real' || t === 'real_int' || t === 'bool' || t === 'char';
+const isIntType = t => t === 'real_int' || t === 'complex_int' || t === 'bool' || t === 'char';
+const isRealType = t => t === 'real_int' || t === 'real' || t === 'bool' || t === 'char';
 
 function castingError(obj, type, implicit = false) {
   if (type in types) throw new Error(`[${errors.CAST_ERROR}] Type Error: Cannot ${implicit ? 'implicitly ' : ''}cast ${typeof obj} ${typeOf(obj)} to ${type}`);
@@ -29,4 +31,4 @@ function typeOf(arg) {
   return 'unknown';
 }
 
-module.exports = { types, isNumericType, isIntType, castingError, typeOf };
+module.exports = { types, isNumericType, isIntType, isRealType, castingError, typeOf };

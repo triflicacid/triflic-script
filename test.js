@@ -1,9 +1,3 @@
-function func(obj) {
-  obj.a = 5;
-  obj.b = 5;
-}
+const { str } = require("./src/utils");
 
-let obj = {};
-console.log(obj);
-func(obj);
-console.log(obj);
+console.log(str(undefined));

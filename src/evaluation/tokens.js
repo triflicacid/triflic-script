@@ -1,6 +1,6 @@
 const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracketError, expectedSyntaxError } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
-const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue } = require("./values");
+const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
 const { isNumericType } = require("./types");
 const operators = require("./operators");
 const { errors } = require("../errors");
@@ -569,6 +569,23 @@ function _parse(obj) {
         i++;
         obj.pos++;
       }
+      continue;
+    }
+
+    // Char literal?
+    if (string[i] === '\'') {
+      let seq = '';
+      for (let j = i + 1; ; j++) {
+        if (string[j] === '\'') break;
+        if (string[j] === '\\') j++;
+        if (string[j] === undefined) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected end of input in char literal (position ${j})`);
+        seq += string[j];
+      }
+      if (seq.length > 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: multi-character string literal. Did you mean to use double quotes: "${seq}" ?`);
+      currentLine.tokens.push(new ValueToken(currentLine, new CharValue(obj.rs, seq), i));
+      const d = seq.length + 2;
+      i += d;
+      obj.pos += d;
       continue;
     }
 

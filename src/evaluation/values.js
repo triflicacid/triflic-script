@@ -2,8 +2,11 @@ const Complex = require("../maths/Complex");
 const { factorial, factorialReal, range } = require("../maths/functions");
 const { RunspaceUserFunction } = require("../runspace/Function");
 const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal, peek } = require("../utils");
-const { castingError, isNumericType } = require("./types");
+const { castingError, isNumericType, isRealType } = require("./types");
 const { errors } = require("../errors");
+const { v4, v5 } = require("uuid");
+
+const valueIDs = new Map(); // Map constant value to IDs
 
 class Value {
   constructor(runspace, value) {
@@ -28,6 +31,17 @@ class Value {
     return v;
   }
   toString() { return this.toPrimitive('string'); }
+
+  /** Constant - are all objects with this value equal? */
+  _genid(constant = true) {
+    if (constant) {
+      let key = this.toString();
+      if (!valueIDs.has(key)) valueIDs.set(key, v4());
+      return valueIDs.get(key);
+    } else {
+      return v4();
+    }
+  }
 
   __assign__() { throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot assign to object ${this.type()}`); }
 
@@ -87,6 +101,7 @@ class UndefinedValue extends Value {
 class NumberValue extends Value {
   constructor(runspace, num = 0) {
     super(runspace, Complex.assert(num));
+    this.id = this._genid(true);
   }
 
   type() { return this.value.isReal() ? "real" : "complex"; }
@@ -112,25 +127,22 @@ class NumberValue extends Value {
 
   /** operator: ~ */
   __bitwiseNot__() {
-    if (this.type() === 'real') return new NumberValue(this.rs, ~this.value.a);
+    if (isRealType(this.type())) return new NumberValue(this.rs, ~this.value.a);
   }
 
   /** operator: & */
   __bitwiseAnd__(arg) {
-    const argt = arg.type();
-    if (this.type() === 'real' && (argt === 'real' || argt === 'bool')) return new NumberValue(this.rs, this.toPrimitive('real') & arg.toPrimitive('real'));
+    if (isRealType(this.type()) && isRealType(arg.type())) return new NumberValue(this.rs, this.toPrimitive('real') & arg.toPrimitive('real'));
   }
 
   /** operator: | */
   __bitwiseOr__(arg) {
-    const argt = arg.type();
-    if (this.type() === 'real' && (argt === 'real' || argt === 'bool')) return new NumberValue(this.rs, this.toPrimitive('real') | arg.toPrimitive('real'));
+    if (isRealType(this.type()) && isRealType(arg.type())) return new NumberValue(this.rs, this.toPrimitive('real') | arg.toPrimitive('real'));
   }
 
   /** operator: ^ */
   __xor__(arg) {
-    const argt = arg.type();
-    if (this.type() === 'real' && (argt === 'real' || argt === 'bool')) return new NumberValue(this.rs, this.toPrimitive('real') ^ arg.toPrimitive('real'));
+    if (isRealType(this.type()) && isRealType(arg.type())) return new NumberValue(this.rs, this.toPrimitive('real') ^ arg.toPrimitive('real'));
   }
 
   /** operator: ** */
@@ -174,33 +186,33 @@ class NumberValue extends Value {
   /** operator: << */
   __lshift__(n) {
     const t = n.type();
-    if (this.type() === 'real' && t === 'real') return new NumberValue(this.rs, this.toPrimitive('real') << n.toPrimitive('real'));
+    if (isRealType(this.type()) && isRealType(t)) return new NumberValue(this.rs, this.toPrimitive('real') << n.toPrimitive('real'));
   }
 
   /** operator: >> */
   __rshift__(n) {
     const t = n.type();
-    if (this.type() === 'real' && t === 'real') return new NumberValue(this.rs, this.toPrimitive('real') >> n.toPrimitive('real'));
+    if (isRealType(this.type()) && isRealType(t)) return new NumberValue(this.rs, this.toPrimitive('real') >> n.toPrimitive('real'));
   }
 
   /** operator: <= */
   __le__(n) {
-    if (this.type() === 'real' && n.type() === 'real') return new BoolValue(this.rs, this.toPrimitive('real') <= n.toPrimitive('real'));
+    if (isRealType(this.type()) && isRealType(n.type())) return new BoolValue(this.rs, this.toPrimitive('real') <= n.toPrimitive('real'));
   }
 
   /** operator: < */
   __lt__(n) {
-    if (this.type() === 'real' && n.type() === 'real') return new BoolValue(this.rs, this.toPrimitive('real') < n.toPrimitive('real'));
+    if (isRealType(this.type()) && n.type() === 'real') return new BoolValue(this.rs, this.toPrimitive('real') < n.toPrimitive('real'));
   }
 
   /** operator: >= */
   __ge__(n) {
-    if (this.type() === 'real' && n.type() === 'real') return new BoolValue(this.rs, this.toPrimitive('real') >= n.toPrimitive('real'));
+    if (isRealType(this.type()) && isRealType(n.type())) return new BoolValue(this.rs, this.toPrimitive('real') >= n.toPrimitive('real'));
   }
 
   /** operator: > */
   __gt__(n) {
-    if (this.type() === 'real' && n.type() === 'real') return new BoolValue(this.rs, this.toPrimitive('real') > n.toPrimitive('real'));
+    if (isRealType(this.type()) && isRealType(n.type())) return new BoolValue(this.rs, this.toPrimitive('real') > n.toPrimitive('real'));
   }
 
   /** operator: ! */
@@ -209,7 +221,7 @@ class NumberValue extends Value {
     if (this.rs.opts.gammaFactorial) {
       if (isNumericType(t)) return new NumberValue(this.rs, factorial(this.toPrimitive('complex')));
     } else {
-      if (t === 'real') return new NumberValue(this.rs, factorialReal(this.toPrimitive('real')));
+      if (isRealType(t)) return new NumberValue(this.rs, factorialReal(this.toPrimitive('real')));
     }
   }
 
@@ -226,6 +238,7 @@ class NumberValue extends Value {
 class StringValue extends Value {
   constructor(runspace, string = '') {
     super(runspace, str(string));
+    this.id = this._genid(true);
   }
 
   type() { return "string"; }
@@ -298,6 +311,141 @@ class StringValue extends Value {
   }
 }
 
+class CharValue extends Value {
+  /** char may either be NUMBER or STRING */
+  constructor(runspace, arg = 0) {
+    if (arg === '') arg = 0;
+    if (arg instanceof Complex) throw new Error("CharValue: complex value not allowed!");
+    let value = typeof arg === 'number' ? arg : str(arg[0]).charCodeAt(0);
+    super(runspace, value);
+  }
+
+  type() { return "char"; }
+
+  /** abs() function */
+  __abs__() { return this.value; }
+
+  /** copy() function */
+  __copy__() { return new CharValue(this.rs, this.value); }
+
+  /** operator: == */
+  __eq__(other) {
+    let t = other.type(), eq = false;
+    if (t === 'char') eq = this.value === other.value;
+    else if (t === 'string') eq = this.value === other.value.charCodeAt(0);
+    else if (isRealType(t)) eq = this.value === other.value.a;
+    return new BoolValue(this.rs, eq);
+  }
+
+  /** operator: ~ */
+  __bitwiseNot__() {
+    return new CharValue(this.rs, ~this.value);
+  }
+
+  /** operator: & */
+  __bitwiseAnd__(arg) {
+    if (isRealType(arg.type())) return new CharValue(this.rs, this.value & arg.toPrimitive('real'));
+  }
+
+  /** operator: | */
+  __bitwiseOr__(arg) {
+    if (isRealType(arg.type())) return new CharValue(this.rs, this.value | arg.toPrimitive('real'));
+  }
+
+  /** operator: ^ */
+  __xor__(arg) {
+    if (isRealType(arg.type())) return new CharValue(this.rs, this.value ^ arg.toPrimitive('real'));
+  }
+
+  /** operator: ** */
+  __pow__(n) {
+    if (isRealType(n.type())) return new CharValue(this.rs, Math.pow(this.value, n.toPrimitive('real')));
+  }
+
+  /** operator: // */
+  __intDiv__(n) {
+    if (isRealType(n.type())) return new CharValue(this.rs, Math.floor(this.value / n.toPrimitive('real')));
+  }
+
+  /** operator: / */
+  __div__(n) {
+    if (isRealType(n.type())) return new CharValue(this.rs, this.value / n.toPrimitive('real'));
+  }
+
+  /** operator: % */
+  __mod__(n) {
+    if (isRealType(n.type())) return new CharValue(this.rs, this.value % n.toPrimitive('real'));
+  }
+
+  /** operator: * */
+  __mul__(n) {
+    const t = n.type();
+    if (t === 'string' || isRealType(t)) return new CharValue(this.rs, this.value * n.toPrimitive('real'));
+  }
+
+  /** operator: + */
+  __add__(n) {
+    const t = n.type();
+    if (t === 'string' || isRealType(t)) return new CharValue(this.rs, this.value + n.toPrimitive('real'));
+  }
+
+  /** operator: - */
+  __sub__(n) {
+    const t = n.type();
+    if (t === 'string' || isRealType(t)) return new CharValue(this.rs, this.value - n.toPrimitive('real'));
+  }
+
+  /** operator: << */
+  __lshift__(n) {
+    const t = n.type();
+    if (isRealType(t)) return new CharValue(this.rs, this.value << n.toPrimitive('real'));
+  }
+
+  /** operator: >> */
+  __rshift__(n) {
+    const t = n.type();
+    if (isRealType(t)) return new CharValue(this.rs, this.value >> n.toPrimitive('real'));
+  }
+
+  /** operator: <= */
+  __le__(n) {
+    if (isRealType(n.type())) return new BoolValue(this.rs, this.value <= n.toPrimitive('real'));
+  }
+
+  /** operator: < */
+  __lt__(n) {
+    if (n.type() === 'real') return new BoolValue(this.rs, this.value < n.toPrimitive('real'));
+  }
+
+  /** operator: >= */
+  __ge__(n) {
+    if (isRealType(n.type())) return new BoolValue(this.rs, this.value >= n.toPrimitive('real'));
+  }
+
+  /** operator: > */
+  __gt__(n) {
+    if (isRealType(n.type())) return new BoolValue(this.rs, this.value > n.toPrimitive('real'));
+  }
+
+  /** operator: ! */
+  __excl__() {
+    if (this.rs.opts.gammaFactorial) {
+      return new NumberValue(this.rs, factorial(this.value));
+    } else {
+      return new NumberValue(this.rs, factorialReal(this.value));
+    }
+  }
+
+  /** Operator: : */
+  __seq__(val) {
+    const t = val.type();
+    if (isNumericType(t)) {
+      let rng = range(this.toPrimitive('real_int'), val.toPrimitive('real_int'));
+      return new ArrayValue(this.rs, rng.map(n => new NumberValue(this.rs, n)));
+    }
+  }
+}
+
 class BoolValue extends Value {
   constructor(runspace, boolean = false) {
     super(runspace, !!boolean);
@@ -341,6 +489,7 @@ class BoolValue extends Value {
 class ArrayValue extends Value {
   constructor(runspace, items = []) {
     super(runspace, items);
+    this.id = this._genid(false);
   }
 
   type() { return "array"; }
@@ -441,6 +590,7 @@ class SetValue extends Value {
   constructor(runspace, items = []) {
     super(runspace, items);
     this.check();
+    this.id = this._genid(false);
   }
 
   /** Remove duplicate values */
@@ -532,6 +682,7 @@ class MapValue extends Value {
   constructor(runspace) {
     super(runspace, null);
     this.value = new Map();
+    this.id = this._genid(false);
   }
 
   type() { return "map"; }
@@ -604,6 +755,7 @@ class FunctionRefValue extends Value {
   constructor(runspace, fname, func = undefined) {
     super(runspace, fname);
     this.func = func;
+    this.id = this._genid();
   }
 
   type() { return "func"; }
@@ -620,6 +772,10 @@ class FunctionRefValue extends Value {
 
   toString() {
     return `<function ${this.func ? 'anonymous' : this.value}>`;
+  }
+
+  _genid() {
+    return this.getFn().id;
   }
 
   /** Define a function, given array of VariableToken arguments and tokens as the function bosy */
@@ -670,6 +826,7 @@ class ReferenceValue extends Value {
     super(runspace, null);
     this._get = get;
     this._set = set;
+    this.id = this._genid(false);
   }
 
   type() { return this.__deref__().type() + '*'; }
@@ -723,6 +880,7 @@ Value.typeMap = {
   real: NumberValue,
   real_int: NumberValue,
   string: StringValue,
+  char: CharValue,
   bool: BoolValue,
   array: ArrayValue,
   set: SetValue,
@@ -750,6 +908,7 @@ NumberValue.castMap = {
   real: o => new NumberValue(o.rs, o.value.a),
   real_int: o => new NumberValue(o.rs, Math.floor(o.value.a)),
   string: o => new StringValue(o.rs, str(o.value)),
+  char: o => new CharValue(o.rs, Math.floor(o.value.a)),
   bool: o => {
     if (o.value.b === 0) return new BoolValue(o.rs, !!o.value.a);
     if (o.value.a === 0) return new BoolValue(o.rs, !!o.value.b);
@@ -759,6 +918,7 @@ NumberValue.castMap = {
 
 StringValue.castMap = {
   string: o => o,
+  char: o => new CharValue(o.rs, o.value[0]),
   bool: o => new BoolValue(o.rs, !!o.value),
   complex: o => new NumberValue(o.rs, +o.value),
   complex_int: o => new NumberValue(o.rs, Math.floor(+o.value)),
@@ -768,6 +928,16 @@ StringValue.castMap = {
   set: o => new SetValue(o.rs, o.value.split('').map(s => new StringValue(o.rs, s))),
 };
 
+CharValue.castMap = {
+  char: o => o,
+  string: o => new StringValue(o.rs, String.fromCharCode(o.value)),
+  bool: o => new BoolValue(o.rs, !!o.value),
+  complex: o => new NumberValue(o.rs, o.value),
+  complex_int: o => new NumberValue(o.rs, o.value),
+  real: o => new NumberValue(o.rs, o.value),
+  real_int: o => new NumberValue(o.rs, o.value),
+};
+
 BoolValue.castMap = {
   bool: o => o,
   complex: o => new NumberValue(o.rs, +o.value),
@@ -775,6 +945,7 @@ BoolValue.castMap = {
   real: o => new NumberValue(o.rs, +o.value),
   real_int: o => new NumberValue(o.rs, +o.value),
   string: o => new StringValue(o.rs, o.value.toString()),
+  char: o => new CharValue(o.rs, +o.value),
 };
 
 ArrayValue.castMap = {
@@ -808,4 +979,4 @@ FunctionRefValue.castMap = {
   bool: o => new BoolValue(o.rs, true),
 };
 
-module.exports = { Value, UndefinedValue, NumberValue, StringValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, ReferenceValue, primitiveToValueClass };
+module.exports = { Value, UndefinedValue, NumberValue, StringValue, CharValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, ReferenceValue, primitiveToValueClass };
