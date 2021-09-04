@@ -5,6 +5,7 @@ const Runspace = require("./src/runspace/Runspace");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 const { parseArgString } = require("./src/init/args");
 const Complex = require("./src/maths/Complex");
+const { UndefinedValue } = require("./src/evaluation/values");
 
 // CHECK FOR REQUIRED ENV VARIABLES
 if (!process.env.BOT_TOKEN) throw new Error(`Setup Error: missing BOT_TOKEN environment variable`);
@@ -18,7 +19,6 @@ function createRunspace(argString = '') {
   const opts = parseArgString(argString, false);
   if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter; // Change imaginary unit
   opts.app = 'Discord';
-  opts.time = Date.now();
   const rs = new Runspace(opts); // Create object
   define(rs);
   if (opts.defineVars) defineVars(rs);
@@ -29,6 +29,14 @@ function createRunspace(argString = '') {
       rs.discordLatestMsg.reply(`Terminating with exit code ${c}`);
       sessionEnd(rs.discordLatestMsg);
       return c;
+    } else {
+      throw new Error(`Fatal Error: could not end session. Please type '!close'.`);
+    }
+  }, 'End the discord maths session'));
+  rs.define(new RunspaceBuiltinFunction(rs, 'print', { o: 'any' }, ({ o }) => {
+    if (rs.discordLatestMsg) {
+      rs.discordLatestMsg.reply(o.toString());
+      return new UndefinedValue(rs);
     } else {
       throw new Error(`Fatal Error: could not end session. Please type '!close'.`);
     }
@@ -57,7 +65,7 @@ client.on('message', async msg => {
       if (envSessions[msg.author.id]) {
         envSessions[msg.author.id].discordLatestMsg = msg;
         try {
-          let out = envSessions[msg.author.id].eval(msg.content);
+          let out = envSessions[msg.author.id].execute(msg.content);
           if (out !== undefined) await msg.reply('`' + out.toString() + '`');
         } catch (e) {
           let error = e.toString().split('\n').map(l => `\`⚠ ${l}\``).join('\n');

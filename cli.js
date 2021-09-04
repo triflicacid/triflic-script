@@ -14,7 +14,6 @@ if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Co
 opts.app = 'CLI';
 opts.dir = __dirname;
 opts.file = __filename;
-opts.time = Date.now();
 const rs = new Runspace(opts);
 define(rs);
 if (opts.defineVars) defineVars(rs);

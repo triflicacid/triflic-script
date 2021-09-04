@@ -59,7 +59,7 @@ function define(rs) {
     return new StringValue(rs, help);
   }, 'Get general help or help on a provided argument', false));
   rs.define(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, ({ obj, key }) => {
-    const v = obj.__del__?.(key);
+    const v = key === undefined ? obj.__del__?.(key) : obj.castTo("any").__del__?.(key);
     if (v === undefined) throw new Error(`[${errors.DEL}] Argument Error: cannot del() object of type ${obj.type()}`);
     return v;
   }, 'attempt to delete given object. If a key is given, attempts to delete that key from the given object.', false));

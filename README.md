@@ -87,9 +87,11 @@ These are structures in the code which define values:
 - `"..."` represents a strings
 - `[...]` represents an array
 - `{...}` represents a set, map or a block
-  - Block if keyword structure expects a block and `{...}` is present e.g. `do {...}`, `if (...) {...}`
-  - Map if first element matches `<x>: ...`. To use to `:` as an operator, therefore, one must wrap `<x>:...` in parenthesis
-  `{3:7}` would be interpreted as a map, but `{(3:7)}` would not
+  - **Block** if keyword structure expects a block and `{...}` is present e.g. `do {...}`, `if (...) {...}`.
+  - **Map** if first element matches `<x>: ...`. To use to `:` as an operator, therefore, one must wrap `<x>:...` in parenthesis
+  `{3:7}` would be interpreted as a map, but `{(3:7)}` would not.
+  One cannot use this syntax to define an empty max, as `{}` would create a set.
+  - Else, **set**.
 
 
 ### Variables
@@ -143,7 +145,7 @@ There are two types of functions: `built-in`s and `user-defined`
 | && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` |
 | \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` |
 | := | Constant Assignment | 3 | rtl | Assigns the RHS to the LHS as a constant | `PI := 3.14159` => `3.14159` |
-| = | Assignment | 3 | rtl | Assigns the RHS to the LHS | `name := "john"` => `"john"` |
+| = | Assignment | 3 | rtl | Assigns the RHS to the LHS | `name = "john"` => `"john"` |
 | , | Comma | 1 | ltr | Returns RHS argument | `1, 2` => `2` |
 
 *ltr = left-to-right*

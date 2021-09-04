@@ -215,6 +215,7 @@ class TokenLine {
   }
 
   eval() {
+    return this._eval();
     try {
       return this._eval();
     } catch (e) {
@@ -299,7 +300,7 @@ class TokenLine {
                   if (this.tokens[i + 1] instanceof KeywordToken && this.tokens[i + 1].value === 'if') {
                     if (this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '(') {
                       if (this.tokens[i + 3] instanceof BracketedTokenLines && this.tokens[i + 3].opening === '{') {
-                        structure.addBranch(this.tokens[i + 2].value[0], this.tokens[i + 3].value[0]);
+                        structure.addBranch(this.tokens[i + 2], this.tokens[i + 3]);
                         this.tokens.splice(i, 4); // Remove "else" "if" "(...)" "{...}"
                       } else {
                         throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 3] ?? 'end of input'} at ${this.tokens[i].pos}`);
@@ -310,7 +311,7 @@ class TokenLine {
                   } else {
                     let block = this.tokens[i + 1];
                     if (block instanceof BracketedTokenLines && block.opening === '{') {
-                      structure.addElse(block.value[0]);
+                      structure.addElse(block);
                       this.tokens.splice(i, 2); // Remove "else" "{...}"
                       break;
                     } else {
@@ -537,7 +538,7 @@ function parse(rs, source, singleStatement = false) {
 }
 
 function _parse(obj) {
-  let string = obj.string, inString = false, strPos, str = '';
+  let string = obj.string, inString = false, strPos, str = '', lastSourceIndex = 0;
   let currentLine = new TokenLine(obj.rs);
   const addToTokenStringPositions = []; // Array of positions which should be added to TokenStringArray objects
 
@@ -582,6 +583,8 @@ function _parse(obj) {
       i++;
       obj.pos++;
       obj.lines.push(currentLine);
+      currentLine.source = string.substr(lastSourceIndex, i).trim();
+      lastSourceIndex = i;
       currentLine = new TokenLine(obj.rs);
       continue;
     }
@@ -761,7 +764,10 @@ function _parse(obj) {
   if (inString) throw new Error(`[${errors.UNTERM_STRING}] Syntax Error: unterminated string literal at position ${strPos} `);
 
   // Make sure this line is counted for
-  if (currentLine.tokens.length > 0) obj.lines.push(currentLine);
+  if (currentLine.tokens.length > 0) {
+    currentLine.source = string.substr(lastSourceIndex).trim();
+    obj.lines.push(currentLine);
+  }
 
   // if (addToTokenStringPositions.length !== 0) {
   //   let tkstr = new TokenLine(this.rs);

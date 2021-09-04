@@ -14,6 +14,7 @@ class Runspace {
     this.dir = path.join(__dirname, "../../"); // Requires setting externally
 
     this.opts = opts;
+    opts.time = Date.now();
     this.storeAns(!!opts.ans);
 
     if (opts.revealHeaders) {

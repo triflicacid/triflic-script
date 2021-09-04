@@ -41,7 +41,6 @@ if (process.argv.includes("--help")) {
   opts.app = 'Interpreter';
   opts.dir = path.dirname(file);
   opts.file = path.basename(file);
-  opts.time = Date.now();
   const rs = new Runspace(opts);
   define(rs);
   if (opts.defineVars) defineVars(rs);
