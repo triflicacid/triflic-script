@@ -5,7 +5,7 @@ const { consoleColours, printError } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
-const { StringValue } = require("./src/evaluation/values");
+const { StringValue, UndefinedValue } = require("./src/evaluation/values");
 const { errors } = require("./src/errors");
 
 // PARSE ARGV, SETUP RUNSPACE
@@ -18,39 +18,28 @@ const rs = new Runspace(opts);
 define(rs);
 if (opts.defineVars) defineVars(rs);
 if (opts.defineFuncs) defineFuncs(rs);
-
-// Runspace CLI-specific functions
-rs.define(new RunspaceBuiltinFunction(rs, 'print', { o: '?any', newline: '?bool' }, ({ o, newline }) => {
-  if (o === undefined) {
-    rs.io.output.write('\n');
-  } else {
-    newline = newline === undefined ? true : newline.toPrimitive('bool');
-    rs.io.output.write(o.toString() + (newline ? '\n' : ''));
-  }
-  return new UndefinedValue(rs);
-}, 'prints object to the screen'));
-rs.define(new RunspaceBuiltinFunction(rs, 'clear', {}, () => {
-  rs.io.output.write('\033c');
-  return new StringValue(rs, "");
-}, 'clears the screen'));
-rs.define(new RunspaceBuiltinFunction(rs, 'error', { msg: '?string' }, ({ msg }) => {
-  throw new Error(msg ?? "<no message>");
-}, 'triggers an error'));
-
-// Attempt to execute a function, else print errors
-function attempt(fn) {
-  try {
-    return fn();
-  } catch (e) {
-    printError(e, str => rs.io.output.write(str));
-  }
-}
+rs.import("io.js");
 
 // Evaluate some input
 function evaluate(input) {
-  let func = () => rs.execute(input, true);
-  let output = opts.niceErrors ? attempt(func) : func();
-  if (output !== undefined) rs.io.output.write(output.toString() + '\n');
+  let output, err;
+  try {
+    output = rs.execute(input);
+  } catch (e) {
+    err = e;
+  }
+
+  if (err) {
+    if (opts.niceErrors) {
+      printError(err, str => rs.io.output.write(str));
+    } else {
+      console.trace(err);
+    }
+  } else {
+    if (output !== undefined) {
+      rs.io.output.write(output.toString() + '\n');
+    }
+  }
   return output;
 }
 

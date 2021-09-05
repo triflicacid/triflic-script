@@ -255,17 +255,18 @@ class FuncStructure extends Structure {
       }
     }
 
-    let ref = new FunctionRefValue(this.rs, this.name ?? 'anonymous');
-    let fn = new RunspaceUserFunction(this.rs, ref.value, argObj, this.body);
+    let fn = new RunspaceUserFunction(this.rs, this.name ?? 'anonymous', argObj, this.body);
+    let ref = new FunctionRefValue(this.rs, fn);
+    let ret;
 
     if (this.name) { // Not anonymous - define function
-      this.rs.func(ref.value, fn);
-      return;
+      this.rs.var(fn.name, ref);
     } else {
       ref.func = fn; // Bind to reference
-      return ref; // Return reference
+      ret = ref; // Return reference
     }
-
+    ref.id = ref._genid();
+    return ret;
   }
 }
 

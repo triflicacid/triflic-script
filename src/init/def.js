@@ -30,10 +30,10 @@ function define(rs) {
 
   /****************** CORE FUNCTIONS */
 
-  rs.define(new RunspaceBuiltinFunction(rs, 'help', { item: '?any' }, ({ item }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'help', { item: '?any' }, ({ item }) => {
     let help = '';
     if (item === undefined) {
-      help = `help(?s) \t Get help on a specific symbol\nerror_code(code) \t Return brief help on a given error code\nvars() \t List all variables\nfuncs() \t List all functions\noperators() \t List all operators\nexit() \t Terminate the program`;
+      help = `help(?s) \t Get help on a specific symbol\nerror_code(code) \t Return brief help on a given error code\nvars() \t List all variables\noperators() \t List all operators\nexit() \t Terminate the program`;
     } else if (item instanceof VariableToken) {
       let v = item.getVar();
       if (v.value instanceof FunctionRefValue) {
@@ -58,36 +58,16 @@ function define(rs) {
     }
     return new StringValue(rs, help);
   }, 'Get general help or help on a provided argument', false));
-  rs.define(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, ({ obj, key }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, ({ obj, key }) => {
     const v = key === undefined ? obj.__del__?.(key) : obj.castTo("any").__del__?.(key);
     if (v === undefined) throw new Error(`[${errors.DEL}] Argument Error: cannot del() object of type ${obj.type()}`);
     return v;
   }, 'attempt to delete given object. If a key is given, attempts to delete that key from the given object.', false));
-  rs.define(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
     print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
     process.exit(0);
   }, 'exit application with given code'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'funcs', { s: '?real_int' }, ({ s }) => {
-    const funcs = [];
-    if (s === undefined) {
-      rs._funcs.forEach((scope, i) => {
-        const sfuncs = [];
-        for (let v in scope) {
-          if (scope.hasOwnProperty(v)) sfuncs.push(v.toString());
-        }
-        funcs.push(new ArrayValue(rs, sfuncs));
-      });
-    } else {
-      if (rs._funcs[s] === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: scope ${s} does not exist`);
-      for (let v in rs._funcs[s]) {
-        if (rs._funcs[s].hasOwnProperty(v)) {
-          if (rs._funcs[s].hasOwnProperty(v)) funcs.push(v.toString());
-        }
-      }
-    }
-    return new ArrayValue(rs, funcs);
-  }, 'return array of all defined functions'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'vars', { s: '?real_int' }, ({ s }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', { s: '?real_int' }, ({ s }) => {
     const vars = [];
     if (s === undefined) {
       rs._vars.forEach((scope, i) => {
@@ -107,26 +87,26 @@ function define(rs) {
     }
     return new ArrayValue(rs, vars);
   }, 'list all defined variables in a given scope, or array of scopes'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'keywords', {}, () => new ArrayValue(rs, KeywordToken.keywords), 'list all keywords'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Object.keys(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.castTo(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, typeOf(o)), 'attempt a direct cast from object <o> to type <type>', false));
-  rs.define(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'keywords', {}, () => new ArrayValue(rs, KeywordToken.keywords), 'list all keywords'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Object.keys(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.castTo(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, typeOf(o)), 'attempt a direct cast from object <o> to type <type>', false));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
     t = t.toString();
     const value = Value.__new__?.(rs, t);
     if (value === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: Type ${t} cannot be initialised`);
     return value;
   }, 'create new value of type <t>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'copy', { o: 'any' }, ({ o }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copy', { o: 'any' }, ({ o }) => {
     const copy = o.castTo("any").__copy__?.();
     if (copy === undefined) throw new Error(`[${errors.CANT_COPY}] Type Error: Type ${o.type()} cannot be copied`);
     return copy;
   }, 'Return a copy of object <o>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new StringValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => new NumberValue(rs, chr.toString().charCodeAt(0)), 'return character code of <chr>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new StringValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => new NumberValue(rs, chr.toString().charCodeAt(0)), 'return character code of <chr>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
     let start, end, step;
     if (b === undefined) { start = 0; end = a.toPrimitive('real'); step = 1; }
     else if (c === undefined) { start = a.toPrimitive('real'); end = b.toPrimitive('real'); step = 1; }
@@ -136,53 +116,53 @@ function define(rs) {
     for (let n = start; n < end; n += step) range.push(new NumberValue(rs, n));
     return new ArrayValue(rs, range);
   }, 'Return array populated with numbers between <a>-<b> step <c>. 1 arg=range(0,<a>,1); 2 args=range(<a>,<b>,1); 3 args=range(<a>,<b>,<c>)'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'len', { o: 'any' }, ({ o }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'len', { o: 'any' }, ({ o }) => {
     const length = o.castTo("any").__len__?.();
     if (length === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no len()`);
     return new NumberValue(rs, length === undefined ? NaN : length);
   }, 'return length of argument'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'abs', { o: 'any' }, ({ o }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'abs', { o: 'any' }, ({ o }) => {
     const abs = o.castTo("any").__abs__?.();
     if (abs === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no abs()`);
     return new NumberValue(rs, abs === undefined ? NaN : abs);
   }, 'return length of argument'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'get', { arg: 'any', key: 'any' }, ({ arg, key }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'get', { arg: 'any', key: 'any' }, ({ arg, key }) => {
     arg = arg.castTo("any");
     if (typeof arg.__get__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot get() type ${arg.type()}`);
     return arg.__get__(key);
   }, 'get item at <i> in <arg>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'set', { arg: 'any', key: 'any', value: 'any' }, ({ arg, key, value }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'set', { arg: 'any', key: 'any', value: 'any' }, ({ arg, key, value }) => {
     arg = arg.castTo("any");
     key = key.castTo('any');
     value = value.castTo('any');
     if (typeof arg.__set__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot set() type ${arg.type()}`);
     return arg.__set__(key, value);
   }, 'set item at <i> in array <arr> to <item>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }) => {
     arr = arr.castTo('any');
     item = item.castTo('any');
     if (arr instanceof ArrayValue) return new NumberValue(rs, arr.value.push(item));
     if (arr instanceof SetValue) { arr.run(() => arr.value.push(item)); return new NumberValue(rs, arr.value.length); }
     throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected collection, got ${arr.type()}`);
   }, 'push item <item> to array <arr>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'pop', { arr: 'array' }, ({ arr }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'pop', { arr: 'array' }, ({ arr }) => {
     arr = arr.castTo("any");
     if (arr instanceof ArrayValue || arr instanceof SetValue) return arr.value.pop();
     throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected array, got ${arr.type()}`);
   }, 'pop item from array <arr>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'reverse', { arg: 'any' }, ({ arg }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'reverse', { arg: 'any' }, ({ arg }) => {
     arg = arg.castTo('any');
     let rev = arg.__reverse__?.();
     if (rev === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot reverse() type ${arg.type()}`);
     return rev;
   }, 'reverse argument <arg>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'sort', { arr: 'array' }, ({ arr }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sort', { arr: 'array' }, ({ arr }) => {
     return new ArrayValue(rs, sort(arr.toPrimitive('array').map((v, i) => {
       if (v.type() !== 'real') throw new Error(`[${errors.TYPE_ERROR}]  Type Error: expected array of real numbers, got ${v.type()} at index ${i}`);
       return v.toPrimitive('real');
     })).map(n => new NumberValue(rs, n)));
   }, 'sort array numerically'));
-  // rs.define(new RunspaceBuiltinFunction(rs, 'apply', { arr: 'array', action: 'any' }, ({ arr, action }) => {
+  // rs.defineFunc(new RunspaceBuiltinFunction(rs, 'apply', { arr: 'array', action: 'any' }, ({ arr, action }) => {
   //   arr = arr.castTo("any");
   //   action = action.castTo("any");
 
@@ -245,7 +225,7 @@ function define(rs) {
   //     return arr;
   //   }
   // }, 'Apply <action> to an array: operator, function [f(<item>) or f(<item>,<index>) or f(<item>,<index>,<array>)]. Else, eveything in array is set to <action>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'filter', { arr: 'array', fn: 'func' }, ({ arr, fn }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'filter', { arr: 'array', fn: 'func' }, ({ arr, fn }) => {
     const array = [];
     fn = fn.castTo("any").getFn();
     arr = arr.toPrimitive('array');
@@ -255,25 +235,25 @@ function define(rs) {
     }
     return new ArrayValue(rs, array);
   }, 'Remove all values from arr for which fn(value, ?index) is false'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'find', { obj: 'any', item: 'any' }, ({ obj, item }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'find', { obj: 'any', item: 'any' }, ({ obj, item }) => {
     item = item.castTo("any");
     obj = obj.castTo("any");
     let ret = obj.__find__?.(item);
     if (ret === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot search type ${o.type()}`);
     return ret;
   }, 'Find <item> in <o>. Collections: return index of <item> or -1. Map: return key of item with value <item> or undefined.'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'base', { arg: 'string', from: 'real_int', to: 'real_int' }, ({ arg, from, to }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'base', { arg: 'string', from: 'real_int', to: 'real_int' }, ({ arg, from, to }) => {
     from = from.toPrimitive('real_int');
     to = to.toPrimitive('real_int');
     if (from < 2 || from > 36) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid base: <from> = ${from}`);
     if (to < 2 || to > 36) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid base: <to> = ${to}`);
     return new StringValue(rs, parseInt(arg.toString(), from).toString(to));
   }, 'Convert <arg> from base <from> to base <to>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.execute(str.toString()), 'evaluate an input'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'id', { o: 'any' }, ({ o }) => new StringValue(rs, o.castTo("any").id), 'Return internal unique id of object'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'iif', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'Inline IF: If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => rs.import(file.toString()), 'Import <file> - see README.md for more details'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'error_code', { code: 'string' }, ({ code }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.execute(str.toString()), 'evaluate an input'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'id', { o: 'any' }, ({ o }) => new StringValue(rs, o.castTo("any").id), 'Return internal unique id of object'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'iif', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'Inline IF: If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => rs.import(file.toString()), 'Import <file> - see README.md for more details'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'error_code', { code: 'string' }, ({ code }) => {
     code = code.toPrimitive("string");
     if (code in errorDesc) {
       return new StringValue(rs, errorDesc[code]);
@@ -310,20 +290,20 @@ function defineVars(rs) {
 
 /** Built-in functions */
 function defineFuncs(rs) {
-  rs.define(new RunspaceBuiltinFunction(rs, 'arccos', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arccos(z.toPrimitive('complex'))), 'return arccosine of z')); // arccosine
-  rs.define(new RunspaceBuiltinFunction(rs, 'arccosh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arccosh(z.toPrimitive('complex'))), 'return hyperbolic arccosine of z')); // hyperbolic arccosine
-  rs.define(new RunspaceBuiltinFunction(rs, 'arcsin', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arcsin(z.toPrimitive('complex'))), 'return arcsine of z')); // arcsine
-  rs.define(new RunspaceBuiltinFunction(rs, 'arcsinh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arcsinh(z.toPrimitive('complex'))), 'return hyperbolic arcsine of z')); // hyperbolic arcsine
-  rs.define(new RunspaceBuiltinFunction(rs, 'arctan', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arctan(z.toPrimitive('complex'))), 'return arctangent of z')); // arctangent
-  rs.define(new RunspaceBuiltinFunction(rs, 'arctanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arctanh(z.toPrimitive('complex'))), 'return hyperbolic arctangent of z')); // hyperbolic arctangent
-  rs.define(new RunspaceBuiltinFunction(rs, 'arg', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').arg()), 'return the argument of z'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'cbrt', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.cbrt(z.toPrimitive('complex'))), 'return cube root of x')); // cube root
-  rs.define(new RunspaceBuiltinFunction(rs, 'ceil', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.ceil(z.toPrimitive('complex'))), 'round x up to the nearest integer')); // ceiling (round up)
-  rs.define(new RunspaceBuiltinFunction(rs, 'conj', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').conjugate()), 'return z* (the configate) of z'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'cos', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.cos(z.toPrimitive('complex'))), 'return cosine of x')); // cosine
-  rs.define(new RunspaceBuiltinFunction(rs, 'cosh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.cosh(z.toPrimitive('complex'))), 'return hyperbolic cosine of x')); // hyperbolic cosine
-  rs.define(new RunspaceBuiltinFunction(rs, 'time', { msOffset: '?real_int' }, ({ msOffset }) => new NumberValue(rs, (msOffset ? new Date(msOffset.toPrimitive('real_int')) : new Date()).getTime()), 'returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'date', { arg: '?any' }, ({ arg }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'arccos', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arccos(z.toPrimitive('complex'))), 'return arccosine of z')); // arccosine
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'arccosh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arccosh(z.toPrimitive('complex'))), 'return hyperbolic arccosine of z')); // hyperbolic arccosine
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'arcsin', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arcsin(z.toPrimitive('complex'))), 'return arcsine of z')); // arcsine
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'arcsinh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arcsinh(z.toPrimitive('complex'))), 'return hyperbolic arcsine of z')); // hyperbolic arcsine
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'arctan', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arctan(z.toPrimitive('complex'))), 'return arctangent of z')); // arctangent
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'arctanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.arctanh(z.toPrimitive('complex'))), 'return hyperbolic arctangent of z')); // hyperbolic arctangent
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'arg', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').arg()), 'return the argument of z'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'cbrt', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.cbrt(z.toPrimitive('complex'))), 'return cube root of x')); // cube root
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ceil', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.ceil(z.toPrimitive('complex'))), 'round x up to the nearest integer')); // ceiling (round up)
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'conj', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').conjugate()), 'return z* (the configate) of z'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'cos', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.cos(z.toPrimitive('complex'))), 'return cosine of x')); // cosine
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'cosh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.cosh(z.toPrimitive('complex'))), 'return hyperbolic cosine of x')); // hyperbolic cosine
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'time', { msOffset: '?real_int' }, ({ msOffset }) => new NumberValue(rs, (msOffset ? new Date(msOffset.toPrimitive('real_int')) : new Date()).getTime()), 'returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'date', { arg: '?any' }, ({ arg }) => {
     let date, type = arg?.type();
     if (arg === undefined) date = new Date();
     else if (type === 'real') date = new Date(arg.toPrimitive('real_int'));
@@ -331,27 +311,27 @@ function defineFuncs(rs) {
     else throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot construct date from type ${type}`);
     return new StringValue(rs, date.toString());
   }, 'returns date string constructed from <arg>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'exp', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.exp(z.toPrimitive('complex'))), 'return e^x')); // raise e to the x
-  rs.define(new RunspaceBuiltinFunction(rs, 'floor', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.floor(z.toPrimitive('complex'))), 'round x down to the nearest integer')); // floor (round down)
-  rs.define(new RunspaceBuiltinFunction(rs, 'isNaN', { z: 'complex' }, ({ z }) => new BoolValue(rs, Complex.isNaN(z.toPrimitive('complex'))), 'return 0 or 1 depending on is x is NaN'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'isinf', { z: 'complex' }, ({ z }) => new BoolValue(rs, !Complex.isFinite(z.toPrimitive('complex'))), 'return 0 or 1 depending on is x is infinite'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'isprime', { x: 'real' }, ({ x }) => new BoolValue(rs, isPrime(x.toPrimitive('real'))), 'return 0 or 1 depending on if x is prime'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'primes', { limit: 'real_int' }, ({ limit }) => new ArrayValue(rs, generatePrimes(limit.toPrimitive('real'))), 'generate list of primes 0..limit'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exp', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.exp(z.toPrimitive('complex'))), 'return e^x')); // raise e to the x
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'floor', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.floor(z.toPrimitive('complex'))), 'round x down to the nearest integer')); // floor (round down)
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isNaN', { z: 'complex' }, ({ z }) => new BoolValue(rs, Complex.isNaN(z.toPrimitive('complex'))), 'return 0 or 1 depending on is x is NaN'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isinf', { z: 'complex' }, ({ z }) => new BoolValue(rs, !Complex.isFinite(z.toPrimitive('complex'))), 'return 0 or 1 depending on is x is infinite'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isprime', { x: 'real' }, ({ x }) => new BoolValue(rs, isPrime(x.toPrimitive('real'))), 'return 0 or 1 depending on if x is prime'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'primes', { limit: 'real_int' }, ({ limit }) => new ArrayValue(rs, generatePrimes(limit.toPrimitive('real'))), 'generate list of primes 0..limit'));
 
-  rs.define(new RunspaceBuiltinFunction(rs, 'factors', { x: 'real' }, ({ x }) => new ArrayValue(rs, primeFactors(x.toPrimitive('real'))), 'return prime factors of x'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'factorial', { z: 'complex' }, ({ z }) => new NumberValue(rs, factorial(z.toPrimitive('complex'))), 'calculate the factorial of x using the Gamma function'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'factorialReal', { x: 'real_int' }, ({ x }) => new NumberValue(rs, factorialReal(x.toPrimitive('real'))), 'calculate the factorial of x using the common algorithm'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'ln', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.log(z.toPrimitive('complex'))), 'calculate the natural logarithm of x')); // natural logarithm
-  rs.define(new RunspaceBuiltinFunction(rs, 'log', { a: 'complex', b: '?complex' }, ({ a, b }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'factors', { x: 'real' }, ({ x }) => new ArrayValue(rs, primeFactors(x.toPrimitive('real'))), 'return prime factors of x'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'factorial', { z: 'complex' }, ({ z }) => new NumberValue(rs, factorial(z.toPrimitive('complex'))), 'calculate the factorial of x using the Gamma function'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'factorialReal', { x: 'real_int' }, ({ x }) => new NumberValue(rs, factorialReal(x.toPrimitive('real'))), 'calculate the factorial of x using the common algorithm'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ln', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.log(z.toPrimitive('complex'))), 'calculate the natural logarithm of x')); // natural logarithm
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'log', { a: 'complex', b: '?complex' }, ({ a, b }) => {
     return new NumberValue(rs, b === undefined ?
       Complex.div(Complex.log(a.toPrimitive('complex')), Math.LN10) :// log base 10 of <a>
       Complex.div(Complex.log(b.toPrimitive('complex')), Complex.log(a.toPrimitive('complex'))));// log base <a> of <b>
   }, 'return log base <a> of <b>. If b is not provided, return log base 10 of <a>'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'lcf', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, LCF(a.toPrimitive('real'), b.toPrimitive('real'))), 'return the lowest common factor of a and b'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'mean', { arr: 'array' }, ({ arr }) => new NumberValue(rs, mean(arr.toPrimitive('array').map(v => v.toPrimitive('real')))), 'calculate mean value in an array'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'PMCC', { x: 'array', y: 'array' }, ({ x, y }) => new NumberValue(rs, PMCC(x.toPrimitive('array').map(v => v.toPrimitive('real')), y.toPrimitive('array').map(v => v.toPrimitive('real')))), 'Calculate the Product Moment Correlation Coefficient between two data sets'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'variance', { arr: 'array' }, ({ arr }) => new NumberValue(rs, variance(arr.toPrimitive('array').map(v => v.toPrimitive('real')))), 'calculate variance in a dataset'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'random', { a: '?real', b: '?real' }, ({ a, b }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'lcf', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, LCF(a.toPrimitive('real'), b.toPrimitive('real'))), 'return the lowest common factor of a and b'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mean', { arr: 'array' }, ({ arr }) => new NumberValue(rs, mean(arr.toPrimitive('array').map(v => v.toPrimitive('real')))), 'calculate mean value in an array'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'PMCC', { x: 'array', y: 'array' }, ({ x, y }) => new NumberValue(rs, PMCC(x.toPrimitive('array').map(v => v.toPrimitive('real')), y.toPrimitive('array').map(v => v.toPrimitive('real')))), 'Calculate the Product Moment Correlation Coefficient between two data sets'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'variance', { arr: 'array' }, ({ arr }) => new NumberValue(rs, variance(arr.toPrimitive('array').map(v => v.toPrimitive('real')))), 'calculate variance in a dataset'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'random', { a: '?real', b: '?real' }, ({ a, b }) => {
     if (a !== undefined) a = a.toPrimitive('real');
     if (b !== undefined) b = b.toPrimitive('real');
     let n;
@@ -360,30 +340,30 @@ function defineFuncs(rs) {
     else n = Math.random();
     return new NumberValue(rs, n);
   }, 'return a pseudo-random decimal number. Range: 0 arguments: 0-1. 1 argument: 0-a. 2 arguments: a-b'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'nPr', { n: 'real_int', r: 'real_int' }, ({ n, r }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nPr', { n: 'real_int', r: 'real_int' }, ({ n, r }) => {
     n = n.toPrimitive('real');
     r = r.toPrimitive('real');
     if (r > n) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid argument size relationship: n=${n} and r=${r}`);
     return new NumberValue(rs, factorial(n) / factorial(n - r));
   }, 'Return the probability of selecting an ordered set of <r> objects from a group of <n> number of objects'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'nCr', { n: 'real_int', r: 'real_int' }, ({ n, r }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nCr', { n: 'real_int', r: 'real_int' }, ({ n, r }) => {
     n = n.toPrimitive('real');
     r = r.toPrimitive('real');
     if (r > n) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid argument size relationship: n=${n} and r=${r}`);
     return new NumberValue(rs, factorial(n) / (factorial(r) * factorial(n - r)));
   }, 'Represents the selection of objects from a group of objects where order of objects does not matter'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'round', { x: 'complex', dp: '?real_int' }, ({ x, dp }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'round', { x: 'complex', dp: '?real_int' }, ({ x, dp }) => {
     x = x.toPrimitive('complex');
     if (dp === undefined) return new NumberValue(rs, Complex.round(x));
     return new NumberValue(rs, Complex.roundDp(x, dp.toPrimitive('real')));
   }, 'round x to the nearest integer, or to <dp> decimal places')); // round
-  rs.define(new RunspaceBuiltinFunction(rs, 'Re', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').a), 'return real component of z'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'Im', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').b), 'return imaginary component of z'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'sin', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sin(z.toPrimitive('complex'))), 'return sine of z')); // sine
-  rs.define(new RunspaceBuiltinFunction(rs, 'sinh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sinh(z.toPrimitive('complex'))), 'return hyperbolic sine of z')); // hyperbolic sine
-  rs.define(new RunspaceBuiltinFunction(rs, 'sqrt', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sqrt(z.toPrimitive('complex'))), 'return square root of z')); // cube root
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'Re', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').a), 'return real component of z'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'Im', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').b), 'return imaginary component of z'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sin', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sin(z.toPrimitive('complex'))), 'return sine of z')); // sine
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sinh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sinh(z.toPrimitive('complex'))), 'return hyperbolic sine of z')); // hyperbolic sine
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sqrt', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sqrt(z.toPrimitive('complex'))), 'return square root of z')); // cube root
   // if (rs.opts.defineAliases) rs.funcAlias('sqrt', '√');
-  // rs.define(new RunspaceBuiltinFunction(rs, 'summation', { start: 'any', limit: 'any', action: 'any', svar: '?any' }, ({ start, limit, action, svar }) => {
+  // rs.defineFunc(new RunspaceBuiltinFunction(rs, 'summation', { start: 'any', limit: 'any', action: 'any', svar: '?any' }, ({ start, limit, action, svar }) => {
   //   let sumVar = 'x', sum = new Complex(0);
   //   start = start.toPrimitive('real_int');
   //   limit = limit.toPrimitive('real_int');
@@ -429,15 +409,15 @@ function defineFuncs(rs) {
   //   return new NumberValue(rs, sum);
   // }, 'Calculate a summation series between <start> and <limit>, executing <action> (may be constant, function or string). Use variable <svar> as counter.'));
   // if (rs.opts.defineAliases) rs.funcAlias('summation', '∑');
-  rs.define(new RunspaceBuiltinFunction(rs, 'tan', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tan(z.toPrimitive('complex'))), 'return tangent of z')); // tangent
-  rs.define(new RunspaceBuiltinFunction(rs, 'tanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tanh(z.toPrimitive('complex'))), 'return hyperbolic tangent of z')); // hyperbolic tangent
-  rs.define(new RunspaceBuiltinFunction(rs, 'lambertw', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'tan', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tan(z.toPrimitive('complex'))), 'return tangent of z')); // tangent
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'tanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tanh(z.toPrimitive('complex'))), 'return hyperbolic tangent of z')); // hyperbolic tangent
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'lambertw', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
   // if (rs.opts.defineAliases) rs.funcAlias('lambertw', 'W');
-  rs.define(new RunspaceBuiltinFunction(rs, 'wrightomega', { z: 'complex' }, ({ z }) => new NumberValue(rs, wrightomega(z.toPrimitive('complex'))), 'return approximation of the Wright Omega function'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'wrightomega', { z: 'complex' }, ({ z }) => new NumberValue(rs, wrightomega(z.toPrimitive('complex'))), 'return approximation of the Wright Omega function'));
   // if (rs.opts.defineAliases) rs.funcAlias('wrightomega', 'ω');
-  rs.define(new RunspaceBuiltinFunction(rs, 'gamma', { z: 'complex' }, ({ z }) => new NumberValue(rs, gamma(z.toPrimitive('complex'))), 'Return the gamma function at z'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'gamma', { z: 'complex' }, ({ z }) => new NumberValue(rs, gamma(z.toPrimitive('complex'))), 'Return the gamma function at z'));
   // if (rs.opts.defineAliases) rs.funcAlias('gamma', 'Γ');
-  rs.define(new RunspaceBuiltinFunction(rs, 'nextNearest', { n: 'real', next: 'real' }, ({ n, next }) => new NumberValue(rs, nextNearest(n.toPrimitive('real'), next.toPrimitive('real'))), 'Return the next representable double from value <n> towards <next>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nextNearest', { n: 'real', next: 'real' }, ({ n, next }) => new NumberValue(rs, nextNearest(n.toPrimitive('real'), next.toPrimitive('real'))), 'Return the next representable double from value <n> towards <next>'));
 }
 
 module.exports = { define, defineVars, defineFuncs };

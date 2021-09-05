@@ -1,6 +1,6 @@
 const Complex = require("../maths/Complex");
 const { factorial, factorialReal, range } = require("../maths/functions");
-const { RunspaceUserFunction } = require("../runspace/Function");
+const { RunspaceUserFunction, RunspaceFunction } = require("../runspace/Function");
 const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal, peek } = require("../utils");
 const { castingError, isNumericType, isRealType } = require("./types");
 const { errors } = require("../errors");
@@ -750,54 +750,39 @@ class MapValue extends Value {
   }
 }
 
-/** Reference to function without calling. this.value = function name. May store the function directly - anonymous function. */
+/** Stores a RunspaceFunction */
 class FunctionRefValue extends Value {
-  constructor(runspace, fname, func = undefined) {
-    super(runspace, fname);
-    this.func = func;
+  constructor(runspace, fn = undefined) {
+    super(runspace, fn);
     this.id = this._genid();
   }
 
   type() { return "func"; }
 
   exists() {
-    if (this.func) return true;
-    return this.rs.func(this.value) !== undefined;
+    return this.value !== undefined;
   }
 
   getFn() {
-    if (this.func) return this.func;
-    return this.rs.func(this.value);
+    return this.value;
   }
 
   toString() {
-    return `<function ${this.func ? 'anonymous' : this.value}>`;
+    return `<function ${this.value.name}>`;
   }
 
   _genid() {
-    return this.getFn().id;
-  }
-
-  /** Define a function, given array of VariableToken arguments and tokens as the function bosy */
-  defineFunction(params, body, pos, isConstant = false, comment = undefined) {
-    if (this.func) throw new Error(`FunctionRefValue.defineFunction - defining anonymous function`);
-    params = params.map(param => param.value); // string[] of parameter names
-
-    let fn = this.getFn();
-    if (fn?.constant) throw new Error(`[${errors.ASSIGN}] Syntax Error: Assignment to constant function ${this.value} (position ${pos})`);
-    fn = new RunspaceUserFunction(this.rs, this.value, params, body, comment, isConstant); // Define new function
-    this.rs.func(this.value, fn);
-    return this;
+    return this.value?.id;
   }
 
   /** del() function */
-  __del__() {
-    if (this.func) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot delete unbound function`);
-    const f = this.getFn();
-    if (f.constant) throw new Error(`[${errors.DEL}] Argument Error: Attempt to delete constant reference to ${this.toString()}`);
-    this.rs.func(this.value, null);
-    return new NumberValue(this.rs, 0);
-  }
+  // __del__() {
+  //   if (this.func) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot delete unbound function`);
+  //   const f = this.getFn();
+  //   if (f.constant) throw new Error(`[${errors.DEL}] Argument Error: Attempt to delete constant reference to ${this.toString()}`);
+  //   this.rs.func(this.value, null);
+  //   return new NumberValue(this.rs, 0);
+  // }
 
   /** When this is called. Takes array of Value classes as arguments */
   __call__(args) {
@@ -855,22 +840,26 @@ class ReferenceValue extends Value {
 
 /** Convert primitive JS value to Value class */
 function primitiveToValueClass(runspace, primitive) {
-  if (primitive instanceof Value) return primitive;
-  if (runspace == undefined) return new UndefinedValue(runspace);
-  if (typeof primitive === 'boolean') return new BoolValue(runspace, primitive);
+  if (primitive instanceof Value) return primitive; // Already a value
+  if (runspace == undefined) return new UndefinedValue(runspace); // undefined
+  if (typeof primitive === 'boolean') return new BoolValue(runspace, primitive); // Boolean
   const c = Complex.is(primitive);
-  if (c !== false) return new NumberValue(runspace, c);
-  if (primitive instanceof Set) return new SetValue(runspace, Array.from(primitive).map(p => primitiveToValueClass(runspace, p)));
-  if (primitive instanceof Map) {
+  if (c !== false) return new NumberValue(runspace, c); // Number
+  if (primitive instanceof Set) return new SetValue(runspace, Array.from(primitive).map(p => primitiveToValueClass(runspace, p))); // Set
+  if (primitive instanceof Map) { // Map
     let map = new MapValue(rs);
     primitive.forEach((v, k) => {
       map.value.set(k, primitiveToValueClass(runspace, v));
     });
     return map;
   }
-  if (Array.isArray(primitive)) return new ArrayValue(runspace, primitive.map(p => primitiveToValueClass(runspace, p)));
-  if (runspace.func(primitive) !== undefined) return new FunctionRefValue(runspace, primitive);
-  return new StringValue(runspace, primitive);
+  if (Array.isArray(primitive)) return new ArrayValue(runspace, primitive.map(p => primitiveToValueClass(runspace, p))); // Array
+  if (primitive instanceof RunspaceFunction) {
+    const varVal = runspace.var(primitive.name);
+    if (varVal instanceof FunctionRefValue) return varVal;
+    return new FunctionRefValue(this, primitive); // Function
+  }
+  return new StringValue(runspace, primitive); // Else, string
 }
 
 /** This is used for Value.__new__ */

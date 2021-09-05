@@ -143,7 +143,7 @@ class VariableToken extends Token {
   __del__() {
     const v = this.getVar();
     if (v.constant) throw new Error(`[${errors.DEL}] Argument Error: Attempt to delete a constant variable ${this.value}`);
-    this.tstr.rs.var(this.value, null);
+    this.tstr.rs.deleteVar(this.value);
     return new NumberValue(this.tstr.rs, 0);
   }
 
@@ -429,23 +429,23 @@ class TokenLine {
         const last = stack.pop(); // Should be VariableToken
         if (T[i].isDeclaration) { // Declare function
           throw new Error(`[${errors.SYNTAX}] Syntax error - invalid assignment (fn)`);
-          const variable = last; // Function name (VariableToken)
-          const params = T[i].value.splitByCommas(); // Parameters to function (array of tokens)
-          const body = T[++i]; // Body of function (TokenStringArray)
-          const assign = T[++i]; // Assignment operator (OperatorToken)
+          // const variable = last; // Function name (VariableToken)
+          // const params = T[i].value.splitByCommas(); // Parameters to function (array of tokens)
+          // const body = T[++i]; // Body of function (TokenStringArray)
+          // const assign = T[++i]; // Assignment operator (OperatorToken)
 
-          if (!(variable instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax. [1]`);
-          if (!(body instanceof TokenStringArray && body.value.length === 1)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax. [2] `);
-          if (!(assign instanceof OperatorToken && (assign.value === '=' || assign.value === ':='))) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax. [3]`);
+          // if (!(variable instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax. [1]`);
+          // if (!(body instanceof TokenStringArray && body.value.length === 1)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax. [2] `);
+          // if (!(assign instanceof OperatorToken && (assign.value === '=' || assign.value === ':='))) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax. [3]`);
 
-          const ref = new FunctionRefValue(this.rs, variable.value), sparams = [];
-          for (const ts of params.value) {
-            if (ts.tokens.length !== 1 || !(ts.tokens[0] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Illegal function declaration`);
-            params.push(ts.tokens[0]);
-          }
+          // const ref = new FunctionRefValue(this.rs, variable.value), sparams = [];
+          // for (const ts of params.value) {
+          //   if (ts.tokens.length !== 1 || !(ts.tokens[0] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Illegal function declaration`);
+          //   params.push(ts.tokens[0]);
+          // }
 
-          ref.defineFunction(params, body.value[0], assign.pos, variable.isDeclaration === 2, this.comment);
-          stack.push(ref);
+          // ref.defineFunction(params, body.value[0], assign.pos, variable.isDeclaration === 2, this.comment);
+          // stack.push(ref);
         } else { // Attempt to call last thing
           const lastValue = last.castTo("any");
           if (typeof lastValue?.__call__ !== 'function') throw new Error(`[${errors.NOT_CALLABLE}] Type Error: type ${lastValue.type()} is not callable (position ${T[i].pos})`);
@@ -627,85 +627,6 @@ function _parse(obj) {
     if (string[i] in bracketValues) {
       if (bracketValues[string[i]] === -1) { // Should never come across a closing bracket
         throwMatchingBracketError(string[i], bracketMap[string[i]], obj.pos);
-        // } else if (string[i] === '(') {
-        //   const opening = new BracketToken(this, '(', obj.pos);
-        //   i++;
-        //   obj.pos++;
-
-        //   // Normal bracket group (evaluate normally) or evaluate as calling group
-        //   const topmost = peek(obj.tokens);
-        //   if (expectingGroup || !topmost || topmost instanceof OperatorToken) {
-        //     if (i >= string.length) this._throwMatchingBracketError(opening.value, bracketMap[opening.value], obj.pos);
-        //     const pobj = createTokenStringParseObj(string.substr(i), obj.pos, obj.depth + 1, [')']);
-        //     this._parse(pobj);
-
-        //     let d = pobj.pos - opening.pos;
-        //     i += d;
-        //     obj.pos += d;
-
-        //     // Push tokens as array or as new TokenString
-        //     if (expectingGroup) {
-        //       const group = new TokenString(this.rs);
-        //       group.string = string.substring(opening.pos + 1, pobj.pos);
-        //       obj.tokens.push(group);
-        //     } else {
-        //       const closing = new BracketToken(this, ')', obj.pos);
-        //       opening.matching = closing;
-        //       opening.matching = opening;
-
-        //       obj.tokens.push(opening, ...pobj.tokens, closing);
-        //     }
-        //   } else {
-        //     // throw new Error(`Syntax Error: ) must follow an operator`);
-        //     const argTokens = [];
-        //     const [done, endPos] = this._parseCommaSeperated(argTokens, string.substr(i), obj.pos, obj.depth + 1, bracketMap[opening.value]);
-        //     if (!done) this._throwMatchingBracketError(opening.value, bracketMap[opening.value], obj.pos);
-
-        //     const argStr = string.substr(i, (endPos - obj.pos) - 1);
-        //     obj.pos = endPos;
-        //     i += argStr.length + 1;
-        //     const array = new TokenStringArray(this, argTokens, opening.pos);
-        //     obj.tokens.push(array);
-        //   }
-        //   continue;
-        // } else if (string[i] === '[' || string[i] === '{') {
-        //   const opening = new BracketToken(this.rs, string[i], obj.pos);
-        //   i++;
-        //   obj.pos++;
-
-        //   if (opening.value === '{' && expectingBlock) {
-        //     const pobj = createTokenStringParseObj(string.substr(i), obj.pos, obj.depth + 1, ['}']);
-        //     this._parse(pobj);
-
-        //     // Check that everything was matched
-        //     if (pobj.terminateOn !== '}') throw new Error(`[${errors.SYNTAX}] Syntax Error: expected } following code block`);
-
-        //     const block = new TokenString(this.rs);
-        //     block.tokens = pobj.tokens;
-        //     obj.tokens.push(block);
-
-        //     const source = string.substr(i, pobj.pos - obj.pos); // Extract block text
-        //     block.string = source;
-        //     obj.pos += source.length + 1;
-        //     i += source.length + 1;
-
-        //     expectingBlock = false;
-        //   } else {
-        //     const itemTokens = [];
-        //     const [done, endPos] = this._parseCommaSeperated(itemTokens, string.substr(i), obj.pos, obj.depth, bracketMap[opening.value]);
-        //     if (!done) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected '${bracketMap[opening.value]}' after collection declaration following '${opening.value}'(position ${opening.pos})`);
-
-        //     const argStr = string.substr(i, (endPos - obj.pos) - 1);
-        //     obj.pos += argStr.length + 1;
-        //     i += argStr.length + 1;
-
-        //     const Klass = opening.value === '{' ? SetValue : ArrayValue;
-        //     let value = new Klass(this.rs, itemTokens.map(ts => ts.eval()));
-        //     let valuet = new ValueToken(this, value, obj.pos);
-        //     obj.tokens.push(valuet);
-        //   }
-
-        //   continue;
       } else {
         const opening = string[i];
         const closing = bracketMap[opening];

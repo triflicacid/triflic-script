@@ -35,25 +35,9 @@ if (process.argv.includes("--help")) {
   opts.file = path.basename(file);
   const rs = new Runspace(opts);
   define(rs);
+  rs.import("io.js");
   if (opts.defineVars) defineVars(rs);
   if (opts.defineFuncs) defineFuncs(rs);
-
-  rs.define(new RunspaceBuiltinFunction(rs, 'print', { o: '?any', newline: '?bool' }, ({ o, newline }) => {
-    if (o === undefined) {
-      rs.io.output.write('\n');
-    } else {
-      newline = newline === undefined ? true : newline.toPrimitive('bool');
-      rs.io.output.write(o.toString() + (newline ? '\n' : ''));
-    }
-    return new UndefinedValue(rs);
-  }, 'prints object to the screen'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'clear', {}, () => {
-    rs.io.output.write('\033c');
-    return new UndefinedValue(rs);
-  }, 'clears the screen'));
-  rs.define(new RunspaceBuiltinFunction(rs, 'error', { msg: '?string' }, ({ msg }) => {
-    throw new Error(msg ?? "<no message>");
-  }, 'triggers an error'));
 
   let start = Date.now(), ret, error;
   try {

@@ -12,7 +12,6 @@ const { errors } = require("../errors");
 class Runspace {
   constructor(opts = {}) {
     this._vars = [{}]; // { variable: RunspaceVariable }[]
-    this._funcs = [{}]; // { func: RunspaceFunction }[]
     this.dir = path.join(__dirname, "../../"); // Requires setting externally
 
     this.opts = opts;
@@ -33,14 +32,9 @@ class Runspace {
     });
   }
 
+  /** Get/Set a variable */
   var(name, value = undefined, desc = undefined, constant = false) {
-    if (value === null) { // Delete variable
-      for (let i = this._vars.length - 1; i >= 0; i--) {
-        if (this._vars[i].hasOwnProperty(name)) {
-          return delete this._vars[i][name];
-        }
-      }
-    } else if (value !== undefined) {
+    if (value !== undefined) {
       let obj;
       if (value instanceof Value || value instanceof RunspaceFunction) obj = new RunspaceVariable(name, value, desc, constant);
       else if (value instanceof RunspaceVariable) obj = value.copy();
@@ -50,6 +44,14 @@ class Runspace {
     }
     for (let i = this._vars.length - 1; i >= 0; i--) {
       if (this._vars[i].hasOwnProperty(name)) return this._vars[i][name];
+    }
+  }
+
+  deleteVar(name) {
+    for (let i = this._vars.length - 1; i >= 0; i--) {
+      if (this._vars[i].hasOwnProperty(name)) {
+        return delete this._vars[i][name];
+      }
     }
   }
 
@@ -63,35 +65,16 @@ class Runspace {
   /** Push new variable scope */
   pushScope() {
     this._vars.push({});
-    this._funcs.push({});
   }
 
   /** Pop variable scope */
   popScope() {
     if (this._vars.length > 1) this._vars.pop();
-    if (this._funcs.length > 1) this._funcs.pop();
   }
 
-  /** Get/Set/Delete a function */
-  func(name, body = undefined) {
-    if (body === null) {
-      for (let i = this._funcs.length - 1; i >= 0; i--) {
-        if (this._funcs[i].hasOwnProperty(name)) {
-          return delete this._funcs[i][name];
-        }
-      }
-    } else if (body !== undefined) {
-      peek(this._funcs)[name] = body;
-      this.var(name, new FunctionRefValue(this, name)); // Store reference to function as a variable
-    }
-    for (let i = this._funcs.length - 1; i >= 0; i--) {
-      if (this._funcs[i].hasOwnProperty(name)) return this._funcs[i][name];
-    }
-  }
-
-  /** Define a function */
-  define(fn) {
-    return this.func(fn.name, fn);
+  /** Define a function - defines a variable with a reference to the function */
+  defineFunc(fn) {
+    return this.var(fn.name, new FunctionRefValue(this, fn));
   }
 
   /** Parse a program; returns array of TokenLine objects */
