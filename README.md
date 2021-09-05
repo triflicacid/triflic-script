@@ -40,6 +40,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `reveal-headers` : `boolean`. Reveal CLI options and other information to Runspace as `headers` map?
 - `define-aliases` : `boolean`. Define aliases for some variables/functions e.g. `W` for `lambertW` and `π` for `pi` (NB these are not aliases, but copies, so `pi` is independant from `π`)
 - `multiline` : `boolean`. Does the CLI allow multiline input?
+- `time` : `boolean`. CLI times each line of execution.
 
 ## Built-Ins
 Base definitions to a `Runspace` instance are present in `src/def.js`

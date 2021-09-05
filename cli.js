@@ -22,9 +22,11 @@ rs.import("io.js");
 
 // Evaluate some input
 function evaluate(input) {
-  let output, err;
+  let output, err, time;
   try {
+    let start = Date.now();
     output = rs.execute(input);
+    time = Date.now() - start;
   } catch (e) {
     err = e;
   }
@@ -38,6 +40,9 @@ function evaluate(input) {
   } else {
     if (output !== undefined) {
       rs.io.output.write(output.toString() + '\n');
+    }
+    if (opts.time) {
+      rs.io.output.write(`** Took ${time} ms\n`);
     }
   }
   return output;
