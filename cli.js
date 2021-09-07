@@ -41,7 +41,7 @@ function evaluate(input) {
     if (output !== undefined) {
       rs.io.output.write(output.toString() + '\n');
     }
-    if (opts.time) {
+    if (opts.displayTime) {
       rs.io.output.write(`** Took ${time} ms\n`);
     }
   }

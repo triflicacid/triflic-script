@@ -24,7 +24,9 @@ class ArrayStructure extends Structure {
     this.elements = elements;
   }
 
-  validate() { }
+  validate() {
+    this.elements.forEach(e => e.parse());
+  }
 
   eval() {
     const values = this.elements.map(el => el.eval()); // Evaluate each element
@@ -49,6 +51,7 @@ class MapStructure extends Structure {
 
   validate() {
     if (this.keys.length !== this.values.length) throw new Error(`${this}: keys and values arrays must be equal lengths`);
+    this.values.forEach(e => e.parse());
   }
 
   eval() {
@@ -68,7 +71,9 @@ class SetStructure extends Structure {
     this.elements = elements;
   }
 
-  validate() { }
+  validate() {
+    this.elements.forEach(e => e.parse());
+  }
 
   eval() {
     const values = this.elements.map(el => el.eval());
@@ -78,8 +83,8 @@ class SetStructure extends Structure {
 
 class IfStructure extends Structure {
   /**
-   * @param conditionals - array of [condition: BracketedTokenLines, body: BracketedTokenLines]
-   * @param elseBlock - else block
+   * @param conditionals - array of [condition: BracketedTokenLines, body: Block]
+   * @param elseBlock - else block (Block)
    */
   constructor(pos, conditionals = [], elseBlock = undefined) {
     super("IF", pos);
@@ -87,8 +92,9 @@ class IfStructure extends Structure {
     this.elseBlock = elseBlock;
   }
 
-  addBranch(condition, body) {
-    this.conditionals.push([condition, body]);
+  /** condition - BracketedTokenLines. body - Block */
+  addBranch(condition, block) {
+    this.conditionals.push([condition, block]);
   }
 
   addElse(block) {

@@ -11,6 +11,7 @@ Now, supports multi-line programs with basic control structures. Due to origins 
 ## TODO
 - Nested-expression shortcut
 Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
+- Some operators cannot be typed e.g. `<cast>` and `(call)`
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -40,7 +41,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `reveal-headers` : `boolean`. Reveal CLI options and other information to Runspace as `headers` map?
 - `define-aliases` : `boolean`. Define aliases for some variables/functions e.g. `W` for `lambertW` and `π` for `pi` (NB these are not aliases, but copies, so `pi` is independant from `π`)
 - `multiline` : `boolean`. Does the CLI allow multiline input?
-- `time` : `boolean`. CLI times each line of execution.
+- `display-time` : `boolean`. CLI times each line of execution and displays it.
 
 ## Built-Ins
 Base definitions to a `Runspace` instance are present in `src/def.js`

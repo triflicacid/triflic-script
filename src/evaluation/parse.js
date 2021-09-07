@@ -118,7 +118,7 @@ function parseNumber(string, allowExponent = true, seperator = '_') {
 /** Requires Runspace instance */
 function parseOperator(string) {
   for (let operator in operators) {
-    if (operators.hasOwnProperty(operator)) {
+    if (operators.hasOwnProperty(operator) && !operators[operator].hidden) {
       let snippet = string.substr(0, operator.length);
       if (operator === snippet) return operator;
     }

@@ -1,14 +1,15 @@
 const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracketError, expectedSyntaxError } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
-const { isNumericType } = require("./types");
 const operators = require("./operators");
 const { errors } = require("../errors");
 const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure } = require("./structures");
+const { Block } = require("./block");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
     this.tstr = tstring;
+    this.block = this.tstr.block;
     this.value = v;
     this.pos = pos; // Definition position
   }
@@ -38,20 +39,6 @@ class KeywordToken extends Token {
 }
 
 KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "foreach", "break", "continue", "func"];
-
-class BracketToken extends Token {
-  constructor(tstring, x, pos) {
-    super(tstring, x, pos);
-    if (bracketValues[x] === undefined) throw new Error(`new BracketToken() : '${x}' is not a bracket`);
-    this.matching = undefined; // Matching BracketToken
-  }
-  priority() { return 0; }
-
-  /** 1 : opening, -1 : closing */
-  facing() {
-    return bracketValues[this.value];
-  }
-}
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
@@ -90,6 +77,20 @@ class OperatorToken extends Token {
   toString() {
     if (this.value === '<cast>') return '<' + this.data + '>';
     return this.isUnary ? operators[this.value].unary : this.value;
+  }
+}
+
+class BracketToken extends Token {
+  constructor(tstring, x, pos) {
+    super(tstring, x, pos);
+    if (bracketValues[x] === undefined) throw new Error(`new BracketToken() : '${x}' is not a bracket`);
+    this.matching = undefined; // Matching BracketToken
+  }
+  priority() { return 0; }
+
+  /** 1 : opening, -1 : closing */
+  facing() {
+    return bracketValues[this.value];
   }
 }
 
@@ -153,7 +154,7 @@ class VariableToken extends Token {
     // if (this.tstr.rs.func(name)) throw new Error(`[${errors.ARG_COUNT}] Syntax Error: Invalid syntax - symbol '${name}' is a function but treated as a variable at position ${this.pos}`);
     if (this.tstr.rs.var(name)?.constant) throw new Error(`[${errors.ASSIGN}] Syntax Error: Assignment to constant variable ${name} (position ${this.pos})`);
     // Setup TokenString
-    const ts = new TokenLine(this.tstr.rs);
+    const ts = new TokenLine(this.tstr.rs, this.block);
     ts.tokens = [v];
     // Evaluate
     const obj = ts.eval(); // Intermediate
@@ -185,12 +186,18 @@ class BracketedTokenLines extends Token {
   }
 
   toString() { return this.opening + this.value.toString() + bracketMap[this.opening]; }
+
+  toBlock() {
+    if (!this.tstr.block) throw new Error(`BracketedTokenLines.toBlock :: this.tstr is not bound to a scope`);
+    return new Block(this.tstr.rs, this.value, this.pos, this.tstr.block);
+  }
 }
 
 /** Represents a program line - holds array of tokens */
 class TokenLine {
-  constructor(runspace, tokens = [], source = '') {
+  constructor(runspace, block, tokens = [], source = '') {
     this.rs = runspace;
+    this.block = block;
     this.source = source;
     this.tokens = tokens; // Array of token objects
     this.comment = '';
@@ -198,13 +205,13 @@ class TokenLine {
 
   /** Returns array of TokenStrings */
   splitByCommas() {
-    let items = [], metItem = false, ts = new TokenLine(this.rs);
+    let items = [], metItem = false, ts = new TokenLine(this.rs, this.block);
     for (let i = 0; i < this.tokens.length; i++) {
       if (this.tokens[i] instanceof OperatorToken && this.tokens[i].value === ',') {
         if (!metItem) throw new Error(`[${errors.SYNTAX}]: expected expression, got , at position ${this.tokens[i].pos}`);
         metItem = false;
         items.push(ts);
-        ts = new TokenLine(this.rs);
+        ts = new TokenLine(this.rs, this.block);
       } else {
         ts.tokens.push(this.tokens[i]);
         metItem = true;
@@ -214,16 +221,17 @@ class TokenLine {
     return items;
   }
 
-  eval() {
-    return this._eval();
+  parse() {
+    return this._parse();
     try {
-      return this._eval();
+      return this._parse();
     } catch (e) {
       throw new Error(`${this.source}: \n${e} `);
     }
   }
 
-  _eval() {
+  /** Extra parsing - assemble tokens into structure */
+  _parse() {
     // Before put into RPN...
     for (let i = 0; i < this.tokens.length; i++) {
       if (this.tokens[i] instanceof BracketedTokenLines) {
@@ -239,14 +247,14 @@ class TokenLine {
           this.tokens[i] = structure;
         } else if (this.tokens[i].opening === '(') { // *** CALL STRING / EXPRESSION
           // If first item, or after an operator, this is an expression group
-          if (i === 0 || this.tokens[i - 1] instanceof OperatorToken) {
+          if (i === 0 || this.tokens[i - 1] instanceof OperatorToken || this.tokens[i - 1] instanceof BracketToken) {
             if (this.tokens[i].value.length == 0) {
               this.tokens.splice(i, 1); // Simply ignore as empty
             } else {
               // Replace [BracketedTokenString, ...] with ["(", ...tokens, ")", ...]
               if (this.tokens[i].value.length > 1) throw new expectedSyntaxError(')', this.tokens[i].value[0].tokens[0]);
               this.tokens.splice(i, 1, new BracketToken(this, '(', this.tokens[i].pos), ...this.tokens[i].value[0].tokens, new BracketToken(this, ')', peek(this.tokens[i].value[0].tokens).pos + 1)); // Insert tokens in bracket group into tokens array
-              i--;
+              // variable i is not pointing at '('
             }
           } else if (this.tokens[i + 1] instanceof OperatorToken && (this.tokens[i + 1].value === '=' || this.tokens[i + 1].value === ':=')) {
             this.tokens[i].isDeclaration = this.tokens[i + 1].value === ':=' ? 1 : 2;
@@ -265,7 +273,7 @@ class TokenLine {
 
               for (const pair of elements) {
                 if (pair.tokens[1] instanceof OperatorToken && pair.tokens[1].value === ':') {
-                  structure.addPair(pair.tokens[0], new TokenLine(structure.rs, pair.tokens.slice(2)));
+                  structure.addPair(pair.tokens[0], new TokenLine(this.rs, this.block, pair.tokens.slice(2)));
                 } else {
                   throw new Error(`[${errors.SYNTAX}]: Syntax Error: expected ':' but got ${pair.tokens[1] ?? '}'}${pair.tokens[1]?.pos ? ` at position ${pair.tokens[1].pos}` : ''}\n(interpreting {...} as a map as '<x> : ...' was found in first element. If you meant the operator ':', encase the first element in parenthesis)`);
                 }
@@ -275,6 +283,8 @@ class TokenLine {
             }
             structure.validate();
             this.tokens[i] = structure;
+          } else {
+            this.tokens[i] = this.block.createChild(this.tokens[i].value, this.tokens[i].pos);
           }
         }
 
@@ -284,139 +294,153 @@ class TokenLine {
         let op = new OperatorToken(this, "<cast>", this.tokens[i].pos);
         op.data = this.tokens[i + 1].value;
         this.tokens.splice(i, 3, op); // Remove "<" "type" ">"
-      } else if (this.tokens[i] instanceof KeywordToken) {
-        switch (this.tokens[i].value) {
-          case "if": {
-            if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === "(") {
-              if (this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === "{") {
-                const structure = new IfStructure(this.tokens[i].pos);
+      }
+    }
 
-                structure.addBranch(this.tokens[i + 1], this.tokens[i + 2]);
-                this.tokens.splice(i, 3); // Remove "if" "(...)" "{...}"
+    // Second scan - keyword tokens
+    for (let i = 0; i < this.tokens.length; i++) {
+      if (!(this.tokens[i] instanceof KeywordToken)) continue;
+      switch (this.tokens[i].value) {
+        case "if": {
+          if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === "(") {
+            if (this.tokens[i + 2] instanceof Block) {
+              const structure = new IfStructure(this.tokens[i].pos);
 
-                // Else statement?
-                while (this.tokens[i] instanceof KeywordToken && this.tokens[i].value === 'else') {
-                  // Else if?
-                  if (this.tokens[i + 1] instanceof KeywordToken && this.tokens[i + 1].value === 'if') {
-                    if (this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '(') {
-                      if (this.tokens[i + 3] instanceof BracketedTokenLines && this.tokens[i + 3].opening === '{') {
-                        structure.addBranch(this.tokens[i + 2], this.tokens[i + 3]);
-                        this.tokens.splice(i, 4); // Remove "else" "if" "(...)" "{...}"
-                      } else {
-                        throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 3] ?? 'end of input'} at ${this.tokens[i].pos}`);
-                      }
+              structure.addBranch(this.tokens[i + 1], this.tokens[i + 2]);
+              this.tokens.splice(i, 3); // Remove "if" "(...)" "{...}"
+
+              // Else statement?
+              while (this.tokens[i] instanceof KeywordToken && this.tokens[i].value === 'else') {
+                // Else if?
+                if (this.tokens[i + 1] instanceof KeywordToken && this.tokens[i + 1].value === 'if') {
+                  if (this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '(') {
+                    if (this.tokens[i + 3] instanceof Block) {
+                      structure.addBranch(this.tokens[i + 2], this.tokens[i + 3]);
+                      this.tokens.splice(i, 4); // Remove "else" "if" "(...)" "{...}"
                     } else {
-                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
+                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 3] ?? 'end of input'} at ${this.tokens[i].pos}`);
                     }
                   } else {
-                    let block = this.tokens[i + 1];
-                    if (block instanceof BracketedTokenLines && block.opening === '{') {
-                      structure.addElse(block);
-                      this.tokens.splice(i, 2); // Remove "else" "{...}"
-                      break;
-                    } else {
-                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE construct: expected block {...} got ${this.tokens[i + 1] ?? 'end of input'}`);
-                    }
+                    throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
+                  }
+                } else {
+                  let block = this.tokens[i + 1];
+                  if (block instanceof Block) {
+                    structure.addElse(block);
+                    this.tokens.splice(i, 2); // Remove "else" "{...}"
+                    break;
+                  } else {
+                    throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE construct: expected block {...} got ${this.tokens[i + 1] ?? 'end of input'}`);
                   }
                 }
-
-                structure.validate();
-                this.tokens.splice(i, 0, structure);
-              } else {
-                throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected block {...} got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
               }
-            } else {
-              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected condition (...) got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos}`);
-            }
-            break;
-          }
-          case "do": {
-            if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '{') {
-              this.tokens.splice(i, 1); // Remove "do"
-            }
-            break;
-          }
-          case "while": {
-            let structure;
-            if (this.tokens[i - 1] instanceof BracketedTokenLines && this.tokens[i - 1].opening === '{' && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
-              // ! DO-WHILE
-              structure = new DoWhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
-              this.tokens.splice(i - 1, 3, structure); // Remove "{...}" "while" "(...)", insert strfucture
-            }
 
-            else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '{') {
-              // ! WHILE
-              structure = new WhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
-              this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
+              structure.validate();
+              this.tokens.splice(i, 0, structure);
             } else {
-              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal WHILE construct at position ${this.tokens[i].pos}`);
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected block {...} got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
             }
-            structure.validate();
-            break;
+          } else {
+            throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected condition (...) got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos}`);
           }
-          case "until": {
-            let structure;
-            if (this.tokens[i - 1] instanceof BracketedTokenLines && this.tokens[i - 1].opening === '{' && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
-              // ! DO-UNTIL
-              structure = new DoUntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
-              this.tokens.splice(i - 1, 3, structure); // Remove "{...}" "while" "(...)", insert strfucture
-            }
-
-            else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '{') {
-              // ! UNTIL
-              structure = new UntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
-              this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
-            } else {
-              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal WHILE construct at position ${this.tokens[i].pos}`);
-            }
-            structure.validate();
-            break;
+          break;
+        }
+        case "do": {
+          if (this.tokens[i + 1] instanceof Block) {
+            this.tokens.splice(i, 1); // Remove "do"
           }
-          case "for": {
-            // ! FOR
-            let structure;
-            if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '{') {
-              structure = new ForStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
-              this.tokens.splice(i, 3, structure);
-            } else {
-              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FOR construct at position ${this.tokens[i].pos}`);
-            }
-            structure.validate();
-            break;
+          break;
+        }
+        case "while": {
+          let structure;
+          if (this.tokens[i - 1] instanceof Block && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
+            // ! DO-WHILE
+            structure = new DoWhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
+            this.tokens.splice(i - 1, 3, structure); // Remove "{...}" "while" "(...)", insert strfucture
           }
-          case "func": {
-            let structure = new FuncStructure(this.tokens[i].pos, this.rs);
 
-            // Name?
-            if (this.tokens[i + 1] instanceof VariableToken) {
-              structure.name = this.tokens[i + 1].value;
-              this.tokens.splice(i, 1);
-            }
-
-            if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '{') {
-              structure.args = this.tokens[i + 1];
-              structure.body = this.tokens[i + 2];
-              this.tokens.splice(i, 3, structure);
-            } else {
-              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FUNC construct at position ${structure.pos}`);
-            }
-
-            structure.validate();
-            break;
+          else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
+            // ! WHILE
+            structure = new WhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
+            this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
+          } else {
+            throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal WHILE construct at position ${this.tokens[i].pos}`);
           }
+          structure.validate();
+          break;
+        }
+        case "until": {
+          let structure;
+          if (this.tokens[i - 1] instanceof Block && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
+            // ! DO-UNTIL
+            structure = new DoUntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
+            this.tokens.splice(i - 1, 3, structure); // Remove "{...}" "while" "(...)", insert strfucture
+          }
+
+          else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
+            // ! UNTIL
+            structure = new UntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
+            this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
+          } else {
+            throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal UNTIL construct at position ${this.tokens[i].pos}`);
+          }
+          structure.validate();
+          break;
+        }
+        case "for": {
+          // ! FOR
+          let structure;
+          if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '{') {
+            structure = new ForStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2].toBlock());
+            this.tokens.splice(i, 3, structure);
+          } else {
+            throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FOR construct at position ${this.tokens[i].pos}`);
+          }
+          structure.validate();
+          break;
+        }
+        case "func": {
+          let structure = new FuncStructure(this.tokens[i].pos, this.rs);
+
+          // Name?
+          if (this.tokens[i + 1] instanceof VariableToken) {
+            structure.name = this.tokens[i + 1].value;
+            this.tokens.splice(i, 1);
+          }
+
+          if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
+            structure.args = this.tokens[i + 1];
+            structure.body = this.tokens[i + 2];
+            this.tokens.splice(i, 3, structure);
+          } else {
+            throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FUNC construct at position ${structure.pos}`);
+          }
+
+          structure.validate();
+          break;
         }
       }
     }
 
-    // Remove ValueTokens
-    for (let i = 0; i < this.tokens.length; i++) {
-      if (this.tokens[i] instanceof ValueToken) this.tokens[i] = this.tokens[i].value;
-    }
+    return this;
+  }
 
+  eval() {
+    return this._eval();
+    try {
+      return this._eval();
+    } catch (e) {
+      throw new Error(`${this.source}: \n${e} `);
+    }
+  }
+
+  _eval() {
     // Evaluate in postfix notation
     const T = this.toRPN(), stack = [];
     for (let i = 0; i < T.length; i++) {
-      if (T[i] instanceof Value || T[i] instanceof VariableToken) {
+      if (T[i] instanceof ValueToken) {
+        stack.push(T[i].value);
+      } else if (T[i] instanceof Value || T[i] instanceof VariableToken) {
         stack.push(T[i]);
       } else if (T[i] instanceof OperatorToken) {
         const info = T[i].info();
@@ -460,7 +484,7 @@ class TokenLine {
             throw new Error(`${last}:\n${e}`);
           }
         }
-      } else if (T[i] instanceof BracketedTokenLines && T[i].opening === '{') {
+      } else if (T[i] instanceof Block /*|| (T[i] instanceof BracketedTokenLines && T[i].opening === '{')*/) {
         stack.push(T[i].eval()); // Code block
       } else if (T[i] instanceof Structure) {
         let ret = T[i].eval(); // Execute structure body
@@ -497,7 +521,7 @@ class TokenLine {
   _toRPN(tokens, bidmas = true) {
     const stack = [], output = [];
     for (let i = 0; i < tokens.length; i++) {
-      if (tokens[i] instanceof ValueToken || tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof TokenLine || tokens[i] instanceof TokenStringArray || tokens[i] instanceof BracketedTokenLines || tokens[i] instanceof KeywordToken || tokens[i] instanceof Structure) {
+      if (tokens[i] instanceof ValueToken || tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof TokenLine || tokens[i] instanceof TokenStringArray || tokens[i] instanceof BracketedTokenLines || tokens[i] instanceof KeywordToken || tokens[i] instanceof Structure || tokens[i] instanceof Block) {
         output.push(tokens[i]);
       } else if (tokens[i].is?.(BracketToken, '(')) {
         stack.push(tokens[i]);
@@ -529,17 +553,17 @@ class TokenLine {
   }
 }
 
-/** Parse source code */
-function parse(rs, source, singleStatement = false) {
+/** Parse source code into tokens */
+function tokenify(rs, source, singleStatement = false) {
   const obj = createTokenStringParseObj(rs, source, 0, 0);
   obj.allowMultiline = !singleStatement;
-  _parse(obj);
+  _tokenify(obj);
   return obj.lines;
 }
 
-function _parse(obj) {
+function _tokenify(obj) {
   let string = obj.string, inString = false, strPos, str = '', lastSourceIndex = 0;
-  let currentLine = new TokenLine(obj.rs);
+  let currentLine = new TokenLine(obj.rs, null);
   const addToTokenStringPositions = []; // Array of positions which should be added to TokenStringArray objects
 
   for (let i = 0; i < string.length;) {
@@ -602,7 +626,7 @@ function _parse(obj) {
       obj.lines.push(currentLine);
       currentLine.source = string.substr(lastSourceIndex, i).trim();
       lastSourceIndex = i;
-      currentLine = new TokenLine(obj.rs);
+      currentLine = new TokenLine(obj.rs, null);
       continue;
     }
 
@@ -631,7 +655,7 @@ function _parse(obj) {
         const opening = string[i];
         const closing = bracketMap[opening];
         const pobj = createTokenStringParseObj(obj.rs, string.substr(i + 1), obj.pos + 1, obj.depth + 1, [closing], true);
-        _parse(pobj);
+        _tokenify(pobj);
 
         // Check that everything was matched
         if (pobj.terminateOn !== closing) throw throwMatchingBracketError(opening, closing, obj.pos);
@@ -726,4 +750,4 @@ function _parse(obj) {
   return;
 }
 
-module.exports = { Token, BracketToken, VariableToken, OperatorToken, TokenLine, KeywordToken, BracketedTokenLine: BracketedTokenLines, parse };
+module.exports = { Token, BracketToken, VariableToken, OperatorToken, TokenLine, KeywordToken, BracketedTokenLine: BracketedTokenLines, tokenify };

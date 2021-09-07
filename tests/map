@@ -4,6 +4,6 @@ func set_ab(m: map) {
 }
 
 m = new("map");
-print(m);
+println(m);
 set_ab(m);
-print(m);
+println(m);

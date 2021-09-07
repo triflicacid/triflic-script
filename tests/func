@@ -13,3 +13,5 @@ print(add(5 + i, 3));
 # With argument types
 func add(a: real, b: real) { a + b; }
 print(add(5 + i, 3));
+
+println();

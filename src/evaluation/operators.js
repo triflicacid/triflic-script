@@ -7,6 +7,7 @@
 //   syntax: <string>,        // Syntax of how operator is used
 //   unary: <string|null>     // If present, and if operator meets unary criteria, use this operator instead
 //   assoc: "ltr" | "rtl"
+//   hidden?: <boolean>       // Hide operator i.e. operator is not an option in parsing. Optional.
 // },
 
 const { errors } = require("../errors");
@@ -101,6 +102,7 @@ const operators = {
     syntax: '<type> value',
     unary: "<cast>",
     assoc: 'rtl',
+    hidden: true,
   },
   "**": {
     name: 'exponentation',

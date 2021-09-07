@@ -1,13 +1,14 @@
 const readline = require("readline");
 const process = require("process");
 const RunspaceVariable = require("./Variable");
-const { parse } = require("../evaluation/tokens");
+const { tokenify } = require("../evaluation/tokens");
 const { peek } = require("../utils");
-const { primitiveToValueClass, MapValue, NumberValue, Value, FunctionRefValue, UndefinedValue } = require("../evaluation/values");
+const { primitiveToValueClass, MapValue, Value, FunctionRefValue, UndefinedValue } = require("../evaluation/values");
 const path = require("path");
 const fs = require("fs");
 const { RunspaceFunction } = require("./Function");
 const { errors } = require("../errors");
+const { Block } = require("../evaluation/block");
 
 class Runspace {
   constructor(opts = {}) {
@@ -30,6 +31,7 @@ class Runspace {
       input: this.stdin,
       output: this.stdout,
     });
+    this.block = undefined; // Top-most Block object
   }
 
   /** Get/Set a variable */
@@ -77,25 +79,12 @@ class Runspace {
     return this.var(fn.name, new FunctionRefValue(this, fn));
   }
 
-  /** Parse a program; returns array of TokenLine objects */
-  parse(source, singleStatement = false) {
-    return parse(this, source, singleStatement);
-  }
-
-  /** Execute parsed lines */
-  interpret(lines) {
-    let last;
-    for (const line of lines) {
-      last = line.eval().castTo("any");
-      if (this._storeAns) this._vars[0].ans = new RunspaceVariable('ans', last, 'value returned by previous statement');
-    }
-    return last;
-  }
-
-
   /** Execute source code */
   execute(source, singleStatement = undefined) {
-    return this.interpret(this.parse(source, singleStatement));
+    let lines = tokenify(this, source, singleStatement);
+    this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN);
+    let ret = this.block.eval();
+    return ret;
   }
 
   /** Attempt to import a file. Throws error of returns Value instance. */
