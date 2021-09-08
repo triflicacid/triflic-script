@@ -697,7 +697,12 @@ function _tokenify(obj) {
     }
 
     // Number?
-    const numObj = parseNumber(string.substr(i));
+    let numObj;
+    try {
+      numObj = parseNumber(string.substr(i));
+    } catch (e) {
+      throw new Error(`[${errors.SYNTAX}] Syntax Error: ${e.message} (literal at position ${obj.pos})`); // Error whilst parsing number literal
+    }
     if (numObj.str.length > 0) {
       const t = new ValueToken(currentLine, new NumberValue(obj.rs, numObj.num), obj.pos);
       currentLine.tokens.push(t);

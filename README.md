@@ -11,7 +11,12 @@ Now, supports multi-line programs with basic control structures. Due to origins 
 ## TODO
 - Nested-expression shortcut
 Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
-- Some operators cannot be typed e.g. `<cast>` and `(call)`
+- Add `(call)` operator with proper precedence. Is hidden.
+- Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
+- Implement keywords `return`, `break`, `continue` in blocks.
+- Add input methods `input(prompt?: string): string` and `getch(): char`
+- Optional function parameters
+- `for (<variable> in <collection>)` loop
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.

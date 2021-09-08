@@ -52,20 +52,18 @@ const radicesRegex = { 16: /[0-9A-Fa-f]/, 10: /[0-9]/, 2: /[01]/, 8: /[0-7]/ };
  */
 function parseNumber(string, allowExponent = true, seperator = '_') {
   let pos = 0, sign = 1, strBeforeDot = '', strAfterDot = '', radix = 10, exp = null;
-  let metSign = false, metDigitBeforeDecimal = false, metDot = false, metDigitAfterDecimal = false, metE = false;
+  let metSign = false, metDigitBeforeDecimal = false, metDot = false, metDigitAfterDecimal = false, metE = false, metSeperator = false, metRadix = false;
 
   for (pos = 0; pos < string.length; pos++) {
-    if (!metSign && (string[pos] === '-' || string[pos] === '+')) {
+    if (!metSign && (string[pos] === '-' || string[pos] === '+')) { // Sign
       metSign = true;
       sign = string[pos] === '-' ? -1 : 1;
-    } else if (string[pos] in radices) {
-      if (strBeforeDot === '0') {
-        strBeforeDot = '';
-        radix = radices[string[pos]];
-      } else {
-        break; // INVALID
-      }
-    } else if (radicesRegex[radix].test(string[pos])) {
+      metSeperator = false;
+    } else if (pos === 0 && string[pos] === '0' && string[pos+1] in radices) { // Radix
+      pos++;
+      radix = radices[string[pos]];
+    } else if (radicesRegex[radix].test(string[pos])) { // Digit
+      metSeperator = false;
       if (!metSign) metSign = true; // Default to '+'
       if (metDot) {
         strAfterDot += string[pos];
@@ -74,13 +72,16 @@ function parseNumber(string, allowExponent = true, seperator = '_') {
         strBeforeDot += string[pos];
         metDigitBeforeDecimal = true;
       }
-    } else if (string[pos] === '.') {
+    } else if (string[pos] === '.') { // seperator
+      if (metSeperator) throw new Error("Invalid syntax: expected digit in number literal");
       if (!metDot) {
         metDot = true;
       } else {
         break; // INVALID
       }
     } else if (string[pos].toLowerCase() === 'e') {
+      if (metSeperator) throw new Error("Invalid syntax: expected digit in number literal");
+      metSeperator = false;
       if (allowExponent) {
         const obj = parseNumber(string.substr(pos + 1), false, seperator);
         if (obj.str === '') break;
@@ -91,8 +92,13 @@ function parseNumber(string, allowExponent = true, seperator = '_') {
         break; // INVALID
       }
     } else if (string[pos] === seperator) {
-      if (metDot && !metDigitAfterDecimal) break;
-      if (!metDigitBeforeDecimal) break;
+      if (metSeperator) {
+        throw new Error(`Invalid number literal: unexpected seperator`);
+      } else {
+        if (metDot && !metDigitAfterDecimal) break;
+        if (!metDigitBeforeDecimal) break;
+        metSeperator = true;
+      }
     } else {
       break; // INVALID
     }
