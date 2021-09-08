@@ -28,8 +28,8 @@ class ArrayStructure extends Structure {
     this.elements.forEach(e => e.parse());
   }
 
-  eval() {
-    const values = this.elements.map(el => el.eval()); // Evaluate each element
+  async eval() {
+    const values = await Promise.all(this.elements.map(el => el.eval()));
     return new ArrayValue(this.rs, values);
   }
 }
@@ -54,10 +54,10 @@ class MapStructure extends Structure {
     this.values.forEach(e => e.parse());
   }
 
-  eval() {
+  async eval() {
     let map = new MapValue(this.rs);
     for (let i = 0; i < this.keys.length; i++) {
-      map.__set__(this.keys[i], this.values[i].eval());
+      map.__set__(this.keys[i], await this.values[i].eval());
     }
     return map;
   }
@@ -75,8 +75,8 @@ class SetStructure extends Structure {
     this.elements.forEach(e => e.parse());
   }
 
-  eval() {
-    const values = this.elements.map(el => el.eval());
+  async eval() {
+    const values = await Promise.all(this.elements.map(el => el.eval()));
     return new SetValue(this.rs, values);
   }
 }
@@ -109,19 +109,19 @@ class IfStructure extends Structure {
     }
   }
 
-  eval() {
+  async eval() {
     // Loop through conditionals...
     let foundTruthy = false;
     for (const [condition, block] of this.conditionals) {
-      let ret = condition.eval(), bool = ret.castTo("bool"); // Execute condition
+      let ret = await condition.eval(), bool = ret.castTo("bool"); // Execute condition
       if (bool.value) { // If conditon is truthy...
         foundTruthy = true;
-        block.eval(); // Evaluate code block
+        await block.eval(); // Evaluate code block
         break;
       }
     }
     if (!foundTruthy && this.elseBlock) { // If no condition was truthy and there is an else block...
-      this.elseBlock.eval();
+      await this.elseBlock.eval();
     }
   }
 }
@@ -139,9 +139,11 @@ class WhileStructure extends Structure {
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
   }
 
-  eval() {
-    while (this.condition.eval().toPrimitive("bool")) {
-      this.body.eval();
+  async eval() {
+    while (true) {
+      let bool = await this.condition.eval();
+      if (!bool.toPrimitive("bool")) break;
+      await this.body.eval();
     }
   }
 }
@@ -159,10 +161,11 @@ class DoWhileStructure extends Structure {
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
   }
 
-  eval() {
+  async eval() {
     while (true) {
-      this.body.eval();
-      if (!this.condition.eval().toPrimitive("bool")) break;
+      await this.body.eval();
+      let bool = await this.condition.eval();
+      if (!bool.toPrimitive("bool")) break;
     }
   }
 }
@@ -180,9 +183,11 @@ class UntilStructure extends Structure {
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
   }
 
-  eval() {
-    while (!this.condition.eval().toPrimitive("bool")) {
-      this.body.eval();
+  async eval() {
+    while (true) {
+      let bool = await this.condition.eval();
+      if (!bool.toPrimitive("bool")) break;
+      await this.body.eval();
     }
   }
 }
@@ -200,10 +205,11 @@ class DoUntilStructure extends Structure {
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
   }
 
-  eval() {
+  async eval() {
     while (true) {
-      this.body.eval();
-      if (this.condition.eval().toPrimitive("bool")) break;
+      await this.body.eval();
+      let bool = await this.condition.eval();
+      if (!bool.toPrimitive("bool")) break;
     }
   }
 }
@@ -221,11 +227,13 @@ class ForStructure extends Structure {
     if (this.loop.value.length > 3) throw new expectedSyntaxError(')', peek(this.loop.value[2].tokens));
   }
 
-  eval() {
-    this.loop.value[0].eval();
-    while (this.loop.value[1].eval().toPrimitive("bool")) {
-      this.body.eval();
-      this.loop.value[2].eval();
+  async eval() {
+    await this.loop.value[0].eval();
+    while (true) {
+      let cond = await this.loop.value[1].eval();
+      if (!cond.toPrimitive("bool")) break;
+      await this.body.eval();
+      await this.loop.value[2].eval();
     }
   }
 }
@@ -243,7 +251,7 @@ class FuncStructure extends Structure {
     if (this.args.value.length > 1) throw new expectedSyntaxError(')', peek(this.args.value[2].tokens));
   }
 
-  eval() {
+  async eval() {
     let argObj = {};
     if (this.args.value.length === 1) {
       let args = this.args.value[0].splitByCommas();

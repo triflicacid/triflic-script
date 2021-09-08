@@ -80,15 +80,14 @@ class Runspace {
   }
 
   /** Execute source code */
-  execute(source, singleStatement = undefined) {
+  async execute(source, singleStatement = undefined) {
     let lines = tokenify(this, source, singleStatement);
     this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN);
-    let ret = this.block.eval();
-    return ret;
+    return await this.block.eval();
   }
 
   /** Attempt to import a file. Throws error of returns Value instance. */
-  import(file) {
+  async import(file) {
     const fpath = path.join(this.dir, "imports/", file.toString());
     let stats;
     try {
@@ -109,7 +108,7 @@ class Runspace {
         if (typeof fn !== 'function') throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
         let resp;
         try {
-          resp = fn(this);
+          resp = await fn(this);
         } catch (e) {
           console.error(e);
           throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: error whilst executing ${fpath}'s export function:\n${e}`);

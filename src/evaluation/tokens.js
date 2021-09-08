@@ -38,7 +38,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "foreach", "break", "continue", "func"];
+KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "foreach", "loop", "break", "continue", "func"];
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
@@ -50,12 +50,12 @@ class OperatorToken extends Token {
   }
 
   /** Eval as operators */
-  eval(...args) {
+  async eval(...args) {
     const info = this.info();
     let fn = info.fn;
     if (typeof fn !== 'function') throw new Error(`[${errors.ARG_COUNT}] Argument Error: no overload for operator function ${this.toString().trim()} with ${args.length} args`);
     let r;
-    try { r = fn(...args, this.data); } catch (e) { throw new Error(`Operator ${this.toString().trim()}:\n${e}`); }
+    try { r = await fn(...args, this.data); } catch (e) { throw new Error(`Operator ${this.toString().trim()}:\n${e}`); }
     if (r instanceof Error) throw r; // May return custom errors
     if (r === undefined) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${this.toString().trim()} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
     return r;
@@ -149,7 +149,7 @@ class VariableToken extends Token {
   }
 
   /** operator: = */
-  __assign__(v) {
+  async __assign__(v) {
     const name = this.value;
     // if (this.tstr.rs.func(name)) throw new Error(`[${errors.ARG_COUNT}] Syntax Error: Invalid syntax - symbol '${name}' is a function but treated as a variable at position ${this.pos}`);
     if (this.tstr.rs.var(name)?.constant) throw new Error(`[${errors.ASSIGN}] Syntax Error: Assignment to constant variable ${name} (position ${this.pos})`);
@@ -157,7 +157,7 @@ class VariableToken extends Token {
     const ts = new TokenLine(this.tstr.rs, this.block);
     ts.tokens = [v];
     // Evaluate
-    const obj = ts.eval(); // Intermediate
+    let obj = await ts.eval(); // Intermediate
     const varObj = this.tstr.rs.var(name, obj.castTo('any'));
     if (this.isDeclaration === 2) varObj.constant = true; // Is variable constant?
     return obj;
@@ -179,9 +179,11 @@ class BracketedTokenLines extends Token {
     this.opening = openingBracket;
   }
 
-  eval() {
+  async eval() {
     let lastVal;
-    for (let line of this.value) lastVal = line.eval();
+    for (let line of this.value) {
+      lastVal = await line.eval();
+    }
     return lastVal ?? new UndefinedValue(this.tstr.rs);
   }
 
@@ -425,16 +427,16 @@ class TokenLine {
     return this;
   }
 
-  eval() {
-    return this._eval();
+  async eval() {
     try {
-      return this._eval();
+      return await this._eval();
     } catch (e) {
-      throw new Error(`${this.source}: \n${e} `);
+      throw e;
+      // throw new Error(`${this.source}: \n${e} `);
     }
   }
 
-  _eval() {
+  async _eval() {
     // Evaluate in postfix notation
     const T = this.toRPN(), stack = [];
     for (let i = 0; i < T.length; i++) {
@@ -447,7 +449,7 @@ class TokenLine {
         if (stack.length < info.args) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - stack underflow (expects ${info.args} values, got ${stack.length})`);
         let args = [];
         for (let j = 0; j < info.args; j++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
-        const val = T[i].eval(...args);
+        const val = await T[i].eval(...args);
         stack.push(val);
       } else if (T[i] instanceof BracketedTokenLines && T[i].opening === '(') {
         const last = stack.pop(); // Should be VariableToken
@@ -477,17 +479,19 @@ class TokenLine {
           try {
             if (T[i].value.length > 0) {
               if (T[i].value.length !== 1) throw new expectedSyntaxError(')', peek(T[i].value[0].tokens));
-              args = T[i].value[0].splitByCommas().map(t => t.eval()); // Evaluate TokenString arguments
+              args = T[i].value[0].splitByCommas(); // Get arguments
+              args = await Promise.all(args.map(t => t.eval())); // EValuate arguments
             }
-            stack.push(lastValue.__call__(args));
+            stack.push(await lastValue.__call__(args));
           } catch (e) {
             throw new Error(`${last}:\n${e}`);
           }
         }
       } else if (T[i] instanceof Block /*|| (T[i] instanceof BracketedTokenLines && T[i].opening === '{')*/) {
-        stack.push(T[i].eval()); // Code block
+        let ret = await T[i].eval();
+        if (ret !== undefined) stack.push(ret);
       } else if (T[i] instanceof Structure) {
-        let ret = T[i].eval(); // Execute structure body
+        let ret = await T[i].eval(); // Execute structure body
         if (ret !== undefined) stack.push(ret);
       } else if (T[i] instanceof KeywordToken) {
         throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax '${T[i].value}' at position ${this.tokens[i].pos}`);

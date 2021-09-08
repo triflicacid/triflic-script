@@ -11,13 +11,13 @@ class Block {
     this.parent = parent;
   }
 
-  eval() {
+  async eval() {
     // console.log("Evaluate block %s", this.id)
     let lastVal;
     for (let line of this.tokenLines) {
       line.block = this;
       line.parse();
-      lastVal = line.eval();
+      lastVal = await line.eval();
     }
     return lastVal ?? new UndefinedValue(this.rs);
   }

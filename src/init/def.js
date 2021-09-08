@@ -419,6 +419,7 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'gamma', { z: 'complex' }, ({ z }) => new NumberValue(rs, gamma(z.toPrimitive('complex'))), 'Return the gamma function at z'));
   // if (rs.opts.defineAliases) rs.funcAlias('gamma', 'Γ');
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nextNearest', { n: 'real', next: 'real' }, ({ n, next }) => new NumberValue(rs, nextNearest(n.toPrimitive('real'), next.toPrimitive('real'))), 'Return the next representable double from value <n> towards <next>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sleep', { ms: 'real_int' }, async ({ ms }) => new Promise((resolve) => setTimeout(resolve, ms)), 'Suspend execution for <ms> milliseconds (1000ms = 1s)'));
 }
 
 module.exports = { define, defineVars, defineFuncs };
