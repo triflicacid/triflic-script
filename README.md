@@ -136,7 +136,7 @@ There are two types of functions: `built-in`s and `user-defined`
 | % | Modulo/Remainder | 15 | ltr | Return remainder of LHS divided by RHS | `5 % 2` => `1` |
 | * | Multiplication | 15 | ltr | Multiply LHS by RHS | `5 * 2` => `10` |
 | ∩ | Intersection | 15 | ltr | Find the intersection between the LHS and RHS | `{1,2} ∩ {2,3}` => `{2}` |
-| ∪ | Union | 14 | ltr | Find the union between the LHS and RHS | `{1,2} ∩ {2,3}` => `{1,2,3}` |
+| ∪ | Union | 14 | ltr | Find the union between the LHS and RHS | `{1,2} ∪ {2,3}` => `{1,2,3}` |
 | + | Addition | 14 | ltr | Add RHS to LHS | `5 + 2` => `7` |
 | - | Subtraction | 14 | ltr | Subtract RHS from LHS | `5 - 2` => `3` |
 | << | Right Shift | 13 | ltr | Bit shift LHS right by RHS places | `5 << 2` => `20` |
@@ -150,7 +150,7 @@ There are two types of functions: `built-in`s and `user-defined`
 | != | Not Equality | 11 | ltr | Is the LHS not equal to the RHS? | `5 != 5` => `false`, `2 != "2"` => `true` |
 | & | Bitwise And | 10 | ltr | Apply a bitwise AND to LHS and RHS | `5 & 3` => `1` |
 | ^ | Bitwise Xor | 9 | ltr | Apply a bitwise XOR to LHS and RHS | `5 ^ 3` => `6` |
-| \| | Bitwise Or | 8 | ltr | Apply bitwise OR to LHS and RHS | `5 | 3` => `7` |
+| \| | Bitwise Or | 8 | ltr | Apply bitwise OR to LHS and RHS | `5 \| 3` => `7` |
 | && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` |
 | \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` |
 | := | Constant Assignment | 3 | rtl | Assigns the RHS to the LHS as a constant | `PI := 3.14159` => `3.14159` |
@@ -163,31 +163,55 @@ There are two types of functions: `built-in`s and `user-defined`
 
 ## keywords
 ### `if`, `else`
+An `if` structure consists of a condition and a block. If may have additional conditions and blocks using the `else if` statement, and a final block after `else`.
+
 Syntax: `if (<condition>) {<block>} [else if (<condition> <block>), [...]] [else <block>]`
 
-If the `<condition>` is truthy, the `<block>` is executed and the rest of the structure is skipped. If not `if` or `else if` is executed, the `else` block will execute.
+If the `<condition>` is truthy, the `<block>` is executed and the rest of the structure is skipped. If no `if` or `else if` blocks is executed, the `else` block will execute.
 
 ### `do`
+Defined the following as a block. (*NB this is largely redundant and does nothing - the keyword is simply removed at runtime*)
+
 Syntax: `do {<block>}`
 
-Defines following `{...}` as a block (not as a set) and executes it
+Defines following `{...}` as a block and executes it
 
 ### `while`
-Syntax: `{<block>} while (<condition>)` or `while (<condition>) {<block>}`
-Either (1) Execute `<block>` and keep executing while `<condition>` is true or (2) Execute `<block>` while `<condition>` is true
+A `while` structure consists of a condition and a block.
+
+`while (<condition>) {<block>}`
+- Execute `<block>` while `<condition>` is truthy
+
+`{<block>} while (<condition>)`
+- Execute `<block>` and continue to execute `<block>` while `<condition>` is truthy
 
 ### `until`
-Syntax: `{<block>} until (<condition>)` or `until (<condition>) {<block>}`
-Either (1) Execute `<block>` and keep executing until `<condition>` is true or (2) Execute `<block>` until `<condition>` is true
+An `until` structure consists of a condition and a block.
+
+`until (<condition>) {<block>}`
+- Execute `<block>` until `<condition>` is truthy
+
+`{<block>} until (<condition>)`
+- Execute `<block>` and continue to execute `<block>` until `<condition>` is truthy
+
+*Basically an opposite while loop - `while` runs while true, `until` runs while false*
 
 ### `for`
 Syntax: `for (<action>) {<block>}` where `<action>` comprises of THREE parts `(init; cond; step)`
 - `init` : this is executed before the loop begins
-- `cond` : the loop runs while `<cond>` is truthy
+- `cond` : the loop runs while `<cond>` is truthy. If empty, this will evaluate to `true`.
 - `step` : this is executed after each loop iteration
+
+Each one of these may be empty e.g. to construct an infitite loop: `for(;;)` where each `init`, `cond` and `step` is empty (empty `cond` is truthy).
 
 ### `func`
 Syntax: `func [name] (<args>) {<block>}`
+
+This defines a function. `name` is optional.
+- If `name` is present, this defines a function and stores it in the current scope under a variable called `name`. No value is returned.
+- If `name` is absent, an anonymous function is created and a reference is returned. As such, a trailing semicolon must be included after `{<block>};`
+
+i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };` achieve the same result.
 
 - `<args>` is a comma-seperated list of identifiers. Types may be defined as a `?` before the type i.e.:
   - `func fn(a)` -> function `fn` takes an argument `a` of type `any`

@@ -392,8 +392,8 @@ class TokenLine {
         case "for": {
           // ! FOR
           let structure;
-          if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '{') {
-            structure = new ForStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2].toBlock());
+          if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
+            structure = new ForStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
             this.tokens.splice(i, 3, structure);
           } else {
             throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FOR construct at position ${this.tokens[i].pos}`);

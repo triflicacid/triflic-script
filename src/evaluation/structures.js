@@ -223,17 +223,25 @@ class ForStructure extends Structure {
 
   validate() {
     // LOOP must have 3 items
-    if (this.loop.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
+    if (this.loop.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got ) (FOR loop)`);
+    if (this.loop.value.length < 2) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got end of input (FOR loop)`); // If step is empty, there will only be two TokenLine objects
     if (this.loop.value.length > 3) throw new expectedSyntaxError(')', peek(this.loop.value[2].tokens));
   }
 
   async eval() {
     await this.loop.value[0].eval();
-    while (true) {
-      let cond = await this.loop.value[1].eval();
-      if (!cond.toPrimitive("bool")) break;
-      await this.body.eval();
-      await this.loop.value[2].eval();
+    if (this.loop.value[1].tokens.length <= 1) { // If empty (contains only ';') - infinite loop
+      while (true) {
+        await this.body.eval();
+        await this.loop.value[2]?.eval();
+      }
+    } else {
+      while (true) {
+        let cond = await this.loop.value[1].eval();
+        if (!cond.toPrimitive("bool")) break;
+        await this.body.eval();
+        await this.loop.value[2]?.eval();
+      }
     }
   }
 }
