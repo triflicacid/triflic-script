@@ -48,6 +48,14 @@ async function evaluate(input) {
 }
 
 async function main() {
+  if (!process.stdin.isTTY) {
+    printError(`TTY Error: CLI requires a text terminal (TTY not available)`, str => process.stdout.write(str));
+    process.exit(1);
+  }
+  process.stdin.setRawMode(true);
+  process.stdin.setEncoding('utf8');
+  process.stdin.resume();
+
   // Import standard IO library
   await rs.import("io.js");
 
@@ -72,24 +80,24 @@ async function main() {
   // Set input event handlers
   if (opts.multiline) {
     const lines = []; // Line buffer
-    rs.io.on('line', async (line) => {
+    rs.onLineHandler = async (io, line) => {
       if (line.length === 0) {
         const input = lines.join('\n');
         lines.length = 0;
         await evaluate(input);
-        rs.io.setPrompt(opts.prompt);
+        io.setPrompt(opts.prompt);
       } else {
         lines.push(line);
-        rs.io.setPrompt('.'.repeat(opts.prompt.length - 1) + ' ');
+        io.setPrompt('.'.repeat(opts.prompt.length - 1) + ' ');
       }
 
       rs.io.prompt();
-    });
+    };
   } else {
-    rs.io.on('line', async (line) => {
+    rs.onLineHandler = async (io, line) => {
       await evaluate(line);
-      rs.io.prompt();
-    });
+      io.prompt();
+    };
   }
 
   rs.io.on('close', async () => {

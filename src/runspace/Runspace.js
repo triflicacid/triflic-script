@@ -32,6 +32,14 @@ class Runspace {
       output: this.stdout,
     });
     this.block = undefined; // Top-most Block object
+
+    this.onLineHandler = undefined;
+    this.onDataHandler = undefined;
+
+    this.io.on('line', line => this.onLineHandler?.(this.io, line));
+    this.stdin.on('data', async key => {
+      if (this.onDataHandler) await this.onDataHandler(this.io, key);
+    });
   }
 
   /** Get/Set a variable */
