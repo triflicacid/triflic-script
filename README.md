@@ -122,7 +122,8 @@ There are two types of functions: `built-in`s and `user-defined`
 ### Operators
 | Operator | Name | Precedence | Associativity | Description | Example |
 | -- | -- | -- | -- | -- | -- |
-| . | Member Access | 20 | ltr | Get member on RHS of object on LHS | `headers."time"` => `1630433878509` |
+| . | Member Access | 20 | ltr | Get member on RHS of LHS object | `headers."time"` => `1630433878509` |
+| ?. | Optional Member Access | 20 | ltr | Get member on RHS of LHS object. If RHS is undefined, return undefined | `undefined?.1` => `undefined` |
 | deg | Degrees | 18 | rtl | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` |
 | ~ | Bitwise NOT | 17 | rtl | Bitwise NOT value on LHS | `~20` => `-21` |
 | + | Unary plus | 17 | rtl | Convert LHS to number | `+"14"` => `14` |
@@ -153,6 +154,7 @@ There are two types of functions: `built-in`s and `user-defined`
 | \| | Bitwise Or | 8 | ltr | Apply bitwise OR to LHS and RHS | `5 \| 3` => `7` |
 | && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` |
 | \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` |
+| ?? | Nullish Coalescing | 5 | ltr | Returns LHS unless LHS is undefined, in which case return RHS | `undefined ?? 2` => `2` |
 | := | Constant Assignment | 3 | rtl | Assigns the RHS to the LHS as a constant | `PI := 3.14159` => `3.14159` |
 | = | Assignment | 3 | rtl | Assigns the RHS to the LHS | `name = "john"` => `"john"` |
 | , | Comma | 1 | ltr | Returns RHS argument | `1, 2` => `2` |

@@ -11,6 +11,7 @@
 // },
 
 const { errors } = require("../errors");
+const { UndefinedValue } = require("./values");
 
 const operators = {
   ".": {
@@ -19,6 +20,20 @@ const operators = {
     args: 2,
     fn: (obj, prop) => {
       obj = obj.castTo('any');
+      if (!obj.__get__) throw new Error(`[${errors.BAD_PROP}] Key Error: Cannot access property ${prop} of type ${obj.type()}`);
+      return obj.castTo('any').__get__(prop.castTo('any'));
+    },
+    desc: `Access property <prop> of <obj>`,
+    syntax: '<obj>.<prop>',
+    assoc: 'ltr',
+  },
+  "?.": {
+    name: 'oprional member access',
+    precedence: 20,
+    args: 2,
+    fn: (obj, prop) => {
+      obj = obj.castTo('any');
+      if (obj instanceof UndefinedValue) return new UndefinedValue(obj.rs);
       if (!obj.__get__) throw new Error(`[${errors.BAD_PROP}] Key Error: Cannot access property ${prop} of type ${obj.type()}`);
       return obj.castTo('any').__get__(prop.castTo('any'));
     },
@@ -322,6 +337,15 @@ const operators = {
     fn: (a, b) => a.castTo('any').__bitwiseOr__?.(b.castTo('any')),
     desc: `Bitwise OR`,
     syntax: 'a | b',
+    assoc: 'ltr',
+  },
+  "??": {
+    name: 'nullish coalescing',
+    precedence: 5,
+    args: 2,
+    fn: (a, b) => a.castTo("any") instanceof UndefinedValue ? b : a,
+    desc: `Returns <a> unless it is undefined, in which case return <b>`,
+    syntax: 'a ?? b',
     assoc: 'ltr',
   },
   ":=": {
