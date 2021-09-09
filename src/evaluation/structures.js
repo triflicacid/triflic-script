@@ -137,6 +137,8 @@ class WhileStructure extends Structure {
     // Check that condition only has ONE line
     if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
+    // console.log("Validating while...")
+    // this.body.prepare();
   }
 
   async eval() {

@@ -107,6 +107,13 @@ function define(rs) {
   }, 'Return a copy of object <o>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new StringValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => new NumberValue(rs, chr.toString().charCodeAt(0)), 'return character code of <chr>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isdefined', { name: 'any' }, ({ name }) => {
+    if (name instanceof VariableToken) {
+      return new BoolValue(rs, name.exists());
+    } else {
+      throw new Error(`[${errors.BAD_ARG}] Argument Error: expected symbol, got immediate of type ${name.type()}`);
+    }
+  }, 'returns boolean indicating if name <name> is defined and accessable'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
     let start, end, step;
     if (b === undefined) { start = 0; end = a.toPrimitive('real'); step = 1; }

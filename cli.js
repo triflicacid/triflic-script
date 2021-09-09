@@ -1,12 +1,9 @@
 const Runspace = require("./src/runspace/Runspace");
-const readline = require("readline");
 const { define, defineVars, defineFuncs } = require("./src/init/def");
 const { consoleColours, printError } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
-const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
-const { StringValue, UndefinedValue } = require("./src/evaluation/values");
-const { errors } = require("./src/errors");
+const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
 
 // PARSE ARGV, SETUP RUNSPACE
 const opts = parseArgString(process.argv, true);
@@ -18,6 +15,8 @@ const rs = new Runspace(opts);
 define(rs);
 if (opts.defineVars) defineVars(rs);
 if (opts.defineFuncs) defineFuncs(rs);
+
+rs.var('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
 
 // Evaluate some input
 async function evaluate(input) {

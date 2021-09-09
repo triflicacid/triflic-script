@@ -9,14 +9,21 @@ class Block {
     this.tokenLines = tokenLines;
     this.pos = pos;
     this.parent = parent;
+    this.prepare();
+  }
+
+  /** Prepare lines */
+  prepare() {
+    this.tokenLines.forEach(line => {
+      line.block = this;
+      line.parse();
+    });
   }
 
   async eval() {
     // console.log("Evaluate block %s", this.id)
     let lastVal;
-    for (let line of this.tokenLines) {
-      line.block = this;
-      line.parse();
+    for (const line of this.tokenLines) {
       lastVal = await line.eval();
     }
     return lastVal ?? new UndefinedValue(this.rs);

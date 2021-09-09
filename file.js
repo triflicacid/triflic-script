@@ -8,6 +8,7 @@ const Complex = require("./src/maths/Complex");
 const { define, defineVars, defineFuncs } = require("./src/init/def");
 const Runspace = require("./src/runspace/Runspace");
 const { printError, consoleColours } = require("./src/utils");
+const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
 
 async function main() {
   if (process.argv.includes("--help")) {
@@ -16,10 +17,6 @@ async function main() {
   } else {
     // Find file
     const argv = yargs(hideBin(process.argv)).argv, file = argv._[0];
-    if (argv._.length !== 1) {
-      console.log("One default argument required");
-      return 1;
-    }
 
     // Does file exist?
     if (!fs.existsSync(file)) {
@@ -35,9 +32,11 @@ async function main() {
     opts.file = path.basename(file);
     const rs = new Runspace(opts);
     define(rs);
-    await rs.import("io.js");
     if (opts.defineVars) defineVars(rs);
     if (opts.defineFuncs) defineFuncs(rs);
+    await rs.import("io.js");
+
+    rs.var('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
 
     let start = Date.now(), ret, error;
     try {
