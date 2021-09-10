@@ -91,6 +91,7 @@ class Runspace {
   async execute(source, singleStatement = undefined) {
     let lines = tokenify(this, source, singleStatement);
     this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN);
+    this.block.prepare();
     return await this.block.eval();
   }
 

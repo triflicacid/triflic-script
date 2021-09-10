@@ -1,4 +1,4 @@
-a = 6;
+a = 7;
 
 if (a == 5) {
   println("a is 5");

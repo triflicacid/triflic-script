@@ -9,14 +9,14 @@ class Block {
     this.tokenLines = tokenLines;
     this.pos = pos;
     this.parent = parent;
-    this.prepare();
+    // this.prepare();
   }
 
   /** Prepare lines */
   prepare() {
     this.tokenLines.forEach(line => {
       line.block = this;
-      line.parse();
+      line.prepare();
     });
   }
 

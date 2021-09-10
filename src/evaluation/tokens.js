@@ -55,7 +55,7 @@ class OperatorToken extends Token {
     let fn = info.fn;
     if (typeof fn !== 'function') throw new Error(`[${errors.ARG_COUNT}] Argument Error: no overload for operator function ${this.toString().trim()} with ${args.length} args`);
     let r;
-    try { r = await fn(...args, this.data); } catch (e) { throw new Error(`Operator ${this.toString().trim()}:\n${e}`); }
+    try { r = await fn(...args, this.data); } catch (e) { throw new Error(`[${errors.BAD_ARG}] Operator '${this.toString().trim()}' with { ${args.map(a => a.type()).join(', ')} } at position ${this.pos}:\n${e}`); }
     if (r instanceof Error) throw r; // May return custom errors
     if (r === undefined) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${this.toString().trim()} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
     return r;
@@ -149,18 +149,13 @@ class VariableToken extends Token {
   }
 
   /** operator: = */
-  async __assign__(v) {
+  __assign__(value) {
     const name = this.value;
     // if (this.tstr.rs.func(name)) throw new Error(`[${errors.ARG_COUNT}] Syntax Error: Invalid syntax - symbol '${name}' is a function but treated as a variable at position ${this.pos}`);
     if (this.tstr.rs.var(name)?.constant) throw new Error(`[${errors.ASSIGN}] Syntax Error: Assignment to constant variable ${name} (position ${this.pos})`);
-    // Setup TokenString
-    const ts = new TokenLine(this.tstr.rs, this.block);
-    ts.tokens = [v];
-    // Evaluate
-    let obj = await ts.eval(); // Intermediate
-    const varObj = this.tstr.rs.var(name, obj.castTo('any'));
+    const varObj = this.tstr.rs.var(name, value.castTo('any'));
     if (this.isDeclaration === 2) varObj.constant = true; // Is variable constant?
-    return obj;
+    return value;
   }
 }
 
@@ -177,6 +172,13 @@ class BracketedTokenLines extends Token {
   constructor(tstring, tokenLines, openingBracket, pos) {
     super(tstring, tokenLines, pos);
     this.opening = openingBracket;
+  }
+
+  prepare() {
+    this.value.forEach(line => {
+      if (line.block !== undefined && line.block === null) line.block = this.tstr.block;
+      line.prepare(); 
+    });
   }
 
   async eval() {
@@ -201,25 +203,47 @@ class TokenLine {
     this.rs = runspace;
     this.block = block;
     this.source = source;
-    this.tokens = tokens; // Array of token objects
+    this.tokens = undefined; // Array of token objects
     this.comment = '';
+    this._ready = false;
+    this.updateTokens(tokens);
+  }
+
+  /** Update token array and process them so they're ready for exection. */
+  updateTokens(tokens) {
+    this._ready = false;
+    this.tokens = [...tokens];
+  }
+
+  /** Prepare line for execution */
+  prepare() {
+    if (this._ready) return;
+    this._ready = true;
+    this.tokens.forEach(t => (t.block = this.block)); // Set block for each token
+    this.parse(); // Parse
   }
 
   /** Returns array of TokenStrings */
-  splitByCommas() {
-    let items = [], metItem = false, ts = new TokenLine(this.rs, this.block);
+  splitByCommas(prepareThem = true) {
+    let items = [], metItem = false, ts = new TokenLine(this.rs, this.block), tsTokens = [];
     for (let i = 0; i < this.tokens.length; i++) {
       if (this.tokens[i] instanceof OperatorToken && this.tokens[i].value === ',') {
         if (!metItem) throw new Error(`[${errors.SYNTAX}]: expected expression, got , at position ${this.tokens[i].pos}`);
         metItem = false;
+        ts.updateTokens(tsTokens);
         items.push(ts);
         ts = new TokenLine(this.rs, this.block);
+        tsTokens = [];
       } else {
-        ts.tokens.push(this.tokens[i]);
+        tsTokens.push(this.tokens[i]);
         metItem = true;
       }
     }
-    if (ts && ts.tokens.length !== 0) items.push(ts);
+    if (ts && tsTokens !== 0) {
+      ts.updateTokens(tsTokens);
+      items.push(ts);
+    }
+    if (prepareThem) items.forEach(item => item.prepare());
     return items;
   }
 
@@ -236,7 +260,9 @@ class TokenLine {
   _parse() {
     // Before put into RPN...
     for (let i = 0; i < this.tokens.length; i++) {
-      if (this.tokens[i] instanceof BracketedTokenLines) {
+      if (this.tokens[i] instanceof ValueToken) {
+        this.tokens[i] = this.tokens[i].value; // Remove all ValueToken objects
+      } else if (this.tokens[i] instanceof BracketedTokenLines) {
         let ok = true;
         if (this.tokens[i].opening === '[') { // *** ARRAY
           let elements;
@@ -440,15 +466,16 @@ class TokenLine {
     // Evaluate in postfix notation
     const T = this.toRPN(), stack = [];
     for (let i = 0; i < T.length; i++) {
-      if (T[i] instanceof ValueToken) {
-        stack.push(T[i].value);
-      } else if (T[i] instanceof Value || T[i] instanceof VariableToken) {
+      if (T[i] instanceof Value || T[i] instanceof VariableToken) {
         stack.push(T[i]);
       } else if (T[i] instanceof OperatorToken) {
         const info = T[i].info();
         if (stack.length < info.args) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - stack underflow (expects ${info.args} values, got ${stack.length})`);
         let args = [];
         for (let j = 0; j < info.args; j++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
+        // TODO
+        // console.log(args);
+        // process.exit();
         const val = await T[i].eval(...args);
         stack.push(val);
       } else if (T[i] instanceof BracketedTokenLines && T[i].opening === '(') {
@@ -500,14 +527,15 @@ class TokenLine {
         if (T[i] instanceof BracketedTokenLines) {
           str = T[i].opening;
         }
+        console.log(T[i])
         throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax at position ${pos ?? T[i].pos}: ${str ?? T[i].toString()} `);
       }
     }
     while (peek(stack) instanceof UndefinedValue) stack.pop(); // Remove all Undefined values from top of stack
     if (stack.length === 0) return new UndefinedValue(this.rs);
     if (stack.length !== 1) {
-      let errors = stack.map(x => x + (x.pos === undefined ? '' : ` (position ${x.pos})`));
-      throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax ${errors.join(', ')}. Did you miss an EOL token ${EOLToken.symbol} (${EOLToken.symbol.charCodeAt(0)}) ?\n(evaluation failed to reduce expression to single value)`);
+      let items = stack.map(x => x + (x.pos === undefined ? '' : ` (position ${x.pos})`));
+      throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax ${items.join(', ')}. Did you miss an EOL token ${EOLToken.symbol} (${EOLToken.symbol.charCodeAt(0)}) ?\n(evaluation failed to reduce expression to single value)`);
     }
     return stack[0];
   }
@@ -567,7 +595,7 @@ function tokenify(rs, source, singleStatement = false) {
 
 function _tokenify(obj) {
   let string = obj.string, inString = false, strPos, str = '', lastSourceIndex = 0;
-  let currentLine = new TokenLine(obj.rs, null);
+  let currentLine = new TokenLine(obj.rs, null), currentTokens = []; // Tokens for the current line
   const addToTokenStringPositions = []; // Array of positions which should be added to TokenStringArray objects
 
   for (let i = 0; i < string.length;) {
@@ -575,7 +603,7 @@ function _tokenify(obj) {
     if (string[i] === '"') {
       if (inString) {
         const t = new ValueToken(obj.rs, new StringValue(obj.rs, str), obj.pos);
-        currentLine.tokens.push(t);
+        currentTokens.push(t);
         str = '';
       } else {
         strPos = obj.pos;
@@ -610,7 +638,7 @@ function _tokenify(obj) {
         seq += string[j];
       }
       if (seq.length > 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: multi-character string literal. Did you mean to use double quotes: "${seq}" ?`);
-      currentLine.tokens.push(new ValueToken(currentLine, new CharValue(obj.rs, seq), i));
+      currentTokens.push(new ValueToken(currentLine, new CharValue(obj.rs, seq), i));
       const d = seq.length + 2;
       i += d;
       obj.pos += d;
@@ -623,13 +651,15 @@ function _tokenify(obj) {
       break;
     }
 
-    if (obj.allowMultiline && string[i] === EOLToken.symbol) { // Break; from execution
-      currentLine.tokens.push(new EOLToken(currentLine, obj.pos));
+    if (obj.allowMultiline && string[i] === EOLToken.symbol) { // End Of Line
+      currentTokens.push(new EOLToken(currentLine, obj.pos));
       i++;
       obj.pos++;
-      obj.lines.push(currentLine);
+      currentLine.updateTokens(currentTokens);
       currentLine.source = string.substr(lastSourceIndex, i).trim();
+      obj.lines.push(currentLine);
       lastSourceIndex = i;
+      currentTokens = []; // Reset token array - start a new line
       currentLine = new TokenLine(obj.rs, null);
       continue;
     }
@@ -665,7 +695,7 @@ function _tokenify(obj) {
         if (pobj.terminateOn !== closing) throw throwMatchingBracketError(opening, closing, obj.pos);
         const contents = pobj.lines;
         const group = new BracketedTokenLines(currentLine, contents, opening, obj.pos);
-        currentLine.tokens.push(group);
+        currentTokens.push(group);
 
         const source = string.substr(i, (pobj.pos - obj.pos) + 1); // Extract block text
         obj.pos += source.length;
@@ -679,18 +709,13 @@ function _tokenify(obj) {
     if (op !== null) {
       const t = new OperatorToken(currentLine, op, obj.pos);
 
-      // if ((op === '=' || op === ':=') && peek(currentLine.tokens, 1) instanceof TokenStringArray && peek(currentLine.tokens, 2) instanceof VariableToken) {
-      //   addToTokenStringPositions.push(obj.pos);
-      //   peek(currentLine.tokens, 2).isDeclaration = op === ':=' ? 2 : 1; // Set declaration type
-      // }
-
       // Is unary: first, after (, after an operator (first, check that there IS a unary operator available)
-      const top = peek(currentLine.tokens);
+      const top = peek(currentTokens);
       if (t.info().unary && (top === undefined || (top instanceof BracketToken && top.facing() === 1) || top instanceof OperatorToken)) {
         t.isUnary = true;
       }
 
-      currentLine.tokens.push(t);
+      currentTokens.push(t);
       i += op.length;
       obj.pos += op.length;
       continue;
@@ -705,7 +730,7 @@ function _tokenify(obj) {
     }
     if (numObj.str.length > 0) {
       const t = new ValueToken(currentLine, new NumberValue(obj.rs, numObj.num), obj.pos);
-      currentLine.tokens.push(t);
+      currentTokens.push(t);
       i += numObj.pos;
       obj.pos += numObj.pos;
       continue;
@@ -721,7 +746,7 @@ function _tokenify(obj) {
         t = new VariableToken(currentLine, symbol, obj.pos);
       }
 
-      currentLine.tokens.push(t);
+      currentTokens.push(t);
 
       i += symbol.length;
       obj.pos += symbol.length;
@@ -734,8 +759,9 @@ function _tokenify(obj) {
   // Still scanning a string?
   if (inString) throw new Error(`[${errors.UNTERM_STRING}] Syntax Error: unterminated string literal at position ${strPos} `);
 
-  // Make sure this line is counted for
-  if (currentLine.tokens.length > 0) {
+  // Make sure any remnant tokens are pushes to a new line
+  if (currentTokens.length > 0) {
+    currentLine.updateTokens(currentTokens);
     currentLine.source = string.substr(lastSourceIndex).trim();
     obj.lines.push(currentLine);
   }

@@ -1,0 +1,10 @@
+sum = 0;
+iters = 25000;
+
+for (i = 0; i < iters; i = i + 1) {
+    sum = sum + i;
+}
+
+println("Sum of first " + iters + " integers = " + sum);
+
+# First: ~170ms

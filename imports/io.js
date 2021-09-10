@@ -20,7 +20,7 @@ function main(rs) {
     const input = await (() => {
       return new Promise((resolve, reject) => {
         let oldh = rs.onLineHandler;
-        rs.onLineHandler = async (io, line) => {
+        rs.onLineHandler = (io, line) => {
           rs.onLineHandler = oldh;
           resolve(line);
         };

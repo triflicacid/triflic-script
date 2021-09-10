@@ -25,7 +25,7 @@ class ArrayStructure extends Structure {
   }
 
   validate() {
-    this.elements.forEach(e => e.parse());
+    this.elements.forEach(e => e.prepare());
   }
 
   async eval() {
@@ -51,7 +51,7 @@ class MapStructure extends Structure {
 
   validate() {
     if (this.keys.length !== this.values.length) throw new Error(`${this}: keys and values arrays must be equal lengths`);
-    this.values.forEach(e => e.parse());
+    this.values.forEach(e => e.prepare());
   }
 
   async eval() {
@@ -72,7 +72,7 @@ class SetStructure extends Structure {
   }
 
   validate() {
-    this.elements.forEach(e => e.parse());
+    this.elements.forEach(e => e.prepare());
   }
 
   async eval() {
@@ -106,7 +106,10 @@ class IfStructure extends Structure {
     for (const [condition, block] of this.conditionals) {
       if (condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
       if (condition.value.length > 1) throw new expectedSyntaxError(')', peek(condition.value[0].tokens));
+      condition.prepare();
+      block.prepare();
     }
+    this.elseBlock?.prepare();
   }
 
   async eval() {
@@ -137,8 +140,8 @@ class WhileStructure extends Structure {
     // Check that condition only has ONE line
     if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
-    // console.log("Validating while...")
-    // this.body.prepare();
+    this.body.prepare();
+    this.condition.prepare();
   }
 
   async eval() {
@@ -161,6 +164,8 @@ class DoWhileStructure extends Structure {
     // Check that condition only has ONE line
     if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
+    this.body.prepare();
+    this.condition.prepare();
   }
 
   async eval() {
@@ -183,6 +188,8 @@ class UntilStructure extends Structure {
     // Check that condition only has ONE line
     if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
+    this.body.prepare();
+    this.condition.prepare();
   }
 
   async eval() {
@@ -205,6 +212,8 @@ class DoUntilStructure extends Structure {
     // Check that condition only has ONE line
     if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
+    this.body.prepare();
+    this.condition.prepare();
   }
 
   async eval() {
@@ -228,6 +237,8 @@ class ForStructure extends Structure {
     if (this.loop.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got ) (FOR loop)`);
     if (this.loop.value.length < 2) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got end of input (FOR loop)`); // If step is empty, there will only be two TokenLine objects
     if (this.loop.value.length > 3) throw new expectedSyntaxError(')', peek(this.loop.value[2].tokens));
+    this.loop.value.forEach(line => line.prepare());
+    this.body.prepare();
   }
 
   async eval() {
@@ -259,6 +270,7 @@ class FuncStructure extends Structure {
 
   validate() {
     if (this.args.value.length > 1) throw new expectedSyntaxError(')', peek(this.args.value[2].tokens));
+    this.body.prepare();
   }
 
   async eval() {

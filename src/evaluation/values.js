@@ -954,6 +954,7 @@ SetValue.castMap = {
   array: o => new ArrayValue(o.rs, o.value),
   string: o => new StringValue(o.rs, "{" + o.value.map(t => t.toString()).join(',') + "}"),
   bool: o => new BoolValue(o.rs, !!this.value),
+  map: o => o.__len__() === 0 ? new MapValue(o.rs) : undefined, // Convert empty sets to map, nothing else
 };
 
 MapValue.castMap = {
