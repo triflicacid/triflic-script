@@ -195,7 +195,7 @@ class UntilStructure extends Structure {
   async eval() {
     while (true) {
       let bool = await this.condition.eval();
-      if (!bool.toPrimitive("bool")) break;
+      if (bool.toPrimitive("bool")) break;
       await this.body.eval();
     }
   }
@@ -220,7 +220,7 @@ class DoUntilStructure extends Structure {
     while (true) {
       await this.body.eval();
       let bool = await this.condition.eval();
-      if (!bool.toPrimitive("bool")) break;
+      if (bool.toPrimitive("bool")) break;
     }
   }
 }

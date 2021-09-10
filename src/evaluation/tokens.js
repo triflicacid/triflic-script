@@ -177,7 +177,7 @@ class BracketedTokenLines extends Token {
   prepare() {
     this.value.forEach(line => {
       if (line.block !== undefined && line.block === null) line.block = this.tstr.block;
-      line.prepare(); 
+      line.prepare();
     });
   }
 
@@ -450,6 +450,7 @@ class TokenLine {
       }
     }
 
+    this.tokens = this.toRPN(); // Convert to postfix form (reverse polish notation)
     return this;
   }
 
@@ -464,7 +465,7 @@ class TokenLine {
 
   async _eval() {
     // Evaluate in postfix notation
-    const T = this.toRPN(), stack = [];
+    const T = this.tokens, stack = [];
     for (let i = 0; i < T.length; i++) {
       if (T[i] instanceof Value || T[i] instanceof VariableToken) {
         stack.push(T[i]);
