@@ -159,14 +159,6 @@ class VariableToken extends Token {
   }
 }
 
-/** Contains array of token strings in this.token */
-class TokenStringArray extends Token {
-  /** @param {TokenLine[]} tokens Array of tokens which were seperated by commas */
-  constructor(tstring, tokens, pos) {
-    super(tstring, tokens, pos);
-  }
-}
-
 /** A bracketed TokenLine[] */
 class BracketedTokenLines extends Token {
   constructor(tstring, tokenLines, openingBracket, pos) {
@@ -450,7 +442,6 @@ class TokenLine {
       }
     }
 
-    this.tokens = this.toRPN(); // Convert to postfix form (reverse polish notation)
     return this;
   }
 
@@ -465,18 +456,14 @@ class TokenLine {
 
   async _eval() {
     // Evaluate in postfix notation
-    const T = this.tokens, stack = [];
+    const T = this.toRPN(), stack = [];
     for (let i = 0; i < T.length; i++) {
       if (T[i] instanceof Value || T[i] instanceof VariableToken) {
         stack.push(T[i]);
       } else if (T[i] instanceof OperatorToken) {
         const info = T[i].info();
         if (stack.length < info.args) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - stack underflow (expects ${info.args} values, got ${stack.length})`);
-        let args = [];
-        for (let j = 0; j < info.args; j++) args.unshift(stack.pop()); // if stack is [a, b] pass in fn(a, b)
-        // TODO
-        // console.log(args);
-        // process.exit();
+        const args = stack.splice(stack.length - info.args);
         const val = await T[i].eval(...args);
         stack.push(val);
       } else if (T[i] instanceof BracketedTokenLines && T[i].opening === '(') {
@@ -528,7 +515,6 @@ class TokenLine {
         if (T[i] instanceof BracketedTokenLines) {
           str = T[i].opening;
         }
-        console.log(T[i])
         throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax at position ${pos ?? T[i].pos}: ${str ?? T[i].toString()} `);
       }
     }
@@ -554,7 +540,7 @@ class TokenLine {
   _toRPN(tokens, bidmas = true) {
     const stack = [], output = [];
     for (let i = 0; i < tokens.length; i++) {
-      if (tokens[i] instanceof ValueToken || tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof TokenLine || tokens[i] instanceof TokenStringArray || tokens[i] instanceof BracketedTokenLines || tokens[i] instanceof KeywordToken || tokens[i] instanceof Structure || tokens[i] instanceof Block) {
+      if (tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof TokenLine || tokens[i] instanceof BracketedTokenLines || tokens[i] instanceof KeywordToken || tokens[i] instanceof Structure || tokens[i] instanceof Block) {
         output.push(tokens[i]);
       } else if (tokens[i].is?.(BracketToken, '(')) {
         stack.push(tokens[i]);

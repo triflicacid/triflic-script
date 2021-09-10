@@ -171,6 +171,10 @@ Syntax: `if (<condition>) {<block>} [else if (<condition> <block>), [...]] [else
 
 If the `<condition>` is truthy, the `<block>` is executed and the rest of the structure is skipped. If no `if` or `else if` blocks is executed, the `else` block will execute.
 
+The last statement in the `{<block>}` that is run will be returned from the `if` statement e.g. `a = if (1) { "Yes" }; print(a);` --> `"Yes"`
+
+This means that ternary operators kind-of exist: `<var> = if (<cond>) { <truthy> } else { <falsy> }`
+
 ### `do`
 Defined the following as a block. (*NB this is largely redundant and does nothing - the keyword is simply removed at runtime*)
 

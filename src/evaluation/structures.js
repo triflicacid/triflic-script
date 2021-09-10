@@ -114,18 +114,19 @@ class IfStructure extends Structure {
 
   async eval() {
     // Loop through conditionals...
-    let foundTruthy = false;
+    let foundTruthy = false, value;
     for (const [condition, block] of this.conditionals) {
-      let ret = await condition.eval(), bool = ret.castTo("bool"); // Execute condition
-      if (bool.value) { // If conditon is truthy...
+      let cond = value = await condition.eval();
+      if (cond.toPrimitive("bool")) { // If conditon is truthy...
         foundTruthy = true;
-        await block.eval(); // Evaluate code block
+        value = await block.eval(); // Evaluate code block
         break;
       }
     }
     if (!foundTruthy && this.elseBlock) { // If no condition was truthy and there is an else block...
-      await this.elseBlock.eval();
+      value = await this.elseBlock.eval();
     }
+    return value;
   }
 }
 
@@ -285,7 +286,7 @@ class FuncStructure extends Structure {
           if (arg.tokens[1].constructor.name === 'OperatorToken' && arg.tokens[1].value === ':' && arg.tokens[2].constructor.name === 'VariableToken') {
             argObj[arg.tokens[0].value] = arg.tokens[2].value;
           } else {
-            throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax`);
+            throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax`);
           }
         }
       }
