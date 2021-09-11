@@ -5,6 +5,8 @@ Now, supports multi-line programs with basic control structures. Due to origins 
 
 If I has known how this would progress, I would've written this in Java or C++ for speed. As this is written in JavaScript, it is pretty slow: my script is interpreted (probably pretty badly), which is then interpreted by JavaScript's V8 and run as C++. Not very fast :(.
 
+For more help, see programs in `programs/`.
+
 ## Important Notes
 - Inline function definitions in format `<name>(<args>) = ...` has been disabled 
 - Optional arguments in `func` are not implemented
@@ -15,7 +17,6 @@ If I has known how this would progress, I would've written this in Java or C++ f
 Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
 - Add `(call)` operator with proper precedence. Is hidden.
 - Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
-- Implement keywords `return`, `break`, `continue` in blocks.
 - Optional function parameters
 
 ## Execution Methods
@@ -249,3 +250,11 @@ Breaks out of the current loop.
 Syntax: `continue`
 
 Terminates current iteration of a loop and continue execution next iteration.
+
+### `return`
+Syntax: `return ...`
+
+Terminates current function and returns values `...` from the function.
+
+As everything is an expression and the last value is returned anyway, a `return` statement is not needed on the last line of a function.
+i.e. the lines `a = func() { 1; }();` and `a = func() { return 1; }();` are essentially the same.

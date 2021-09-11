@@ -410,7 +410,7 @@ class FuncStructure extends Structure {
   validate() {
     if (this.args.value.length > 1) throw new expectedSyntaxError(')', peek(this.args.value[2].tokens));
     this.body.breakable = 0;
-    this.body.returnable = 1; // Handle returns directly
+    this.body.returnable = 2; // Handle returns directly
     this.body.prepare();
   }
 
@@ -499,6 +499,24 @@ class ContinueStructure extends Structure {
   }
 }
 
+class ReturnStructure extends Structure {
+  /** expression -> TokenLine */
+  constructor(pos, expression) {
+    super("RETURN", pos);
+    this.expr = expression;
+  }
+
+  validate() {
+    this.expr.prepare();
+  }
+
+  async eval(evalObj) {
+    let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    evalObj.action = 3; // Action for RETURN
+    evalObj.actionValue = await this.expr.eval(obj);
+  }
+}
+
 module.exports = {
   Structure,
   ArrayStructure, SetStructure, MapStructure,
@@ -506,5 +524,5 @@ module.exports = {
   WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, LoopStructure,
   ForStructure, ForInStructure,
   FuncStructure,
-  BreakStructure, ContinueStructure,
+  BreakStructure, ContinueStructure, ReturnStructure,
 };

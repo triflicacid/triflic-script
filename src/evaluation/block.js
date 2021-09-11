@@ -44,6 +44,12 @@ class Block {
         // console.log("Coninue line %d in block %s", l, this.id)
         if (this.breakable === 1) evalObj.action = 2;
         break;
+      } else if (obj.action === 3) {
+        // console.log("Return line %d in block %s", l, this.id)
+        if (this.returnable === 1) evalObj.action = 3;
+        evalObj.actionValue = obj.actionValue;
+        lastVal = obj.actionValue;
+        break;
       }
       else throw new Error(`FATAL: Unknown action '${obj.action}' in blockID=${obj.blockID}, lineID=${obj.lineID}`);
     }

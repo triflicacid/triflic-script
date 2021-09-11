@@ -3,7 +3,7 @@ const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = r
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
 const operators = require("./operators");
 const { errors } = require("../errors");
-const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure } = require("./structures");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure } = require("./structures");
 const { Block } = require("./block");
 
 class Token {
@@ -38,7 +38,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "goto"];
+KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "return", "goto"];
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
@@ -308,7 +308,6 @@ class TokenLine {
           } else {
             if (this.block == undefined) throw new Error(`[${errors.SYNTAX}]: Syntax Error: invalid syntax '{' at position ${this.tokens[i].pos} (no enclosing block found)`);
             this.tokens[i] = this.block.createChild(this.tokens[i].value, this.tokens[i].pos);
-            this.tokens[i].prepare();
           }
         }
 
@@ -372,6 +371,7 @@ class TokenLine {
         case "do": {
           if (this.tokens[i + 1] instanceof Block) {
             this.tokens[i + 1].breakable = 1;
+            this.tokens[i].prepare();
             this.tokens.splice(i, 1); // Remove "do"
           }
           break;
@@ -488,6 +488,15 @@ class TokenLine {
         case "continue": {
           if (this.block.breakable) {
             let structure = new ContinueStructure(this.tokens[i].pos);
+            structure.validate();
+            this.tokens[i] = structure;
+          }
+          break;
+        }
+        case "return": {
+          if (this.block.returnable) {
+            let tokenLine = new TokenLine(this.rs, this.block, this.tokens.splice(i + 1) ?? []);
+            let structure = new ReturnStructure(this.tokens[i].pos, tokenLine);
             structure.validate();
             this.tokens[i] = structure;
           }
