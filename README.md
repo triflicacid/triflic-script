@@ -3,6 +3,8 @@ Started as a single-line maths-focused interpreter, allowing for maths involving
 
 Now, supports multi-line programs with basic control structures. Due to origins this program, the interpreter has some quirks.
 
+If I has known how this would progress, I would've written this in Java or C++ for speed. As this is written in JavaScript, it is pretty slow: my script is interpreted (probably pretty badly), which is then interpreted by JavaScript's V8 and run as C++. Not very fast :(.
+
 ## Important Notes
 - Inline function definitions in format `<name>(<args>) = ...` has been disabled 
 - Optional arguments in `func` are not implemented
@@ -14,9 +16,7 @@ Currently, `a = [a]` infinity recurses as a is equal to an array containing itse
 - Add `(call)` operator with proper precedence. Is hidden.
 - Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
 - Implement keywords `return`, `break`, `continue` in blocks.
-- Add input methods `input(prompt?: string): string` and `getch(): char`
 - Optional function parameters
-- `for (<variable> in <collection>)` loop
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -42,7 +42,6 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `nice-errors` : `boolean`. Whether or not to catch errors and prinpt nicely to the screen, or to crash the program.
 - `ans` : `boolean`. Whether or not to provide the `ans` variable.
 - `imag` : `character`. What character to use to represent the imaginary component in complex numbers. Set `--imag " "` to essentially disable complex numbers.
-- `gamma-factorial` : `boolean`. Use `gamma` function for factorial operator `!` (use `factorial` or `factorialReal`) ?
 - `reveal-headers` : `boolean`. Reveal CLI options and other information to Runspace as `headers` map?
 - `define-aliases` : `boolean`. Define aliases for some variables/functions e.g. `W` for `lambertW` and `π` for `pi` (NB these are not aliases, but copies, so `pi` is independant from `π`)
 - `multiline` : `boolean`. Does the CLI allow multiline input?
@@ -128,8 +127,7 @@ There are two types of functions: `built-in`s and `user-defined`
 | ~ | Bitwise NOT | 17 | rtl | Bitwise NOT value on LHS | `~20` => `-21` |
 | + | Unary plus | 17 | rtl | Convert LHS to number | `+"14"` => `14` |
 | - | Unary minus | 17 | rtl | Convert LHS to number and negate | `-"14"` => `-14` |
-| ' | Logical Not | 17 | rtl | Returns opposite boolean value | `0'` => `true` |
-| ! | Factorial | 17 | rtl | Returns factorial of value | `5!` => `120` or `120.00000000000017` |
+| ! | Logical Not | 17 | rtl | Returns opposite boolean value | `!0` => `true` |
 | ** | Exponentation | 16 | rtl | Returns LHS to the power of the RHS | `2 ** 4` => `16` |
 | : | Sequence | 16 | rtl | Attempts to create sequence from LHS to RHS | `3:7` => `[3,4,5,6]`, `"a":"f"` => `["a","b","c","d","e"]` |
 | // | Integer division | 15 | ltr | Divide LHS by RHS, return as an integer | `5 // 2` => `2` |
@@ -201,6 +199,11 @@ An `until` structure consists of a condition and a block.
 - Execute `<block>` and continue to execute `<block>` until `<condition>` is truthy
 
 *Basically an opposite while loop - `while` runs while true, `until` runs while false*
+
+### `loop`
+Syntax: `loop {<block>}`
+
+Runs `{<block>}` infinitely until broken out of (like `while (true)` or `for(;;)`)
 
 ### `for`
 Syntax: `for (<action>) {<block>}`

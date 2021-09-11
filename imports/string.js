@@ -10,9 +10,5 @@ module.exports = rs => {
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'split', { str: 'string', splitter: '?string' }, ({ str, splitter }) => new ArrayValue(rs, str.toString().split(splitter === undefined ? '' : splitter.toString())), 'String: split string by <splitter> to form an array'));
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'join', { arr: 'array', seperator: '?string' }, ({ arr, seperator }) => new StringValue(rs, arr.toPrimitive('array').map(v => v.toString()).join(seperator ?? '')), 'String: Join elements in an array by <seperator> to form a string'));
 
-    StringValue.prototype.__excl__ = function () {
-        return new StringValue(this.rs, this.value.toUpperCase());
-    };
-
     return new StringValue(rs, `Provide some basic string functions: ucase, lcase, tcase, replace, substr, split, join`);
 };

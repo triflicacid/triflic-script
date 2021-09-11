@@ -358,4 +358,21 @@ class FuncStructure extends Structure {
   }
 }
 
-module.exports = { Structure, ArrayStructure, SetStructure, MapStructure, IfStructure, WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, ForStructure, ForInStructure, FuncStructure, };
+class LoopStructure extends Structure {
+  constructor(pos, body) {
+    super("LOOP", pos);
+    this.body = body;
+  }
+
+  validate() {
+    this.body.prepare();
+  }
+
+  async eval() {
+    while (true) {
+      await this.body.eval();
+    }
+  }
+}
+
+module.exports = { Structure, ArrayStructure, SetStructure, MapStructure, IfStructure, WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, ForStructure, ForInStructure, FuncStructure, LoopStructure, };

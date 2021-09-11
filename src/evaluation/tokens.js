@@ -3,7 +3,7 @@ const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = r
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
 const operators = require("./operators");
 const { errors } = require("../errors");
-const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure } = require("./structures");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure } = require("./structures");
 const { Block } = require("./block");
 
 class Token {
@@ -38,7 +38,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "foreach", "loop", "break", "continue", "func"];
+KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func"];
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
@@ -462,6 +462,16 @@ class TokenLine {
           }
 
           structure.validate();
+          break;
+        }
+        case "loop": {
+          if (this.tokens[i + 1] instanceof Block) {
+            let structure = new LoopStructure(this.tokens[i].pos, this.tokens[i + 1]);
+            structure.validate();
+            this.tokens.splice(i, 2, structure); // Remove "loop" "{...}" and add structure
+          } else {
+            throw new Error(`[${errors.SYNTAX}] LOOP: expected block {...} after keyword 'loop' at position ${this.tokens[i].pos}`);
+          }
           break;
         }
       }

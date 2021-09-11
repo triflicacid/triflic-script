@@ -216,16 +216,6 @@ class NumberValue extends Value {
     if (isRealType(this.type()) && isRealType(n.type())) return new BoolValue(this.rs, this.toPrimitive('real') > n.toPrimitive('real'));
   }
 
-  /** operator: ! */
-  __excl__() {
-    const t = this.type();
-    if (this.rs.opts.gammaFactorial) {
-      if (isNumericType(t)) return new NumberValue(this.rs, factorial(this.toPrimitive('complex')));
-    } else {
-      if (isRealType(t)) return new NumberValue(this.rs, factorialReal(this.toPrimitive('real')));
-    }
-  }
-
   /** Operator: : */
   __seq__(val) {
     const t = val.type();
@@ -430,15 +420,6 @@ class CharValue extends Value {
   /** operator: > */
   __gt__(n) {
     if (isRealType(n.type())) return new BoolValue(this.rs, this.value > n.toPrimitive('real'));
-  }
-
-  /** operator: ! */
-  __excl__() {
-    if (this.rs.opts.gammaFactorial) {
-      return new NumberValue(this.rs, factorial(this.value));
-    } else {
-      return new NumberValue(this.rs, factorialReal(this.value));
-    }
   }
 
   /** Operator: : */

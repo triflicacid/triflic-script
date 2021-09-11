@@ -99,15 +99,6 @@ const operators = {
     unary: "u-",
     assoc: 'rtl',
   },
-  "'": {
-    name: 'logical not',
-    precedence: 17,
-    args: 1,
-    fn: x => x.castTo('any').__not__?.(),
-    desc: `logical not unless x is of type set. Then, find complement of x (using universal set, ε)`,
-    syntax: 'x\'',
-    assoc: 'rtl',
-  },
   "<cast>": {
     name: 'cast',
     precedence: 17,
@@ -368,12 +359,12 @@ const operators = {
   },
 
   "!": {
-    name: 'factorial',
+    name: 'logical not',
     precedence: 17,
     args: 1,
-    fn: n => n.castTo('any').__excl__?.(),
-    desc: `Calculate factorial of n. n must be a real, positive integer.`,
-    syntax: 'a!',
+    fn: x => x.castTo('any').__not__?.(),
+    desc: `logical not unless x is of type set. Then, find complement of x (using universal set, ε)`,
+    syntax: 'x\'',
     assoc: 'rtl',
   },
   ",": {
