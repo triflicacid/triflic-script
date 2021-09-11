@@ -207,16 +207,17 @@ class TokenLine {
     this.tokens = [...tokens];
   }
 
-  /** Prepare line for execution */
-  prepare() {
+  /** Prepare line for execution. Arg - also transform to RPN? */
+  prepare(doRPN = true) {
     if (this._ready) return;
     this._ready = true;
     this.tokens.forEach(t => (t.block = this.block)); // Set block for each token
     this.parse(); // Parse
+    if (doRPN) this.tokens = this.toRPN();
   }
 
   /** Returns array of TokenStrings */
-  splitByCommas(prepareThem = true) {
+  splitByCommas(prepareThem = true, prepareDoRPN = true) {
     let items = [], metItem = false, ts = new TokenLine(this.rs, this.block), tsTokens = [];
     for (let i = 0; i < this.tokens.length; i++) {
       if (this.tokens[i] instanceof OperatorToken && this.tokens[i].value === ',') {
@@ -235,7 +236,7 @@ class TokenLine {
       ts.updateTokens(tsTokens);
       items.push(ts);
     }
-    if (prepareThem) items.forEach(item => item.prepare());
+    if (prepareThem) items.forEach(item => item.prepare(prepareDoRPN));
     return items;
   }
 
@@ -283,7 +284,7 @@ class TokenLine {
           if (i === 0 || this.tokens[i - 1] instanceof OperatorToken) { // Set/Map if (1) first token (2) preceeded by operator
             let elements;
             if (this.tokens[i].value.length === 0) elements = [];
-            else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas();
+            else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas(false);
             else throw new expectedSyntaxError('}', peek(this.tokens[i].value[0].tokens));
 
             let structure;
@@ -299,6 +300,7 @@ class TokenLine {
                 }
               }
             } else {
+              elements.forEach(e => e.prepare());
               structure = new SetStructure(this.rs, elements, this.tokens[i].pos);
             }
             structure.validate();
@@ -456,7 +458,7 @@ class TokenLine {
 
   async _eval() {
     // Evaluate in postfix notation
-    const T = this.toRPN(), stack = [];
+    const T = this.tokens, stack = [];
     for (let i = 0; i < T.length; i++) {
       if (T[i] instanceof Value || T[i] instanceof VariableToken) {
         stack.push(T[i]);

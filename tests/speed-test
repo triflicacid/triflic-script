@@ -9,4 +9,5 @@ println("Sum of first " + iters + " integers = " + sum);
 
 # Speed Update Before: iters=10000, time=~170ms
 # Speed Update 1: iters=10000, time=~151ms (+12.6%)                 # TokenLine objects are parsed only once
-# Speed Update 2: iters=10000, time=~150ms                          # Less expensive method of popping arguments for operators
+# Speed Update 2: iters=10000, time=~150ms (+00.6%)                 # Less expensive method of popping arguments for operators
+# Speed Update 3: iters=10000, time=~135ms (+11.1%)                 # Transform to RPN (.toRPN()) in .prepare()

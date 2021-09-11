@@ -277,7 +277,7 @@ class FuncStructure extends Structure {
   async eval() {
     let argObj = {};
     if (this.args.value.length === 1) {
-      let args = this.args.value[0].splitByCommas();
+      let args = this.args.value[0].splitByCommas(false); // DO NOT do extra parsing - not required for function arguments
       for (let arg of args) {
         if (arg.tokens[0] === undefined || arg.tokens[0].constructor.name !== 'VariableToken') throw new Error(`[${errors.SYNTAX}] Syntax Error: expected parameter name, got ${arg.tokens[0]} at position ${arg.tokens[0]?.pos}`);
         if (arg.tokens.length === 1) { // "<arg>"

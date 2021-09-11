@@ -1,17 +1,15 @@
 # Function declaration
-func hi() { print("Hello"); }
-#hi();
+func hi() { println("Hello"); }
+hi();
 
 # Function expression (remember semicolon at end)
-hi = func() { print("Hello"); };
-#hi();
+hi = func() { println("Hello"); };
+hi();
 
 # With arguments
 func add(a, b) { a + b; }
-print(add(5 + i, 3));
+println(add(5 + i, 3));
 
 # With argument types
 func add(a: real, b: real) { a + b; }
-print(add(5 + i, 3));
-
-println();
+println(add(5 + i, 3));
