@@ -50,12 +50,12 @@ class OperatorToken extends Token {
   }
 
   /** Eval as operators */
-  async eval(...args) {
+  async eval(args, evalObj) {
     const info = this.info();
     let fn = info.fn;
     if (typeof fn !== 'function') throw new Error(`[${errors.ARG_COUNT}] Argument Error: no overload for operator function ${this.toString().trim()} with ${args.length} args`);
     let r;
-    try { r = await fn(...args, this.data); } catch (e) { throw new Error(`[${errors.BAD_ARG}] Operator '${this.toString().trim()}' with { ${args.map(a => a.type()).join(', ')} } at position ${this.pos}:\n${e}`); }
+    try { r = await fn(...args, this.data, evalObj); } catch (e) { throw new Error(`[${errors.BAD_ARG}] Operator '${this.toString().trim()}' with { ${args.map(a => a.type()).join(', ')} } at position ${this.pos}:\n${e}`); }
     if (r instanceof Error) throw r; // May return custom errors
     if (r === undefined) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${this.toString().trim()} does not support arguments { ${args.map(a => a.type()).join(', ')} }`);
     return r;
@@ -268,7 +268,7 @@ class TokenLine {
           this.tokens[i] = structure;
         } else if (this.tokens[i].opening === '(') { // *** CALL STRING / EXPRESSION
           // If first item, or after an operator, this is an expression group
-          if (i === 0 || this.tokens[i - 1] instanceof OperatorToken || this.tokens[i - 1] instanceof BracketToken) {
+          if (i === 0 || (this.tokens[i - 1] instanceof OperatorToken && this.tokens[i - 1].value !== '()') || this.tokens[i - 1] instanceof BracketToken) {
             if (this.tokens[i].value.length == 0) {
               this.tokens.splice(i, 1); // Simply ignore as empty
             } else {
@@ -277,8 +277,6 @@ class TokenLine {
               this.tokens.splice(i, 1, new BracketToken(this, '(', this.tokens[i].pos), ...this.tokens[i].value[0].tokens, new BracketToken(this, ')', peek(this.tokens[i].value[0].tokens).pos + 1)); // Insert tokens in bracket group into tokens array
               // variable i is not pointing at '('
             }
-          } else if (this.tokens[i + 1] instanceof OperatorToken && (this.tokens[i + 1].value === '=' || this.tokens[i + 1].value === ':=')) {
-            this.tokens[i].isDeclaration = this.tokens[i + 1].value === ':=' ? 1 : 2;
           }
         } else if (this.tokens[i].opening === '{') { // *** SET OR MAP OR CODE BLOCK
           if (i === 0 || this.tokens[i - 1] instanceof OperatorToken) { // Set/Map if (1) first token (2) preceeded by operator
@@ -312,7 +310,7 @@ class TokenLine {
         }
 
         if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax '${this.tokens[i].opening}' at position ${this.tokens[i].pos}`);
-      } else if (this.tokens[i] instanceof OperatorToken && this.tokens[i].value === '<' && this.tokens[i + 1] instanceof VariableToken && this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === '>') {
+      } else if (this.tokens[i] instanceof OperatorToken && this.tokens[i].value === '<' && (this.tokens[i + 1] instanceof VariableToken || this.tokens[i + 1] instanceof KeywordToken) && this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === '>') {
         // Cast?
         let op = new OperatorToken(this, "<cast>", this.tokens[i].pos);
         op.data = this.tokens[i + 1].value;
@@ -320,187 +318,199 @@ class TokenLine {
       }
     }
 
-    // Second scan - keyword tokens
+    // Second scan
     for (let i = 0; i < this.tokens.length; i++) {
-      if (!(this.tokens[i] instanceof KeywordToken)) continue;
-      switch (this.tokens[i].value) {
-        case "if": {
-          if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === "(") {
-            if (this.tokens[i + 2] instanceof Block) {
-              const structure = new IfStructure(this.tokens[i].pos);
+      if (this.tokens[i] instanceof KeywordToken) {
+        switch (this.tokens[i].value) {
+          case "if": {
+            if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === "(") {
+              if (this.tokens[i + 2] instanceof Block) {
+                const structure = new IfStructure(this.tokens[i].pos);
 
-              structure.addBranch(this.tokens[i + 1], this.tokens[i + 2]);
-              this.tokens.splice(i, 3); // Remove "if" "(...)" "{...}"
+                structure.addBranch(this.tokens[i + 1], this.tokens[i + 2]);
+                this.tokens.splice(i, 3); // Remove "if" "(...)" "{...}"
 
-              // Else statement?
-              while (this.tokens[i] instanceof KeywordToken && this.tokens[i].value === 'else') {
-                // Else if?
-                if (this.tokens[i + 1] instanceof KeywordToken && this.tokens[i + 1].value === 'if') {
-                  if (this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '(') {
-                    if (this.tokens[i + 3] instanceof Block) {
-                      structure.addBranch(this.tokens[i + 2], this.tokens[i + 3]);
-                      this.tokens.splice(i, 4); // Remove "else" "if" "(...)" "{...}"
+                // Else statement?
+                while (this.tokens[i] instanceof KeywordToken && this.tokens[i].value === 'else') {
+                  // Else if?
+                  if (this.tokens[i + 1] instanceof KeywordToken && this.tokens[i + 1].value === 'if') {
+                    if (this.tokens[i + 2] instanceof BracketedTokenLines && this.tokens[i + 2].opening === '(') {
+                      if (this.tokens[i + 3] instanceof Block) {
+                        structure.addBranch(this.tokens[i + 2], this.tokens[i + 3]);
+                        this.tokens.splice(i, 4); // Remove "else" "if" "(...)" "{...}"
+                      } else {
+                        throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 3] ?? 'end of input'} at ${this.tokens[i].pos}`);
+                      }
                     } else {
-                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 3] ?? 'end of input'} at ${this.tokens[i].pos}`);
+                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
                     }
                   } else {
-                    throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
-                  }
-                } else {
-                  let block = this.tokens[i + 1];
-                  if (block instanceof Block) {
-                    structure.addElse(block);
-                    this.tokens.splice(i, 2); // Remove "else" "{...}"
-                    break;
-                  } else {
-                    throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE construct: expected block {...} got ${this.tokens[i + 1] ?? 'end of input'}`);
+                    let block = this.tokens[i + 1];
+                    if (block instanceof Block) {
+                      structure.addElse(block);
+                      this.tokens.splice(i, 2); // Remove "else" "{...}"
+                      break;
+                    } else {
+                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE construct: expected block {...} got ${this.tokens[i + 1] ?? 'end of input'}`);
+                    }
                   }
                 }
+
+                structure.validate();
+                this.tokens.splice(i, 0, structure);
+              } else {
+                throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected block {...} got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
+              }
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected condition (...) got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos}`);
+            }
+            break;
+          }
+          case "do": {
+            if (this.tokens[i + 1] instanceof Block) {
+              this.tokens[i + 1].breakable = 1;
+              this.tokens[i].prepare();
+              this.tokens.splice(i, 1); // Remove "do"
+            }
+            break;
+          }
+          case "while": {
+            let structure;
+            if (this.tokens[i - 1] instanceof Block && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
+              // ! DO-WHILE
+              structure = new DoWhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
+              this.tokens.splice(i - 1, 3, structure); // Remove "{...}" "while" "(...)", insert strfucture
+            }
+
+            else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
+              // ! WHILE
+              structure = new WhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
+              this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal WHILE construct at position ${this.tokens[i].pos}`);
+            }
+            structure.validate();
+            break;
+          }
+          case "until": {
+            let structure;
+            if (this.tokens[i - 1] instanceof Block && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
+              // ! DO-UNTIL
+              structure = new DoUntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
+              this.tokens.splice(i - 1, 3, structure); // Remove "{...}" "while" "(...)", insert strfucture
+            }
+
+            else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
+              // ! UNTIL
+              structure = new UntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
+              this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal UNTIL construct at position ${this.tokens[i].pos}`);
+            }
+            structure.validate();
+            break;
+          }
+          case "for": {
+            let structure;
+            // ! FOR
+            if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
+              // Scan for-in loop
+              let btokens = this.tokens[i + 1].value[0].tokens, vars = [], expect = 'VARS', rest, isForIn = false;
+              for (let j = 0; j < btokens.length; j++) {
+                if (expect === 'VARS' && btokens[j] instanceof VariableToken) {
+                  vars.push(btokens[j]);
+                  if (btokens[j + 1] instanceof OperatorToken && btokens[j + 1].value === ',') {
+                    j++;
+                  } else {
+                    expect = 'IN';
+                  }
+                } else if (expect === 'IN' && btokens[j] instanceof OperatorToken && btokens[j].value === 'in ') {
+                  j++;
+                  rest = new TokenLine(this.rs, this.block, btokens.slice(j));
+                  isForIn = true;
+                  break;
+                } else break;
+              }
+              if (isForIn) {
+                structure = new ForInStructure(this.tokens[i].pos, vars, rest, this.tokens[i + 2]);
+              } else {
+                // General for loop
+                structure = new ForStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
               }
 
+              this.tokens.splice(i, 3, structure); // Remove "for" "(...)" "{...}"
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FOR construct at position ${this.tokens[i].pos}`);
+            }
+            structure.validate();
+            break;
+          }
+          case "func": {
+            let structure = new FuncStructure(this.tokens[i].pos, this.rs);
+
+            // Name?
+            if (this.tokens[i + 1] instanceof VariableToken) {
+              structure.name = this.tokens[i + 1].value;
+              this.tokens.splice(i, 1);
+            }
+
+            if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
+              structure.args = this.tokens[i + 1];
+              structure.body = this.tokens[i + 2];
+              this.tokens.splice(i, 3, structure);
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FUNC construct at position ${structure.pos}`);
+            }
+
+            structure.validate();
+            break;
+          }
+          case "loop": {
+            if (this.tokens[i + 1] instanceof Block) {
+              let structure = new LoopStructure(this.tokens[i].pos, this.tokens[i + 1]);
               structure.validate();
-              this.tokens.splice(i, 0, structure);
+              this.tokens.splice(i, 2, structure); // Remove "loop" "{...}" and add structure
             } else {
-              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected block {...} got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
+              throw new Error(`[${errors.SYNTAX}] LOOP: expected block {...} after keyword 'loop' at position ${this.tokens[i].pos}`);
             }
-          } else {
-            throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected condition (...) got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos}`);
+            break;
           }
-          break;
-        }
-        case "do": {
-          if (this.tokens[i + 1] instanceof Block) {
-            this.tokens[i + 1].breakable = 1;
-            this.tokens[i].prepare();
-            this.tokens.splice(i, 1); // Remove "do"
-          }
-          break;
-        }
-        case "while": {
-          let structure;
-          if (this.tokens[i - 1] instanceof Block && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
-            // ! DO-WHILE
-            structure = new DoWhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
-            this.tokens.splice(i - 1, 3, structure); // Remove "{...}" "while" "(...)", insert strfucture
-          }
-
-          else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
-            // ! WHILE
-            structure = new WhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
-            this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
-          } else {
-            throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal WHILE construct at position ${this.tokens[i].pos}`);
-          }
-          structure.validate();
-          break;
-        }
-        case "until": {
-          let structure;
-          if (this.tokens[i - 1] instanceof Block && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
-            // ! DO-UNTIL
-            structure = new DoUntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
-            this.tokens.splice(i - 1, 3, structure); // Remove "{...}" "while" "(...)", insert strfucture
-          }
-
-          else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
-            // ! UNTIL
-            structure = new UntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
-            this.tokens.splice(i, 3, structure); // Remove "while" "(...)" "{...}" and insert structure
-          } else {
-            throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal UNTIL construct at position ${this.tokens[i].pos}`);
-          }
-          structure.validate();
-          break;
-        }
-        case "for": {
-          let structure;
-          // ! FOR
-          if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
-            // Scan for-in loop
-            let btokens = this.tokens[i + 1].value[0].tokens, vars = [], expect = 'VARS', rest, isForIn = false;
-            for (let j = 0; j < btokens.length; j++) {
-              if (expect === 'VARS' && btokens[j] instanceof VariableToken) {
-                vars.push(btokens[j]);
-                if (btokens[j + 1] instanceof OperatorToken && btokens[j + 1].value === ',') {
-                  j++;
-                } else {
-                  expect = 'IN';
-                }
-              } else if (expect === 'IN' && btokens[j] instanceof OperatorToken && btokens[j].value === 'in ') {
-                j++;
-                rest = new TokenLine(this.rs, this.block, btokens.slice(j));
-                isForIn = true;
-                break;
-              } else break;
+          case "break": {
+            if (this.block.breakable) {
+              let structure = new BreakStructure(this.tokens[i].pos);
+              structure.validate();
+              this.tokens[i] = structure;
             }
-            if (isForIn) {
-              structure = new ForInStructure(this.tokens[i].pos, vars, rest, this.tokens[i + 2]);
-            } else {
-              // General for loop
-              structure = new ForStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
+            break;
+          }
+          case "continue": {
+            if (this.block.breakable) {
+              let structure = new ContinueStructure(this.tokens[i].pos);
+              structure.validate();
+              this.tokens[i] = structure;
             }
-
-            this.tokens.splice(i, 3, structure); // Remove "for" "(...)" "{...}"
-          } else {
-            throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FOR construct at position ${this.tokens[i].pos}`);
+            break;
           }
-          structure.validate();
-          break;
+          case "return": {
+            if (this.block.returnable) {
+              let tokenLine = new TokenLine(this.rs, this.block, this.tokens.splice(i + 1) ?? []);
+              let structure = new ReturnStructure(this.tokens[i].pos, tokenLine);
+              structure.validate();
+              this.tokens[i] = structure;
+            }
+            break;
+          }
         }
-        case "func": {
-          let structure = new FuncStructure(this.tokens[i].pos, this.rs);
+      } else if (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '(') {
+        if (this.tokens[i].value.length < 2) { // (call) operator. One or zero value[]
+          let op = new OperatorToken(this, '()', this.tokens[i].pos);
+          op.data = []; // Data = arguments
 
-          // Name?
-          if (this.tokens[i + 1] instanceof VariableToken) {
-            structure.name = this.tokens[i + 1].value;
-            this.tokens.splice(i, 1);
-          }
-
-          if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
-            structure.args = this.tokens[i + 1];
-            structure.body = this.tokens[i + 2];
-            this.tokens.splice(i, 3, structure);
-          } else {
-            throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FUNC construct at position ${structure.pos}`);
+          if (this.tokens[i].value.length > 0) {
+            op.data = this.tokens[i].value[0].splitByCommas(); // Get arguments
           }
 
-          structure.validate();
-          break;
-        }
-        case "loop": {
-          if (this.tokens[i + 1] instanceof Block) {
-            let structure = new LoopStructure(this.tokens[i].pos, this.tokens[i + 1]);
-            structure.validate();
-            this.tokens.splice(i, 2, structure); // Remove "loop" "{...}" and add structure
-          } else {
-            throw new Error(`[${errors.SYNTAX}] LOOP: expected block {...} after keyword 'loop' at position ${this.tokens[i].pos}`);
-          }
-          break;
-        }
-        case "break": {
-          if (this.block.breakable) {
-            let structure = new BreakStructure(this.tokens[i].pos);
-            structure.validate();
-            this.tokens[i] = structure;
-          }
-          break;
-        }
-        case "continue": {
-          if (this.block.breakable) {
-            let structure = new ContinueStructure(this.tokens[i].pos);
-            structure.validate();
-            this.tokens[i] = structure;
-          }
-          break;
-        }
-        case "return": {
-          if (this.block.returnable) {
-            let tokenLine = new TokenLine(this.rs, this.block, this.tokens.splice(i + 1) ?? []);
-            let structure = new ReturnStructure(this.tokens[i].pos, tokenLine);
-            structure.validate();
-            this.tokens[i] = structure;
-          }
-          break;
+          this.tokens[i] = op;
         }
       }
     }
@@ -527,44 +537,8 @@ class TokenLine {
         const info = T[i].info();
         if (stack.length < info.args) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - stack underflow (expects ${info.args} values, got ${stack.length})`);
         const args = stack.splice(stack.length - info.args);
-        const val = await T[i].eval(...args);
+        const val = await T[i].eval(args, evalObj);
         stack.push(val);
-      } else if (T[i] instanceof BracketedTokenLines && T[i].opening === '(') {
-        const last = stack.pop(); // Should be VariableToken
-        if (T[i].isDeclaration) { // Declare function
-          throw new Error(`[${errors.SYNTAX}] Syntax error - invalid assignment (fn)`);
-          // const variable = last; // Function name (VariableToken)
-          // const params = T[i].value.splitByCommas(); // Parameters to function (array of tokens)
-          // const body = T[++i]; // Body of function (TokenStringArray)
-          // const assign = T[++i]; // Assignment operator (OperatorToken)
-
-          // if (!(variable instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax. [1]`);
-          // if (!(body instanceof TokenStringArray && body.value.length === 1)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax. [2] `);
-          // if (!(assign instanceof OperatorToken && (assign.value === '=' || assign.value === ':='))) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax. [3]`);
-
-          // const ref = new FunctionRefValue(this.rs, variable.value), sparams = [];
-          // for (const ts of params.value) {
-          //   if (ts.tokens.length !== 1 || !(ts.tokens[0] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: Illegal function declaration`);
-          //   params.push(ts.tokens[0]);
-          // }
-
-          // ref.defineFunction(params, body.value[0], assign.pos, variable.isDeclaration === 2, this.comment);
-          // stack.push(ref);
-        } else { // Attempt to call last thing
-          const lastValue = last.castTo("any");
-          if (typeof lastValue?.__call__ !== 'function') throw new Error(`[${errors.NOT_CALLABLE}] Type Error: type ${lastValue.type()} is not callable (position ${T[i].pos})`);
-          let args = [];
-          try {
-            if (T[i].value.length > 0) {
-              if (T[i].value.length !== 1) throw new expectedSyntaxError(')', peek(T[i].value[0].tokens));
-              args = T[i].value[0].splitByCommas(); // Get arguments
-              args = await Promise.all(args.map(t => t.eval(evalObj))); // EValuate arguments
-            }
-            stack.push(await lastValue.__call__(evalObj, args));
-          } catch (e) {
-            throw new Error(`${last}:\n${e}`);
-          }
-        }
       } else if (T[i] instanceof Block) {
         let ret = await T[i].eval(evalObj);
         if (ret !== undefined) stack.push(ret);

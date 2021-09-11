@@ -27,6 +27,21 @@ const operators = {
     syntax: '<obj>.<prop>',
     assoc: 'ltr',
   },
+  "()": {
+    name: 'call',
+    precedence: 20,
+    args: 1,
+    fn: async (fn, args, evalObj) => {
+      fn = fn.castTo("any")
+      if (!fn.__call__) throw new Error(`[${errors.NOT_CALLABLE}] Type Error: Type ${fn.type()} is not callable (${fn} is not a function)`);
+      args = await Promise.all(args.map(t => t.eval(evalObj))); // EValuate arguments
+      return await fn.__call__(evalObj, args);
+    },
+    desc: `calls function with given arguments`,
+    syntax: '<func>(<args>)',
+    assoc: 'ltr',
+    hidden: true,
+  },
   "?.": {
     name: 'oprional member access',
     precedence: 20,

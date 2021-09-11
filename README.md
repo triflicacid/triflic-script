@@ -5,12 +5,12 @@ Now, supports multi-line programs with basic control structures. Due to origins 
 
 If I has known how this would progress, I would've written this in Java or C++ for speed. As this is written in JavaScript, it is pretty slow: my script is interpreted (probably pretty badly), which is then interpreted by JavaScript's V8 and run as C++. Not very fast :(.
 
-For more help, see programs in `programs/`.
+For more help, see `programs/` and the built-in `help` function.
 
 ## Important Notes
 - Inline function definitions in format `<name>(<args>) = ...` has been disabled 
 - Optional arguments in `func` are not implemented
-- `&&` operator short-circuiting does not work
+- Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
 
 ## TODO
 - Nested-expression shortcut
@@ -125,11 +125,13 @@ There are two types of functions: `built-in`s and `user-defined`
 | Operator | Name | Precedence | Associativity | Description | Example |
 | -- | -- | -- | -- | -- | -- |
 | . | Member Access | 20 | ltr | Get member on RHS of LHS object | `headers."time"` => `1630433878509` |
+| <fn>(<args>) | Function Call | 20 | ltr | Call function `<fn>` with arguments `<args>` | `sin(1)` => `0.84...` |
 | ?. | Optional Member Access | 20 | ltr | Get member on RHS of LHS object. If RHS is undefined, return undefined | `undefined?.1` => `undefined` |
 | deg | Degrees | 18 | rtl | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` |
 | ~ | Bitwise NOT | 17 | rtl | Bitwise NOT value on LHS | `~20` => `-21` |
 | + | Unary plus | 17 | rtl | Convert LHS to number | `+"14"` => `14` |
 | - | Unary minus | 17 | rtl | Convert LHS to number and negate | `-"14"` => `-14` |
+| <type> | Type cast | 17 | rtl | Casts RHS to type `type` | `<bool>12` => `true`, `<array>"Hi"` => `["H","i"]` |
 | ! | Logical Not | 17 | rtl | Returns opposite boolean value | `!0` => `true` |
 | ** | Exponentation | 16 | rtl | Returns LHS to the power of the RHS | `2 ** 4` => `16` |
 | : | Sequence | 16 | rtl | Attempts to create sequence from LHS to RHS | `3:7` => `[3,4,5,6]`, `"a":"f"` => `["a","b","c","d","e"]` |
@@ -164,7 +166,7 @@ There are two types of functions: `built-in`s and `user-defined`
 
 *rtl = right-to-left*
 
-## keywords
+## Keywords
 ### `if`, `else`
 An `if` structure consists of a condition and a block. If may have additional conditions and blocks using the `else if` statement, and a final block after `else`.
 
@@ -258,3 +260,28 @@ Terminates current function and returns values `...` from the function.
 
 As everything is an expression and the last value is returned anyway, a `return` statement is not needed on the last line of a function.
 i.e. the lines `a = func() { 1; }();` and `a = func() { return 1; }();` are essentially the same.
+
+## Types
+Variables all have a type which may change. New types may be added - see `imports/matrix.js` for an example.
+
+- `type` -> the type name
+- `description` -> description of the type
+- `castable` -> can this be casted to i.e. cast value to `real` via `<real>`
+- `initialisable` -> can this type be initialsed via `new("<type>")`
+
+| Type | Description | Castable | Initialisable | Example |
+| ---- | ----------- | -------- | ------------- | ------- |
+| `any` | Represents any type. Used implicitly in functions when no argument type is provided | `Yes` | `No` | `5`, `"Hello"` |
+| `real` | Represents any number without an imaginary component | `Yes` | `Yes` | `5`, `3.14` |
+| `real_int`* | Represents a `real` integer | `Yes` | `Yes` | `5`, `3` |
+| `complex` | Represents any number with an imaginary component. To make, multiple a `real` by `i` | `Yes` | `Yes` | `5i`, `3.14i` |
+| `complex_int`* | Represents a `complex` integer | `Yes` | `Yes` | `5i`, `3i` |
+| `string` | Represents a string of characters | `Yes` | `Yes` | `"Hello"` |
+| `char` | Represents a single character which behaves like a `real` | `Yes` | `Yes` | `'a'` |
+| `bool` | Represents a boolean value | `Yes` | `Yes` | `true`, `false` |
+| `array` | Represents a collection of values | `Yes` | `Yes` | `[1, 2]`, `["H", true, [1]]` |
+| `set` | Represents a unique collection of values (no repeated values) | `Yes` | `Yes` | `{1, 2}`, `{"H", true, [1]}` |
+| `map` | Represents a collection of keys which map to a value | `Yes` | `Yes` | `{1: "a", 2: "b"}`, `{"name": "John Doe", "male": true}` |
+| `func` | Contains a function reference which may be called | `No` | `No` | `sin`, `print` |
+
+*\*These types are never returned from `type()`*

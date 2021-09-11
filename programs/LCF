@@ -1,7 +1,7 @@
 import("<string>");
 
-a = 645; #<real>input("a = ");
-b = 255; #<real>input("b = ");
+a = <real>input("a = ");
+b = <real>input("b = ");
 
 func lcf(a, b) {
   loop {

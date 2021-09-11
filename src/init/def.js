@@ -32,7 +32,7 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'help', { item: '?any' }, ({ item }) => {
     let help = '';
     if (item === undefined) {
-      help = `help(?s) \t Get help on a specific symbol\nerror_code(code) \t Return brief help on a given error code\nvars() \t List all variables\noperators() \t List all operators\nexit() \t Terminate the program`;
+      help = `help(?s) \t Get help on an argument\nerror_code(code) \t Return brief help on a given error code\nvars() \t List all variables\noperators() \t List all operators\ntypes() \t List all available types \nnew(type) \t Instantiates a new value of type <type> \nkeywords() \t List all reserved keywords \nexit() \t Terminate the program`;
     } else if (item instanceof VariableToken) {
       let v = item.getVar();
       if (v.value instanceof FunctionRefValue) {
@@ -425,7 +425,7 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'gamma', { z: 'complex' }, ({ z }) => new NumberValue(rs, gamma(z.toPrimitive('complex'))), 'Return the gamma function at z'));
   // if (rs.opts.defineAliases) rs.funcAlias('gamma', 'Γ');
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nextNearest', { n: 'real', next: 'real' }, ({ n, next }) => new NumberValue(rs, nextNearest(n.toPrimitive('real'), next.toPrimitive('real'))), 'Return the next representable double from value <n> towards <next>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sleep', { ms: 'real_int' }, async ({ ms }) => new Promise((resolve) => setTimeout(resolve, ms)), 'Suspend execution for <ms> milliseconds (1000ms = 1s)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sleep', { ms: 'real_int' }, async ({ ms }) => new Promise((resolve) => setTimeout(() => resolve(ms), ms.toPrimitive('real_int'))), 'Suspend execution for <ms> milliseconds (1000ms = 1s)'));
 }
 
 module.exports = { define, defineVars, defineFuncs };
