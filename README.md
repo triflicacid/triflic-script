@@ -203,11 +203,21 @@ An `until` structure consists of a condition and a block.
 *Basically an opposite while loop - `while` runs while true, `until` runs while false*
 
 ### `for`
-Syntax: `for (<action>) {<block>}` where `<action>` comprises of THREE parts `(init; cond; step)`
+Syntax: `for (<action>) {<block>}`
+
+`(<action>)` in form `(<vars> in <collection>)`
+- `vars` : comma-seperated list of variables e.g. `a, b, c`. These will be allocated sepending on the collection.
+- `collection` : the value must be iterable (the method `__iter__` will be called). The variables in `var` will be assigned from this value as follows:
+  - If `collection` is a linear array, one variable is expected and will contain each value in `collection` each iteration
+  - If `collection` is a 2D array, and there is one variable, this variable will contain the array value in `collection` each iteration
+  - If `collection` is a 2D array, and there are multiple variable, the number of variables must match the length of the array value in `collection` and each value from the array will be unpacked into the corresponding variable each Iteration
+
+  See examples in `tests/for-in`
+
+`(<action>)` in form `(init; cond; step)`:
 - `init` : this is executed before the loop begins
 - `cond` : the loop runs while `<cond>` is truthy. If empty, this will evaluate to `true`.
 - `step` : this is executed after each loop iteration
-
 Each one of these may be empty e.g. to construct an infitite loop: `for(;;)` where each `init`, `cond` and `step` is empty (empty `cond` is truthy).
 
 ### `func`

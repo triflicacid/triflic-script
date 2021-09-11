@@ -1,0 +1,15 @@
+for (n in 1:10) {
+  print(n + " ");
+}
+println();
+println();
+
+for (c in "Hello") {
+  print(c + " ");
+}
+println();
+println();
+
+for (key, value in {"a":1, "b": 2, "c": 3}) {
+  println(key + " => " + value);
+}

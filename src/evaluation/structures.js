@@ -2,7 +2,7 @@ const { errors } = require("../errors");
 const { RunspaceUserFunction } = require("../runspace/Function");
 const { expectedSyntaxError, peek } = require("../utils");
 const { parseSymbol } = require("./parse");
-const { FunctionRefValue, ArrayValue, SetValue, MapValue } = require("./values");
+const { FunctionRefValue, ArrayValue, SetValue, MapValue, UndefinedValue } = require("./values");
 
 class Structure {
   constructor(name, pos) {
@@ -260,6 +260,57 @@ class ForStructure extends Structure {
   }
 }
 
+class ForInStructure extends Structure {
+  /** for (<vars> in <iter>) {<body>}. iter is a TokenLine. */
+  constructor(pos, vars, iter, body) {
+    super("FORIN", pos);
+    this.vars = vars;
+    this.iter = iter;
+    this.body = body;
+  }
+
+  validate() {
+    this.body.prepare();
+    this.iter.prepare();
+  }
+
+  async eval() {
+    let iter;
+    try {
+      iter = await this.iter.eval();
+      iter = iter.castTo("any");
+    } catch (e) {
+      throw new Error(`[${errors.SYNTAX}] FOR IN loop: error whilst evaluating iterator:\n${e}`);
+    }
+
+    if (typeof iter.__iter__ !== 'function') throw new Error(`[${errors.TYPE_ERROR}] Type ${iter.type()} is not iterable`);
+    let collection = iter.__iter__();
+    if (Array.isArray(collection[0])) {
+      if (this.vars.length === 1) { // One var contains an array
+        for (let i = 0; i < collection.length; i++) {
+          this.body.rs.var(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]));
+          await this.body.eval();
+        }
+      } else { // Map every item in array to a variable
+        if (this.vars.length !== collection[0].length) throw new Error(`[${errors.SYNTAX}] Syntax Error: FOR-IN: variable count mismatch: got ${this.vars.length}, expected ${collection[0].length} for type ${iter.type()}`);
+        for (let i = 0; i < collection.length; i++) {
+          for (let a = 0; a < this.vars.length; a++) {
+            this.body.rs.var(this.vars[a].value, collection[i][a]);
+          }
+          await this.body.eval();
+        }
+      }
+    } else {
+      // Single-value for-in
+      if (this.vars.length !== 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: FOR-IN: variable count mismatch: got ${this.vars.length}, expected 1 for type ${iter.type()}`);
+      for (let i = 0; i < collection.length; i++) {
+        this.body.rs.var(this.vars[0].value, collection[i]);
+        await this.body.eval();
+      }
+    }
+  }
+}
+
 class FuncStructure extends Structure {
   constructor(pos, rs, args, body, name = undefined) {
     super("FUNC", pos);
@@ -307,4 +358,4 @@ class FuncStructure extends Structure {
   }
 }
 
-module.exports = { Structure, ArrayStructure, SetStructure, MapStructure, IfStructure, WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, ForStructure, FuncStructure, };
+module.exports = { Structure, ArrayStructure, SetStructure, MapStructure, IfStructure, WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, ForStructure, ForInStructure, FuncStructure, };

@@ -174,7 +174,8 @@ class NumberValue extends Value {
   /** operator: + */
   __add__(n) {
     const t = n.type();
-    if (t === 'string' || isNumericType(t)) return new NumberValue(this.rs, Complex.add(this.toPrimitive('complex'), n.toPrimitive('complex')));
+    if (t === 'string') return new StringValue(this.rs, this.toPrimitive('string') + n.toPrimitive('string'));
+    if (isNumericType(t)) return new NumberValue(this.rs, Complex.add(this.toPrimitive('complex'), n.toPrimitive('complex')));
   }
 
   /** operator: - */
@@ -283,6 +284,10 @@ class StringValue extends Value {
 
   /** copy() function */
   __copy__() { return new StringValue(this.rs, this.value); }
+
+  __iter__() {
+    return this.value.split('');
+  }
 
   /** operator: == */
   __eq__(a) { return new BoolValue(this.rs, a.type() === 'string' ? this.toString() === a.toString() : false); }
@@ -494,6 +499,10 @@ class ArrayValue extends Value {
 
   type() { return "array"; }
 
+  __iter__() {
+    return this.value;
+  }
+
   /** len() function */
   __len__() { return this.value.length; }
 
@@ -628,6 +637,10 @@ class SetValue extends Value {
     }));
   }
 
+  __iter__() {
+    return this.value;
+  }
+
   /** Run and return fn() */
   run(fn) {
     let tmp = fn(this);
@@ -735,6 +748,10 @@ class MapValue extends Value {
       map.value.set(key, copy);
     });
     return map;
+  }
+
+  __iter__() {
+    return Array.from(this.value.entries());
   }
 
   /** operator: == */

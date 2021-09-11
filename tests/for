@@ -1,8 +1,6 @@
 for (a = 0; a < 10; a = a + 1) {
-  print(a);
-  print(" ");
+  print(a + " ");
 }
 
 println();
-print("FINAL: ");
-println(a);
+println("FINAL: " + a);

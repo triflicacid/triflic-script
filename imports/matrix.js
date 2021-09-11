@@ -15,6 +15,11 @@ class MatrixValue extends Value {
   /** function: abs() */
   __abs__() { return this.toPrimitive('matrix').determinant(); }
 
+  __copy__() { return new MatrixValue(this.rs, Matrix.fromString(this.value.toString())); }
+
+  /** Return array of array of rows */
+  __iter__() { return [...this.value.matrix]; }
+
   /** operator: == */
   __eq__(arg) { return new BoolValue(this.rs, arg.type() === TYPE ? this.value.equals(arg.toPrimitive('matrix')) : false); }
 

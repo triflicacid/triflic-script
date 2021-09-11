@@ -3,7 +3,7 @@ const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = r
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
 const operators = require("./operators");
 const { errors } = require("../errors");
-const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure } = require("./structures");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure } = require("./structures");
 const { Block } = require("./block");
 
 class Token {
@@ -166,10 +166,10 @@ class BracketedTokenLines extends Token {
     this.opening = openingBracket;
   }
 
-  prepare() {
+  prepare(doRPN = true) {
     this.value.forEach(line => {
       if (line.block !== undefined && line.block === null) line.block = this.tstr.block;
-      line.prepare();
+      line.prepare(doRPN);
     });
   }
 
@@ -410,11 +410,34 @@ class TokenLine {
           break;
         }
         case "for": {
-          // ! FOR
           let structure;
+          // ! FOR
           if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
-            structure = new ForStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
-            this.tokens.splice(i, 3, structure);
+            // Scan for-in loop
+            let btokens = this.tokens[i + 1].value[0].tokens, vars = [], expect = 'VARS', rest, isForIn = false;
+            for (let j = 0; j < btokens.length; j++) {
+              if (expect === 'VARS' && btokens[j] instanceof VariableToken) {
+                vars.push(btokens[j]);
+                if (btokens[j + 1] instanceof OperatorToken && btokens[j + 1].value === ',') {
+                  j++;
+                } else {
+                  expect = 'IN';
+                }
+              } else if (expect === 'IN' && btokens[j] instanceof OperatorToken && btokens[j].value === 'in ') {
+                j++;
+                rest = new TokenLine(this.rs, this.block, btokens.slice(j));
+                isForIn = true;
+                break;
+              } else break;
+            }
+            if (isForIn) {
+              structure = new ForInStructure(this.tokens[i].pos, vars, rest, this.tokens[i + 2]);
+            } else {
+              // General for loop
+              structure = new ForStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
+            }
+
+            this.tokens.splice(i, 3, structure); // Remove "for" "(...)" "{...}"
           } else {
             throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FOR construct at position ${this.tokens[i].pos}`);
           }
@@ -517,6 +540,7 @@ class TokenLine {
         if (T[i] instanceof BracketedTokenLines) {
           str = T[i].opening;
         }
+        console.error(T[i]);
         throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax at position ${pos ?? T[i].pos}: ${str ?? T[i].toString()} `);
       }
     }
