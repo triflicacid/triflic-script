@@ -1,6 +1,5 @@
 const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
-const { parseVariable } = require("../evaluation/parse");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest } = require("../maths/functions");
 const { print, sort, findIndex } = require("../utils");
@@ -278,8 +277,8 @@ function defineVars(rs) {
   rs.var('DBL_EPSILON', DBL_EPSILON, 'smallest such that 1.0+DBL_EPSILON != 1.0', true);
   rs.var('pi', PI, 'pi is equal to the circumference of any circle divided by its diameter', true); // pi
   if (rs.opts.defineAliases) rs.var('π', rs.var('pi'));
-  rs.var('e', E, 'Euler\'s constant', true); // e
-  rs.var('omega', OMEGA, 'Principle solution to xe^x = 1 (= W(1))', true); // W(1, 0)
+  rs.var('e', E, 'Euler\'s constant'); // e
+  rs.var('omega', OMEGA, 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
   if (rs.opts.defineAliases) rs.var('Ω', rs.var('omega'));
   rs.var('phi', PHI, 'Phi, the golden ratio, approx (1 + √5)/2', true); // phi, golden ratio
   if (rs.opts.defineAliases) rs.var('φ', rs.var('phi'));

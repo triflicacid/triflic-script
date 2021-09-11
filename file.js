@@ -34,7 +34,7 @@ async function main() {
     define(rs);
     if (opts.defineVars) defineVars(rs);
     if (opts.defineFuncs) defineFuncs(rs);
-    await rs.import("io.js");
+    await rs.import("<io>");
 
     rs.var('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
 

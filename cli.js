@@ -57,7 +57,7 @@ async function main() {
   process.stdin.resume();
 
   // Import standard IO library
-  await rs.import("io.js");
+  await rs.import("<io>");
 
   // Set prompt
   rs.io.setPrompt(opts.prompt);

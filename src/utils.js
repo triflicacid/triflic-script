@@ -111,6 +111,19 @@ const createTokenStringParseObj = (rs, str, pos, depth, terminateOn = [], allowM
   allowMultiline,
 });
 
+const createEvalObj = (blockID, lineID) => ({
+  action: 0, // 0 -> nothing; 1 -> break; 2 -> continue; 3 -> return; 4 -> goto;
+  actionValue: undefined,
+  blockID, // ID of current block we are in
+  lineID, // Current line number
+});
+
+/** Propagate actions from obj1 -> obj2 */
+const propagateEvalObj = (obj1, obj2) => {
+  obj2.action = obj1.action;
+  obj2.actionValue = obj1.actionValue;
+};
+
 /** Check if prititive arrays are equal */
 function arraysEqual(a1, a2) {
   let len = Math.max(a1.length, a2.length);
@@ -194,5 +207,5 @@ function expectedSyntaxError(expected, got) {
 }
 
 module.exports = {
-  input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError
+  input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError
 };

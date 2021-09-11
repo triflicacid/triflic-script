@@ -54,15 +54,17 @@ For more information on built-ins, enter `help()`.
 ### `import(file: string)`
 This functions is used to import scripts into the current runspace. `file` may be any valid file.
 
-The full path to the imported file is resolves as follows: `currentWorkingDirectory + "imports/" + file` where
+If in format `<file>`, the full path to the imported file is resolves as follows: `currentWorkingDirectory + "imports/" + file + ".js"` where
 - `currentWorkingDirectory` is the path of the directory in which `cli.js` lies
-- `"imports/"` is a standard directory where all external files are recommended to be kept
+- `"imports/"` is a standard directory where all core JavaScript import files are kept
 - `file` is the argument to the function
+Essentially, any file in `<>` are built-in JavaScript import files
 
+Else, `file` acts as the path from the `cli.js` file.
 
 If the file is a `.js` (JavaScript) file:
 - `module.exports` must be set to a single function
-- `module.exports` is called with one argument, being the active `Runspace` instance.
+- `module.exports` is called (with `await`) with one argument, being the active `Runspace` instance.
 
 Any other extension:
 - The file is read
@@ -174,11 +176,11 @@ The last statement in the `{<block>}` that is run will be returned from the `if`
 This means that ternary operators kind-of exist: `<var> = if (<cond>) { <truthy> } else { <falsy> }`
 
 ### `do`
-Defined the following as a block. (*NB this is largely redundant and does nothing - the keyword is simply removed at runtime*)
+Defined the following as a block, meaning the block does not need to follow a control-flow statement such as `if`.
 
 Syntax: `do {<block>}`
 
-Defines following `{...}` as a block and executes it
+Defines following `{...}` as a block and allows `break` and `continue` to be used.
 
 ### `while`
 A `while` structure consists of a condition and a block.
@@ -237,3 +239,13 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
   - `func fn(a: ?any)` -> function `fn` takes an optional argument `a` of type `any` (*NB for optional arguments, a type must be present*)
   - `func fn(a: real)` -> function `fn` takes an argument `a` of type `real`
   - `func fn(a: ?real)` -> function `fn` takes an optional argument `a` of type `real`
+
+### `break`
+Syntax: `break`
+
+Breaks out of the current loop.
+
+### `continue`
+Syntax: `continue`
+
+Terminates current iteration of a loop and continue execution next iteration.

@@ -1,1 +1,0 @@
-const sgn(n) = if(n > 0, 1, if(n < 0, -1, 0)) # Indicate sign of a given value: -1 for negative, 0 for 0, and 1 for positive

@@ -1,7 +1,7 @@
-const { RunspaceBuiltinFunction } = require("../../src/runspace/Function");
-const { NumberValue, ArrayValue } = require("../../src/evaluation/values.js");
-const Complex = require("../../src/maths/Complex");
-const { sum } = require("../../src/utils");
+const { RunspaceBuiltinFunction } = require("../src/runspace/Function");
+const { NumberValue, ArrayValue } = require("../src/evaluation/values.js");
+const Complex = require("../src/maths/Complex");
+const { sum } = require("../src/utils");
 
 module.exports = rs => {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'logsumexp', { arr: 'array', w: '?any' }, ({ arr, w }) => {

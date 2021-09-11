@@ -783,10 +783,10 @@ class FunctionRefValue extends Value {
   // }
 
   /** When this is called. Takes array of Value classes as arguments */
-  async __call__(args) {
+  async __call__(evalObj, args) {
     const fn = this.getFn();
     if (fn) {
-      return await fn.call(args);
+      return await fn.call(evalObj, args);
     } else {
       this._throwNullRef();
     }

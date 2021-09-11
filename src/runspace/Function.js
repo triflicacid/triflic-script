@@ -91,8 +91,8 @@ class RunspaceUserFunction extends RunspaceFunction {
     return new RunspaceUserFunction(this.rs, this.name, this.rargs, this.tstr);
   }
 
-  /** Array of Token arguments */
-  async call(args) {
+  /** Evaluation object & array of Token arguments */
+  async call(evalObj, args) {
     this.checkArgCount(args);
     this.rs.pushScope();
     // Set arguments to variables matching definition symbols
@@ -110,7 +110,7 @@ class RunspaceUserFunction extends RunspaceFunction {
       }
     }
 
-    let ret = await this.tstr.eval();
+    let ret = await this.tstr.eval(evalObj);
     ret = ret.castTo('any'); // Cast to resolve variables
     this.rs.popScope();
     return ret;
@@ -141,7 +141,7 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
     return new RunspaceBuiltinFunction(this.rs, this.name, this.rargs, this.fn, this.desc);
   }
 
-  async call(args) {
+  async call(evalObj, args) {
     this.checkArgCount(args);
     const o = {};
     // Assign 'param: value' in o
@@ -152,7 +152,7 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
         i++;
       }
     }
-    return await this.fn(o);
+    return await this.fn(o, evalObj);
   }
 
   raw() {

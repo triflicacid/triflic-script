@@ -3,7 +3,7 @@ const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = r
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
 const operators = require("./operators");
 const { errors } = require("../errors");
-const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure } = require("./structures");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure } = require("./structures");
 const { Block } = require("./block");
 
 class Token {
@@ -38,7 +38,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func"];
+KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "goto"];
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
@@ -173,19 +173,19 @@ class BracketedTokenLines extends Token {
     });
   }
 
-  async eval() {
+  async eval(evalObj) {
     let lastVal;
     for (let line of this.value) {
-      lastVal = await line.eval();
+      lastVal = await line.eval(evalObj);
     }
     return lastVal ?? new UndefinedValue(this.tstr.rs);
   }
 
   toString() { return this.opening + this.value.toString() + bracketMap[this.opening]; }
 
-  toBlock() {
+  toBlock(opts = []) {
     if (!this.tstr.block) throw new Error(`BracketedTokenLines.toBlock :: this.tstr is not bound to a scope`);
-    return new Block(this.tstr.rs, this.value, this.pos, this.tstr.block);
+    return new Block(this.tstr.rs, this.value, this.pos, this.tstr.block, opts);
   }
 }
 
@@ -306,7 +306,9 @@ class TokenLine {
             structure.validate();
             this.tokens[i] = structure;
           } else {
+            if (this.block == undefined) throw new Error(`[${errors.SYNTAX}]: Syntax Error: invalid syntax '{' at position ${this.tokens[i].pos} (no enclosing block found)`);
             this.tokens[i] = this.block.createChild(this.tokens[i].value, this.tokens[i].pos);
+            this.tokens[i].prepare();
           }
         }
 
@@ -369,6 +371,7 @@ class TokenLine {
         }
         case "do": {
           if (this.tokens[i + 1] instanceof Block) {
+            this.tokens[i + 1].breakable = 1;
             this.tokens.splice(i, 1); // Remove "do"
           }
           break;
@@ -474,22 +477,38 @@ class TokenLine {
           }
           break;
         }
+        case "break": {
+          if (this.block.breakable) {
+            let structure = new BreakStructure(this.tokens[i].pos);
+            structure.validate();
+            this.tokens[i] = structure;
+          }
+          break;
+        }
+        case "continue": {
+          if (this.block.breakable) {
+            let structure = new ContinueStructure(this.tokens[i].pos);
+            structure.validate();
+            this.tokens[i] = structure;
+          }
+          break;
+        }
       }
     }
 
     return this;
   }
 
-  async eval() {
+  async eval(evalObj) {
     try {
-      return await this._eval();
+      return await this._eval(evalObj);
     } catch (e) {
       throw e;
       // throw new Error(`${this.source}: \n${e} `);
     }
   }
 
-  async _eval() {
+  async _eval(evalObj) {
     // Evaluate in postfix notation
     const T = this.tokens, stack = [];
     for (let i = 0; i < T.length; i++) {
@@ -530,18 +549,18 @@ class TokenLine {
             if (T[i].value.length > 0) {
               if (T[i].value.length !== 1) throw new expectedSyntaxError(')', peek(T[i].value[0].tokens));
               args = T[i].value[0].splitByCommas(); // Get arguments
-              args = await Promise.all(args.map(t => t.eval())); // EValuate arguments
+              args = await Promise.all(args.map(t => t.eval(evalObj))); // EValuate arguments
             }
-            stack.push(await lastValue.__call__(args));
+            stack.push(await lastValue.__call__(evalObj, args));
           } catch (e) {
             throw new Error(`${last}:\n${e}`);
           }
         }
-      } else if (T[i] instanceof Block /*|| (T[i] instanceof BracketedTokenLines && T[i].opening === '{')*/) {
-        let ret = await T[i].eval();
+      } else if (T[i] instanceof Block) {
+        let ret = await T[i].eval(evalObj);
         if (ret !== undefined) stack.push(ret);
       } else if (T[i] instanceof Structure) {
-        let ret = await T[i].eval(); // Execute structure body
+        let ret = await T[i].eval(evalObj); // Execute structure body
         if (ret !== undefined) stack.push(ret);
       } else if (T[i] instanceof KeywordToken) {
         throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax '${T[i].value}' at position ${this.tokens[i].pos}`);
@@ -553,6 +572,8 @@ class TokenLine {
         console.error(T[i]);
         throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax at position ${pos ?? T[i].pos}: ${str ?? T[i].toString()} `);
       }
+
+      if (evalObj.action !== 0) break;
     }
     while (peek(stack) instanceof UndefinedValue) stack.pop(); // Remove all Undefined values from top of stack
     if (stack.length === 0) return new UndefinedValue(this.rs);

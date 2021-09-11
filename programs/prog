@@ -1,0 +1,21 @@
+import("<string>");
+
+a = 645; #<real>input("a = ");
+b = 255; #<real>input("b = ");
+
+func lcf(a, b) {
+  loop {
+    c = round(a / b, 2);
+    d = floor(c);
+    e = d * b;
+    f = a - e;
+    fez = f == 0;
+    println(join([a, b, c, d, e, f, fez], " "));
+    if (fez) { break; }
+    a = b;
+    b = f;
+  }
+  b;
+}
+
+println("Answer is " + lcf(a,b));

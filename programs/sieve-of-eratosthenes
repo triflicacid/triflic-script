@@ -1,10 +1,10 @@
 func SoE(limit: real_int) {
-  marks = [false] * (limit + 1);
+  marks = [0] * (limit + 1);
   
   for (i = 2; i*i <= limit; i = i + 1) {
     if (!marks.i) {
       for (j = i*i; j <= limit; j = j + i) {
-        set(marks, j, true);
+        set(marks, j, 1);
       }
     }
   }

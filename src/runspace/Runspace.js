@@ -2,7 +2,7 @@ const readline = require("readline");
 const process = require("process");
 const RunspaceVariable = require("./Variable");
 const { tokenify } = require("../evaluation/tokens");
-const { peek } = require("../utils");
+const { peek, createEvalObj } = require("../utils");
 const { primitiveToValueClass, MapValue, Value, FunctionRefValue, UndefinedValue, ArrayValue } = require("../evaluation/values");
 const path = require("path");
 const fs = require("fs");
@@ -32,6 +32,7 @@ class Runspace {
       output: this.stdout,
     });
     this.block = undefined; // Top-most Block object
+    this._blocks = new Map(); // Map all blockIDs to the block
 
     this.onLineHandler = undefined;
     this.onDataHandler = undefined;
@@ -89,20 +90,23 @@ class Runspace {
 
   /** Execute source code */
   async execute(source, singleStatement = undefined) {
+    this._blocks.clear();
     let lines = tokenify(this, source, singleStatement);
-    this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN);
+    this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN, undefined);
     this.block.prepare();
-    return await this.block.eval();
+    let obj = createEvalObj(null, null), value = await this.block.eval(obj);
+    this._blocks.clear();
+    return value;
   }
 
   /** Attempt to import a file. Throws error of returns Value instance. */
   async import(file) {
-    const fpath = path.join(this.dir, "imports/", file.toString());
+    const fpath = file[0] === '<' && file[file.length - 1] === '>' ? path.join(this.dir, "imports/", file.substring(1, file.length - 1) + '.js') : file.toString();
     let stats;
     try {
       stats = fs.lstatSync(fpath);
     } catch (e) {
-      throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid path '${fpath}':\n${e}`);
+      throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot locate file '${file}' (path '${fpath}'):\n${e}`);
     }
 
     if (stats.isFile()) {
