@@ -12,20 +12,12 @@ const { errors, errorDesc } = require("../errors");
 /** Core definitions !REQUIRED! */
 function define(rs) {
   /****************** CORE VARIABLES */
-  rs.var('NaN', NaN, 'Value representing Not A Number', true);
-  rs.var('inf', Infinity, 'Value representing Infinity', true);
-  rs.var('true', true, '\'true\' is a boolean value that represents mathematical and logical truth', true);
-  rs.var('false', false, '\'false\' is a boolean value that is used when the result of a logical statement is false', true);
-  rs.var('undefined', new UndefinedValue(rs), 'A variable that has not been assigned a value is of type undefined', true);
-  rs.var('universal_set', new SetValue(rs, []), 'Universal set', false);
-
-  /****************** ERROR CODES */
-  for (const ecode in errors) {
-    if (errors.hasOwnProperty(ecode)) {
-      let short = errors[ecode];
-      rs.var(short, new StringValue(rs, short), 'Error Code: ' + errorDesc[short], true);
-    }
-  }
+  rs.defineVar('NaN', NaN, 'Value representing Not A Number', true);
+  rs.defineVar('inf', Infinity, 'Value representing Infinity', true);
+  rs.defineVar('true', true, '\'true\' is a boolean value that represents mathematical and logical truth', true);
+  rs.defineVar('false', false, '\'false\' is a boolean value that is used when the result of a logical statement is false', true);
+  rs.defineVar('undefined', new UndefinedValue(rs), 'A variable that has not been assigned a value is of type undefined', true);
+  rs.defineVar('universal_set', new SetValue(rs, []), 'Universal set', false);
 
   /****************** CORE FUNCTIONS */
 
@@ -274,25 +266,20 @@ function define(rs) {
 
 /** Built-in Variables */
 function defineVars(rs) {
-  rs.var('DBL_EPSILON', DBL_EPSILON, 'smallest such that 1.0+DBL_EPSILON != 1.0', true);
-  rs.var('pi', PI, 'pi is equal to the circumference of any circle divided by its diameter', true); // pi
-  if (rs.opts.defineAliases) rs.var('π', rs.var('pi'));
-  rs.var('e', E, 'Euler\'s constant'); // e
-  rs.var('omega', OMEGA, 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
-  if (rs.opts.defineAliases) rs.var('Ω', rs.var('omega'));
-  rs.var('phi', PHI, 'Phi, the golden ratio, approx (1 + √5)/2', true); // phi, golden ratio
-  if (rs.opts.defineAliases) rs.var('φ', rs.var('phi'));
-  rs.var('tau', TWO_PI, 'A constant representing the ratio between circumference and radius of a circle'); // tau
-  if (rs.opts.defineAliases) rs.var('τ', rs.var('tau'));
-  rs.var(Complex.imagLetter, Complex.I(), '√(-1)');
-  rs.var('ln2', Math.LN2, 'Natural logarithm of 2');
-  rs.var('ln10', Math.LN10, 'Natural logarithm of 10');
-  rs.var('log2e', Math.LOG2E, 'Base-2 logarithm of e');
-  rs.var('log10e', Math.LOG10E, 'Base-10 logarithm of e');
-  rs.var('sqrt1_2', Math.SQRT1_2, 'Square root of 0.5');
-  rs.var('sqrt2', Math.SQRT2, 'Square root of 2');
-  rs.var('empty_set', new SetValue(rs, []), 'Empty set', true);
-  if (rs.opts.defineAliases) rs.var('∅', rs.var('empty_set'));
+  rs.defineVar('DBL_EPSILON', DBL_EPSILON, 'smallest such that 1.0+DBL_EPSILON != 1.0', true);
+  rs.defineVar('pi', PI, 'pi is equal to the circumference of any circle divided by its diameter', true); // pi
+  rs.defineVar('e', E, 'Euler\'s constant'); // e
+  rs.defineVar('omega', OMEGA, 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
+  rs.defineVar('phi', PHI, 'Phi, the golden ratio, approx (1 + √5)/2', true); // phi, golden ratio
+  rs.defineVar('tau', TWO_PI, 'A constant representing the ratio between circumference and radius of a circle'); // tau
+  rs.defineVar(Complex.imagLetter, Complex.I(), '√(-1)');
+  rs.defineVar('ln2', Math.LN2, 'Natural logarithm of 2');
+  rs.defineVar('ln10', Math.LN10, 'Natural logarithm of 10');
+  rs.defineVar('log2e', Math.LOG2E, 'Base-2 logarithm of e');
+  rs.defineVar('log10e', Math.LOG10E, 'Base-10 logarithm of e');
+  rs.defineVar('sqrt1_2', Math.SQRT1_2, 'Square root of 0.5');
+  rs.defineVar('sqrt2', Math.SQRT2, 'Square root of 2');
+  rs.defineVar('empty_set', new SetValue(rs, []), 'Empty set', true);
 }
 
 /** Built-in functions */

@@ -1,0 +1,8 @@
+x = 20;
+println("Outer = " + x);
+func() {
+  println("Inner = " + x);
+  x = 30;
+  println("Inner = " + x);
+}();
+println("Outer = " + x);

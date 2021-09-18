@@ -351,7 +351,7 @@ class ForInStructure extends Structure {
     if (Array.isArray(collection[0])) {
       if (this.vars.length === 1) { // One var contains an array
         for (let i = 0; i < collection.length; i++) {
-          this.body.rs.var(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]));
+          this.body.rs.setVar(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]));
           await this.body.eval(obj);
 
           if (obj.action === 1) break;
@@ -366,7 +366,7 @@ class ForInStructure extends Structure {
         if (this.vars.length !== collection[0].length) throw new Error(`[${errors.SYNTAX}] Syntax Error: FOR-IN: variable count mismatch: got ${this.vars.length}, expected ${collection[0].length} for type ${iter.type()}`);
         for (let i = 0; i < collection.length; i++) {
           for (let a = 0; a < this.vars.length; a++) {
-            this.body.rs.var(this.vars[a].value, collection[i][a]);
+            this.body.rs.setVar(this.vars[a].value, collection[i][a]);
           }
           await this.body.eval(obj);
 
@@ -383,7 +383,7 @@ class ForInStructure extends Structure {
       // Single-value for-in
       if (this.vars.length !== 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: FOR-IN: variable count mismatch: got ${this.vars.length}, expected 1 for type ${iter.type()}`);
       for (let i = 0; i < collection.length; i++) {
-        this.body.rs.var(this.vars[0].value, collection[i]);
+        this.body.rs.setVar(this.vars[0].value, collection[i]);
         await this.body.eval(obj);
 
         if (obj.action === 1) break;
@@ -437,7 +437,7 @@ class FuncStructure extends Structure {
     let ret;
 
     if (this.name) { // Not anonymous - define function
-      this.rs.var(fn.name, ref);
+      this.rs.setVar(fn.name, ref);
     } else {
       ref.func = fn; // Bind to reference
       ret = ref; // Return reference

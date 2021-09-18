@@ -36,7 +36,7 @@ async function main() {
     if (opts.defineFuncs) defineFuncs(rs);
     await rs.import("<io>");
 
-    rs.var('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
+    rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
 
     let start = Date.now(), ret, error;
     try {

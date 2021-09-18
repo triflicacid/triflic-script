@@ -59,7 +59,7 @@ function parseNumber(string, allowExponent = true, seperator = '_') {
       metSign = true;
       sign = string[pos] === '-' ? -1 : 1;
       metSeperator = false;
-    } else if (pos === 0 && string[pos] === '0' && string[pos+1] in radices) { // Radix
+    } else if (pos === 0 && string[pos] === '0' && string[pos + 1] in radices) { // Radix
       pos++;
       radix = radices[string[pos]];
     } else if (radicesRegex[radix].test(string[pos])) { // Digit
@@ -134,7 +134,7 @@ function parseOperator(string) {
 
 /** Parse a symbol name */
 function parseSymbol(string) {
-  const rStart = /[A-Za-z_$ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρςστυφχψω∞√∛∑]/;
+  const rStart = /[A-Za-z_$]/;
   const rRest = /[0-9]/;
   if (!rStart.test(string[0])) return null;
   let symbol = string[0];

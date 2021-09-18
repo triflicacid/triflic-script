@@ -42,7 +42,7 @@ async function createRunspace(argString = '') {
     }
   }, 'End the discord maths session'));
   rs.deleteVar('import'); // Remove function 'import'
-  rs.var('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the host program');
+  rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the host program');
   return rs;
 }
 

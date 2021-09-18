@@ -634,7 +634,7 @@ class SetValue extends Value {
 
   /** operator: ' */
   __not__() {
-    const us = this.rs.var('universal_set')?.castTo('any');
+    const us = this.rs.getVar('universal_set')?.castTo('any');
     if (us == undefined) return new Error(`Type Error: variable universal_set is missing.`);
     if (us.type() !== 'set') return new Error(`Type Error: variable universal_set is not of type set (got ${us.type()})`);
     return new SetValue(this.rs, arrDifference(us.toPrimitive('array'), this.toPrimitive('array')));
@@ -853,7 +853,7 @@ function primitiveToValueClass(runspace, primitive) {
   }
   if (Array.isArray(primitive)) return new ArrayValue(runspace, primitive.map(p => primitiveToValueClass(runspace, p))); // Array
   if (primitive instanceof RunspaceFunction) {
-    const varVal = runspace.var(primitive.name);
+    const varVal = runspace.getVar(primitive.name);
     if (varVal instanceof FunctionRefValue) return varVal;
     return new FunctionRefValue(this, primitive); // Function
   }

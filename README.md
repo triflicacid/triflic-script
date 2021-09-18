@@ -15,9 +15,10 @@ For more help, see `programs/` and the built-in `help` function.
 ## TODO
 - Nested-expression shortcut
 Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
-- Add `(call)` operator with proper precedence. Is hidden.
 - Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
 - Optional function parameters
+- `let` block
+- `ref` function parameters
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -108,9 +109,15 @@ These are structures in the code which define values:
 ### Variables
 Variables store values in memory. There are some predefined variables (assuming `--define-vars` is truthy).
 
-The special `ans` variable holds the value of the last evaluation
+Variables may be assigned to using the `=` assignment operator. Variables may be functions.
 
-Variables may be declared/assigned using `<var> = ...`. `=` may be switched to `:=` for constant assignment.
+- Assignment using `=`:
+  - Does the variable exist?
+  - If so, update the value of that variable
+  - If not, create a new variable with the value
+
+- Assignment using `let`
+  - Defines a new variable in the current scope.
 
 ### Functions
 Functions recieve arguments and return a value.
@@ -260,6 +267,14 @@ Terminates current function and returns values `...` from the function.
 
 As everything is an expression and the last value is returned anyway, a `return` statement is not needed on the last line of a function.
 i.e. the lines `a = func() { 1; }();` and `a = func() { return 1; }();` are essentially the same.
+
+### `let`
+Syntax: `let <var>[: <type>] = ...`
+
+Declares a new variable(s) in the current scope, clamped to a type. Multiple declaration may appear in a `let` statement seperated by commas `,`
+- `<var>` - Name of variable
+- `<type>` - If present, clamps the type of the variable (attempt to cast value type `type` whenever variable is further assigned to)
+- `...` - Expression to assign to variable
 
 ## Types
 Variables all have a type which may change. New types may be added - see `imports/matrix.js` for an example.

@@ -12,7 +12,7 @@ const { Block } = require("../evaluation/block");
 
 class Runspace {
   constructor(opts = {}) {
-    this._vars = [{}]; // { variable: RunspaceVariable }[]
+    this._vars = [new Map()]; // Arrays represents different scopes
     this.dir = path.join(__dirname, "../../"); // Requires setting externally
 
     this.opts = opts;
@@ -22,7 +22,7 @@ class Runspace {
     if (opts.revealHeaders) {
       const map = new MapValue(this);
       Object.entries(this.opts).forEach(([k, v]) => map.value.set(k, primitiveToValueClass(this, v)));
-      this.var('headers', map, 'Config headers of current runspace [readonly]', true);
+      this.setVar('headers', map, 'Config headers of current runspace [readonly]', true);
     }
 
     this.stdin = process.stdin;
@@ -43,39 +43,65 @@ class Runspace {
     });
   }
 
-  /** Get/Set a variable */
-  var(name, value = undefined, desc = undefined, constant = false) {
-    if (value !== undefined) {
-      let obj;
-      if (value instanceof Value || value instanceof RunspaceFunction) obj = new RunspaceVariable(name, value, desc, constant);
-      else if (value instanceof RunspaceVariable) obj = value.copy();
-      else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
+  /** Declare a new variable in the topmost scope */
+  defineVar(name, value, desc = undefined, constant = false) {
+    let obj;
+    if (value instanceof Value || value instanceof RunspaceFunction) obj = new RunspaceVariable(name, value, desc, constant);
+    else if (value instanceof RunspaceVariable) obj = value.copy();
+    else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
 
-      peek(this._vars)[name] = obj; // Insert into top-level scope
-    }
+    peek(this._vars).set(name, obj); // Insert into top-level scope
+  }
+
+  /** Set a variable to a value. Return Vara=iable object or false. */
+  setVar(name, value) {
     for (let i = this._vars.length - 1; i >= 0; i--) {
-      if (this._vars[i].hasOwnProperty(name)) return this._vars[i][name];
+      if (this._vars[i].has(name)) {
+        const vo = this._vars[i].get(name);
+        vo.value = value;
+        return vo;
+      }
     }
+    return false;
+  }
+
+  /** Set a global variable to a value. Return Variable object. */
+  setGlobalVar(name, value) {
+    const vo = this._vars[0].get(name);
+    vo.value = value;
+    return vo;
+  }
+
+  /** Get a variable (or undefined) */
+  getVar(name) {
+    for (let i = this._vars.length - 1; i >= 0; i--) {
+      if (this._vars[i].has(name)) {
+        return this._vars[i].get(name);
+      }
+    }
+    return undefined;
   }
 
   deleteVar(name) {
     for (let i = this._vars.length - 1; i >= 0; i--) {
-      if (this._vars[i].hasOwnProperty(name)) {
-        return delete this._vars[i][name];
+      if (this._vars[i].has(name)) {
+        this._vars[i].delete(name);
+        return true;
       }
     }
+    return false;
   }
 
   storeAns(v = undefined) {
     if (v === undefined) return this._storeAns;
     this._storeAns = !!v;
-    this.var('ans', this._storeAns ? 0 : null);
+    this.defineVar('ans', this._storeAns ? 0 : null);
     return this._storeAns;
   }
 
   /** Push new variable scope */
   pushScope() {
-    this._vars.push({});
+    this._vars.push(new Map());
   }
 
   /** Pop variable scope */
@@ -85,7 +111,7 @@ class Runspace {
 
   /** Define a function - defines a variable with a reference to the function */
   defineFunc(fn) {
-    return this.var(fn.name, new FunctionRefValue(this, fn));
+    return this.defineVar(fn.name, new FunctionRefValue(this, fn));
   }
 
   /** Execute source code */

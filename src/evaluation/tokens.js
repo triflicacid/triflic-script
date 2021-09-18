@@ -109,30 +109,28 @@ EOLToken.symbol = ';';
 class VariableToken extends Token {
   constructor(tstring, vname, pos) {
     super(tstring, vname, pos);
-    this.isDeclaration = false; // Is this token on the RHS of assignment?
   }
   type() {
-    return this.isDeclaration ? `<symbol ${this.value}>` : str(this.getVar().value.type());
+    return str(this.getVar().value.type());
   }
   castTo(type) {
-    if (this.isDeclaration) throw new Error(`Attempting to cast variable '${this.value}' where isDeclaration=${this.isDeclaration} to type ${type} - will fail, as variable does not exist`);
     let v = this.getVar();
     if (v.value === this) throw new Error(`Self-referencing variable (infinite lookup prevented) - variable '${this.value}'`);
     return v.castTo(type);
   }
   toPrimitive(type) {
-    return this.tstr.rs.var(this.value).toPrimitive(type);
+    return this.tstr.rs.getVar(this.value).toPrimitive(type);
   }
   exists() {
-    return this.tstr.rs.var(this.value) !== undefined;
+    return this.tstr.rs.getVar(this.value) !== undefined;
   }
   getVar() {
-    const v = this.tstr.rs.var(this.value);
+    const v = this.tstr.rs.getVar(this.value);
     if (v === undefined) this._throwNameError();
     return v;
   }
   toString() {
-    return this.isDeclaration ? this.value : str(this.getVar()?.value);
+    return str(this.getVar()?.value);
   }
 
   /** Throw Name Error */
@@ -151,10 +149,7 @@ class VariableToken extends Token {
   /** operator: = */
   __assign__(value) {
     const name = this.value;
-    // if (this.tstr.rs.func(name)) throw new Error(`[${errors.ARG_COUNT}] Syntax Error: Invalid syntax - symbol '${name}' is a function but treated as a variable at position ${this.pos}`);
-    if (this.tstr.rs.var(name)?.constant) throw new Error(`[${errors.ASSIGN}] Syntax Error: Assignment to constant variable ${name} (position ${this.pos})`);
-    const varObj = this.tstr.rs.var(name, value.castTo('any'));
-    if (this.isDeclaration === 2) varObj.constant = true; // Is variable constant?
+    let varObj = this.exists() ? this.tstr.rs.setVar(name, value) : this.tstr.rs.defineVar(name, value);
     return value;
   }
 }
@@ -531,34 +526,33 @@ class TokenLine {
     // Evaluate in postfix notation
     const T = this.tokens, stack = [];
     for (let i = 0; i < T.length; i++) {
-      if (T[i] instanceof Value || T[i] instanceof VariableToken) {
-        stack.push(T[i]);
-      } else if (T[i] instanceof OperatorToken) {
-        const info = T[i].info();
-        if (stack.length < info.args) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${T[i]}' at position ${T[i].pos} - stack underflow (expects ${info.args} values, got ${stack.length})`);
+      const cT = T[i];
+      if (cT instanceof Value || cT instanceof VariableToken) {
+        stack.push(cT);
+      } else if (cT instanceof OperatorToken) {
+        const info = cT.info();
+        if (stack.length < info.args) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${cT}' at position ${cT.pos} - stack underflow (expects ${info.args} values, got ${stack.length})`);
         const args = stack.splice(stack.length - info.args);
-        const val = await T[i].eval(args, evalObj);
+        const val = await cT.eval(args, evalObj);
         stack.push(val);
-      } else if (T[i] instanceof Block) {
-        let ret = await T[i].eval(evalObj);
+      } else if (cT instanceof Block) {
+        let ret = await cT.eval(evalObj);
         if (ret !== undefined) stack.push(ret);
-      } else if (T[i] instanceof Structure) {
-        let ret = await T[i].eval(evalObj); // Execute structure body
+      } else if (cT instanceof Structure) {
+        let ret = await cT.eval(evalObj); // Execute structure body
         if (ret !== undefined) stack.push(ret);
-      } else if (T[i] instanceof KeywordToken) {
-        throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax '${T[i].value}' at position ${this.tokens[i].pos}`);
       } else {
         let str, pos;
-        if (T[i] instanceof BracketedTokenLines) {
-          str = T[i].opening;
+        if (cT instanceof BracketedTokenLines) {
+          str = cT.opening;
         }
-        console.error(T[i]);
-        throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax at position ${pos ?? T[i].pos}: ${str ?? T[i].toString()} `);
+        console.error(cT);
+        throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid syntax at position ${pos ?? cT.pos}: ${str ?? cT.toString()} `);
       }
 
       if (evalObj.action !== 0) break;
     }
-    while (peek(stack) instanceof UndefinedValue) stack.pop(); // Remove all Undefined values from top of stack
+    while (stack[stack.length - 1] instanceof UndefinedValue) stack.pop(); // Remove all Undefined values from top of stack
     if (stack.length === 0) return new UndefinedValue(this.rs);
     if (stack.length !== 1) {
       let items = stack.map(x => x + (x.pos === undefined ? '' : ` (position ${x.pos})`));

@@ -105,7 +105,7 @@ class RunspaceUserFunction extends RunspaceFunction {
         } catch (e) {
           throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${this.args[arg]} (function ${this.name}):\n ${e}`);
         }
-        this.rs.var(arg, casted);
+        this.rs.setVar(arg, casted);
         i++;
       }
     }

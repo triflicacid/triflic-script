@@ -16,7 +16,7 @@ define(rs);
 if (opts.defineVars) defineVars(rs);
 if (opts.defineFuncs) defineFuncs(rs);
 
-rs.var('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
+rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
 
 // Evaluate some input
 async function evaluate(input) {
