@@ -11,6 +11,7 @@
 // },
 
 const { errors } = require("../errors");
+const { sortObjectByLongestKey } = require("../utils");
 const { UndefinedValue } = require("./values");
 
 const operators = {
@@ -56,6 +57,26 @@ const operators = {
     syntax: '<obj>.<prop>',
     assoc: 'ltr',
   },
+  "++": {
+    name: 'Increment',
+    precedence: 18,
+    args: 1,
+    fn: (symbol) => symbol.castTo("any").__inc__?.(),
+    desc: 'Add 1 to variable',
+    syntax: '<var>++',
+    assoc: 'ltr',
+    unary: '++',
+  },
+  "--": {
+    name: 'Decrement',
+    precedence: 18,
+    args: 1,
+    fn: (symbol) => symbol.__dec__?.(),
+    desc: 'Subtract 1 from variable',
+    syntax: '<var>--',
+    assoc: 'ltr',
+    unary: '--',
+  },
   "deg": { // !CUSTOM; degrees to radians
     name: 'degrees',
     precedence: 18,
@@ -65,6 +86,15 @@ const operators = {
     syntax: '<a>deg',
     assoc: 'rtl',
   },
+  "!": {
+    name: 'logical not',
+    precedence: 17,
+    args: 1,
+    fn: x => x.castTo('any').__not__?.(),
+    desc: `logical not unless x is of type set. Then, find complement of x (using universal set, ε)`,
+    syntax: 'x\'',
+    assoc: 'rtl',
+  },
   "~": {
     name: 'bitwise not',
     precedence: 17,
@@ -72,26 +102,6 @@ const operators = {
     fn: x => x.castTo('any').__bitwiseNot__?.(),
     desc: `Bitwise NOT`,
     syntax: '~x',
-    assoc: 'rtl',
-  },
-  "u&": {
-    name: 'dereference',
-    precedence: 17,
-    args: 1,
-    fn: t => t.castTo('any').__deref__(),
-    desc: `Get value pointer to by a reference type`,
-    syntax: '&t',
-    unary: 'u&',
-    assoc: 'rtl',
-  },
-  "u*": {
-    name: 'reference',
-    precedence: 17,
-    args: 1,
-    fn: t => t.castTo('any').__ref__(),
-    desc: `Get a reference to a value`,
-    syntax: '*t',
-    unary: 'u*',
     assoc: 'rtl',
   },
   "u+": {
@@ -142,15 +152,6 @@ const operators = {
     desc: `generates sequence a to b`,
     syntax: 'a:b',
     assoc: 'rtl',
-  },
-  "//": {
-    name: 'interger division',
-    precedence: 15,
-    args: 2,
-    fn: (a, b) => a.castTo('any').__intDiv__?.(b.castTo('any')),
-    desc: `integer division a ÷ b`,
-    syntax: 'a // b',
-    assoc: 'ltr',
   },
   "/": {
     name: 'division',
@@ -299,15 +300,6 @@ const operators = {
     syntax: 'a != b',
     assoc: 'ltr',
   },
-  "&&": {
-    name: 'logical and',
-    precedence: 7,
-    args: 2,
-    fn: (a, b) => a.castTo('any').__and__?.(b.castTo('any')),
-    desc: `Logical AND`,
-    syntax: 'a && b',
-    assoc: 'ltr',
-  },
   "&": {
     name: 'bitwise and',
     precedence: 10,
@@ -327,15 +319,6 @@ const operators = {
     syntax: 'a ^ b',
     assoc: 'ltr',
   },
-  "||": {
-    name: 'logical or',
-    precedence: 6,
-    args: 2,
-    fn: (a, b) => a.castTo('any').__or__?.(b.castTo('any')),
-    desc: `Logical OR`,
-    syntax: 'a || b',
-    assoc: 'ltr',
-  },
   "|": {
     name: 'bitwise or',
     precedence: 8,
@@ -343,6 +326,24 @@ const operators = {
     fn: (a, b) => a.castTo('any').__bitwiseOr__?.(b.castTo('any')),
     desc: `Bitwise OR`,
     syntax: 'a | b',
+    assoc: 'ltr',
+  },
+  "&&": {
+    name: 'logical and',
+    precedence: 7,
+    args: 2,
+    fn: (a, b) => a.castTo('any').__and__?.(b.castTo('any')),
+    desc: `Logical AND`,
+    syntax: 'a && b',
+    assoc: 'ltr',
+  },
+  "||": {
+    name: 'logical or',
+    precedence: 6,
+    args: 2,
+    fn: (a, b) => a.castTo('any').__or__?.(b.castTo('any')),
+    desc: `Logical OR`,
+    syntax: 'a || b',
     assoc: 'ltr',
   },
   "??": {
@@ -354,32 +355,49 @@ const operators = {
     syntax: 'a ?? b',
     assoc: 'ltr',
   },
-  // ":=": {
-  //   name: 'constant assignment',
-  //   precedence: 3,
-  //   args: 2,
-  //   fn: (symbol, value) => symbol.__assign__?.(value.castTo('any'), true),
-  //   desc: 'Set symbol <symbol> equal to <v> (cannot be reassigned)',
-  //   syntax: 'symbol := v',
-  //   assoc: 'rtl',
-  // },
   "=": {
     name: 'assignment',
     precedence: 3,
     args: 2,
-    fn: (symbol, value) => symbol.__assign__?.(value.castTo("any"), false),
+    fn: (symbol, value) => symbol.__assign__?.(value.castTo("any")),
     desc: 'Set symbol <symbol> equal to <v>',
     syntax: 'symbol = v',
     assoc: 'rtl',
   },
-
-  "!": {
-    name: 'logical not',
-    precedence: 17,
-    args: 1,
-    fn: x => x.castTo('any').__not__?.(),
-    desc: `logical not unless x is of type set. Then, find complement of x (using universal set, ε)`,
-    syntax: 'x\'',
+  "+=": {
+    name: 'addition assignment',
+    precedence: 3,
+    args: 2,
+    fn: (symbol, value) => symbol.__assignAdd__?.(value),
+    desc: 'Add <v> to <symbol>',
+    syntax: 'symbol += v',
+    assoc: 'rtl',
+  },
+  "-=": {
+    name: 'subtraction assignment',
+    precedence: 3,
+    args: 2,
+    fn: (symbol, value) => symbol.__assignSub__?.(value),
+    desc: 'Subtract <v> from <symbol>',
+    syntax: 'symbol -= v',
+    assoc: 'rtl',
+  },
+  "*=": {
+    name: 'multiplication assignment',
+    precedence: 3,
+    args: 2,
+    fn: (symbol, value) => symbol.__assignMul__?.(value),
+    desc: 'Multiply <symbol> by <v>',
+    syntax: 'symbol *= v',
+    assoc: 'rtl',
+  },
+  "/=": {
+    name: 'division assignment',
+    precedence: 3,
+    args: 2,
+    fn: (symbol, value) => symbol.__assignDiv__?.(value),
+    desc: 'Divide <symbol> by <v>',
+    syntax: 'symbol /= v',
     assoc: 'rtl',
   },
   ",": {
@@ -392,4 +410,4 @@ const operators = {
     assoc: 'ltr',
   }
 };
-module.exports = operators;
+module.exports = sortObjectByLongestKey(operators);

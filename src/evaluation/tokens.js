@@ -5,6 +5,7 @@ const operators = require("./operators");
 const { errors } = require("../errors");
 const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure } = require("./structures");
 const { Block } = require("./block");
+const { isNumericType } = require("./types");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -150,6 +151,38 @@ class VariableToken extends Token {
   __assign__(value) {
     const name = this.value;
     let varObj = this.exists() ? this.tstr.rs.setVar(name, value) : this.tstr.rs.defineVar(name, value);
+    return value;
+  }
+
+  /** operator: += */
+  __assignAdd__(value) {
+    value = this.castTo("any").__add__(value);
+    if (value === undefined) return undefined;
+    this.tstr.rs.setVar(this.value, value);
+    return value;
+  }
+
+  /** operator: -= */
+  __assignSub__(value) {
+    value = this.castTo("any").__sub__(value);
+    if (value === undefined) return undefined;
+    this.tstr.rs.setVar(this.value, value);
+    return value;
+  }
+
+  /** operator: *= */
+  __assignMul__(value) {
+    value = this.castTo("any").__mul__(value);
+    if (value === undefined) return undefined;
+    this.tstr.rs.setVar(this.value, value);
+    return value;
+  }
+
+  /** operator: /= */
+  __assignDiv__(value) {
+    value = this.castTo("any").__div__(value);
+    if (value === undefined) return undefined;
+    this.tstr.rs.setVar(this.value, value);
     return value;
   }
 }

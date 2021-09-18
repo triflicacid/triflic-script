@@ -1,6 +1,5 @@
 const Complex = require("./maths/Complex");
 const readline = require("readline");
-const { isNumericType } = require("./evaluation/types");
 const { errors } = require("./errors");
 
 const STDIN = process.stdin, STDOUT = process.stdout;
@@ -206,6 +205,13 @@ function expectedSyntaxError(expected, got) {
   throw new Error(`[${errors.SYNTAX}] Syntax Error: expected ${expected} but got ${got} at position ${got.pos}`);
 }
 
+/** sort an object by longest key */
+function sortObjectByLongestKey(o) {
+  let newo = {}, keys = Object.keys(o).sort((a, b) => a.length > b.length ? -1 : 1);
+  keys.forEach(key => newo[key] = o[key]);
+  return newo;
+}
+
 module.exports = {
-  input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError
+  input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey
 };

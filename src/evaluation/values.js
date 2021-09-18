@@ -45,9 +45,6 @@ class Value {
 
   __assign__() { throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot assign to object ${this.type()}`); }
 
-  /** operator: u& */
-  __deref__() { throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot dereference a value of type ${this.type()}`); }
-
   /** operator: u* */
   __ref__() {
     return new ReferenceValue(this.rs, rs => this);
@@ -150,11 +147,6 @@ class NumberValue extends Value {
     if (isNumericType(n.type())) return new NumberValue(this.rs, Complex.pow(this.toPrimitive('complex'), n.toPrimitive('complex')));
   }
 
-  /** operator: // */
-  __intDiv__(n) {
-    if (isNumericType(n.type())) return new NumberValue(this.rs, Complex.floor(Complex.div(this.toPrimitive('complex'), n.toPrimitive('complex'))));
-  }
-
   /** operator: / */
   __div__(n) {
     if (isNumericType(n.type())) return new NumberValue(this.rs, Complex.div(this.toPrimitive('complex'), n.toPrimitive('complex')));
@@ -178,10 +170,22 @@ class NumberValue extends Value {
     if (isNumericType(t)) return new NumberValue(this.rs, Complex.add(this.toPrimitive('complex'), n.toPrimitive('complex')));
   }
 
+  /** operator: ++ */
+  __inc__() {
+    this.value.a++;
+    return this;
+  }
+
   /** operator: - */
   __sub__(n) {
     const t = n.type();
     if (t === 'string' || isNumericType(t)) return new NumberValue(this.rs, Complex.sub(this.toPrimitive('complex'), n.toPrimitive('complex')));
+  }
+
+  /** operator: -- */
+  __dec__() {
+    this.value.a--;
+    return this;
   }
 
   /** operator: << */
@@ -357,11 +361,6 @@ class CharValue extends Value {
     if (isRealType(n.type())) return new CharValue(this.rs, Math.pow(this.value, n.toPrimitive('real')));
   }
 
-  /** operator: // */
-  __intDiv__(n) {
-    if (isRealType(n.type())) return new CharValue(this.rs, Math.floor(this.value / n.toPrimitive('real')));
-  }
-
   /** operator: / */
   __div__(n) {
     if (isRealType(n.type())) return new CharValue(this.rs, this.value / n.toPrimitive('real'));
@@ -384,10 +383,22 @@ class CharValue extends Value {
     if (t === 'string' || isRealType(t)) return new CharValue(this.rs, this.value + n.toPrimitive('real'));
   }
 
+  /** operator: ++ */
+  __inc__() {
+    this.value++;
+    return this;
+  }
+
   /** operator: - */
   __sub__(n) {
     const t = n.type();
     if (t === 'string' || isRealType(t)) return new CharValue(this.rs, this.value - n.toPrimitive('real'));
+  }
+
+  /** operator: -- */
+  __dec__() {
+    this.value--;
+    return this;
   }
 
   /** operator: << */
@@ -569,10 +580,21 @@ class ArrayValue extends Value {
     return new ArrayValue(this.rs, [...this.toPrimitive('array'), n]);
   }
 
+  /** operator: ++ */
+  __inc__() {
+    this.value.push(new UndefinedValue(this.rs));
+    return new NumberValue(this.rs, this.value.length);
+  }
+
   /** operator: - */
   __sub__(n) {
     const t = n.type();
     if (t === 'array') return new ArrayValue(this.rs, arrDifference(this.toPrimitive('array'), n.toPrimitive('array')));
+  }
+
+  /** operator: --*/
+  __dec__() {
+    return this.value.pop() ?? new UndefinedValue(this.rs);
   }
 }
 
@@ -804,37 +826,6 @@ class FunctionRefValue extends Value {
   __eq__(a) { return new BoolValue(this.rs, a.type() === 'func' ? this.value === a.value : false); }
 }
 
-class ReferenceValue extends Value {
-  constructor(runspace, get, set) {
-    super(runspace, null);
-    this._get = get;
-    this._set = set;
-    this.id = this._genid(false);
-  }
-
-  type() { return this.__deref__().type() + '*'; }
-
-  castTo(type) {
-    if (type === 'any') return this;
-    castingError(this, type);
-  }
-
-  toString() { return `<ref ${this.type()}>`; }
-
-  /** Get value that this points to. operator: & */
-  __deref__() {
-    let x;
-    try { x = this._get(this); } catch { this._throwNullRef(); }
-    if (x == undefined) this._throwNullRef();
-    return x;
-  }
-
-  /** Throw NULL REFERENCE error */
-  _throwNullRef() {
-    throw new Error(`[${errors.NULL_REF}] Null Reference: null reference`);
-  }
-}
-
 
 /** Convert primitive JS value to Value class */
 function primitiveToValueClass(runspace, primitive) {
@@ -967,4 +958,4 @@ FunctionRefValue.castMap = {
   bool: o => new BoolValue(o.rs, true),
 };
 
-module.exports = { Value, UndefinedValue, NumberValue, StringValue, CharValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, ReferenceValue, primitiveToValueClass };
+module.exports = { Value, UndefinedValue, NumberValue, StringValue, CharValue, BoolValue, ArrayValue, SetValue, MapValue, FunctionRefValue, primitiveToValueClass };

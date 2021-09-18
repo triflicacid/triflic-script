@@ -132,17 +132,18 @@ There are two types of functions: `built-in`s and `user-defined`
 | Operator | Name | Precedence | Associativity | Description | Example |
 | -- | -- | -- | -- | -- | -- |
 | . | Member Access | 20 | ltr | Get member on RHS of LHS object | `headers."time"` => `1630433878509` |
-| <fn>(<args>) | Function Call | 20 | ltr | Call function `<fn>` with arguments `<args>` | `sin(1)` => `0.84...` |
+| \<fn\>(\<args\>) | Function Call | 20 | ltr | Call function `<fn>` with arguments `<args>` | `sin(1)` => `0.84...` |
 | ?. | Optional Member Access | 20 | ltr | Get member on RHS of LHS object. If RHS is undefined, return undefined | `undefined?.1` => `undefined` |
+| ++ | Increment | 18 | ltr | Add 1 to value | `pi++` => `4.14159265359` |
+| -- | Decrement | 18 | ltr | Subtract 1 from value | `pi--` => `2.14159265359` |
 | deg | Degrees | 18 | rtl | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` |
 | ~ | Bitwise NOT | 17 | rtl | Bitwise NOT value on LHS | `~20` => `-21` |
 | + | Unary plus | 17 | rtl | Convert LHS to number | `+"14"` => `14` |
 | - | Unary minus | 17 | rtl | Convert LHS to number and negate | `-"14"` => `-14` |
-| <type> | Type cast | 17 | rtl | Casts RHS to type `type` | `<bool>12` => `true`, `<array>"Hi"` => `["H","i"]` |
+| \<type\> | Type cast | 17 | rtl | Casts RHS to type `type` | `<bool>12` => `true`, `<array>"Hi"` => `["H","i"]` |
 | ! | Logical Not | 17 | rtl | Returns opposite boolean value | `!0` => `true` |
 | ** | Exponentation | 16 | rtl | Returns LHS to the power of the RHS | `2 ** 4` => `16` |
 | : | Sequence | 16 | rtl | Attempts to create sequence from LHS to RHS | `3:7` => `[3,4,5,6]`, `"a":"f"` => `["a","b","c","d","e"]` |
-| // | Integer division | 15 | ltr | Divide LHS by RHS, return as an integer | `5 // 2` => `2` |
 | / | Division | 15 | ltr | Divide LHS by RHS | `5 / 2` => `2.5` |
 | % | Modulo/Remainder | 15 | ltr | Return remainder of LHS divided by RHS | `5 % 2` => `1` |
 | * | Multiplication | 15 | ltr | Multiply LHS by RHS | `5 * 2` => `10` |
@@ -165,8 +166,11 @@ There are two types of functions: `built-in`s and `user-defined`
 | && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` |
 | \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` |
 | ?? | Nullish Coalescing | 5 | ltr | Returns LHS unless LHS is undefined, in which case return RHS | `undefined ?? 2` => `2` |
-| := | Constant Assignment | 3 | rtl | Assigns the RHS to the LHS as a constant | `PI := 3.14159` => `3.14159` |
 | = | Assignment | 3 | rtl | Assigns the RHS to the LHS | `name = "john"` => `"john"` |
+| += | Addition Assignment | 3 | rtl | Assigns RHS to RHS + LHS | `a = 10, a += 2, a` => `12` |
+| -= | Subtraction Assignment | 3 | rtl | Assigns RHS to RHS - LHS | `a = 10, a -= 2, a` => `8` |
+| *= | Multiplication Assignment | 3 | rtl | Assigns RHS to RHS * LHS | `a = 10, a *= 2, a` => `20` |
+| /= | Division Assignment | 3 | rtl | Assigns RHS to RHS / LHS | `a = 10, a /= 2, a` => `5` |
 | , | Comma | 1 | ltr | Returns RHS argument | `1, 2` => `2` |
 
 *ltr = left-to-right*
