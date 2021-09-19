@@ -5,7 +5,7 @@ const { v4 } = require("uuid");
 class RunspaceFunction {
   /**
    * @param {Runspace} rs 
-   * @param {{ [param: string]: string }} args - object mapping param name to the expected type. Prefix type with '?' to be marked as optional
+   * @param {{ [param: string]: string }} args - param:type or param:{ pass: "val"|"ref", type: string, optional: boolean, default: any }
    * @param {string} desc - optional description of function
    * @param {boolean} processArgs - process arguments in accordance to provided types, or leave as Token object?
    */
@@ -15,7 +15,7 @@ class RunspaceFunction {
     this.rs = rs;
     this.id = v4();
     this.rargs = args;
-    this.args = {}; // Object of param:type
+    this.args = new Map(); // { [arg: string]: { pass: "val"|"ref", type: string } }
     this.argCount = 0; // Number of arguments
     this.optional = 0; // Number of OPTIONAL arguments
     this.name = name;
@@ -26,20 +26,36 @@ class RunspaceFunction {
     let metOptn = false;
     for (let arg in args) {
       if (args.hasOwnProperty(arg)) {
-        let type = args[arg];
+        let data = {};
+        if (typeof args[arg] === 'string') {
+          let string = args[arg];
+          // Is optional?
+          let isOptional = string[0] === '?';
+          if (isOptional) {
+            string = string.substr(1);
+            data.optional = true;
+          }
+          data.pass = 'val';
+          data.type = string;
+        } else {
+          data.pass = args[arg].pass;
+          data.type = args[arg].type;
+          data.optional = !!args[arg].optional;
+          if (data.type[0] === '?') {
+            data.optional = true;
+            data.type = data.type.substr(1);
+          }
+        }
 
-        // Is optional?
-        let isOptional = type[0] === '?';
-        if (isOptional) type = type.substr(1);
-
-        if (!(type in types)) throw new Error(`[${errors.TYPE_ERROR}] Type Error: argument '${arg}: ${type}': invalid type '${type}' (function: ${name})`);
-        if (isOptional) {
+        if (!(data.type in types)) throw new Error(`[${errors.TYPE_ERROR}] Type Error: argument '${arg}: ${data.type}': invalid type '${data.type}' (function: ${name})`);
+        if (data.optional) {
           metOptn = true;
           this.optional++;
         } else {
           if (metOptn) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument cannot follow optional argument : '${arg}' (function: ${name})`);
         }
-        this.args[arg] = type;
+
+        this.args.set(arg, data);
         this.argCount++;
       }
     }
@@ -50,16 +66,6 @@ class RunspaceFunction {
     let req = this.argCount - this.optional;
     let expected = this.optional === 0 ? req : `${req}-${this.argCount}`;
     if (args.length < req || args.length > this.argCount) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects ${expected} argument${expected == 1 ? '' : 's'}, got ${args.length}`);
-  }
-
-  /** Given Token[], extract to raw values following types */
-  extractArgs(args) {
-    let extracted = [], i = 0;
-    for (let arg in this.args) {
-      extracted.push(args[i] == undefined ? undefined : args[i].castTo(this.args[arg]));
-      i++;
-    }
-    return extracted;
   }
 
   defString() {
@@ -97,18 +103,27 @@ class RunspaceUserFunction extends RunspaceFunction {
     this.rs.pushScope();
     // Set arguments to variables matching definition symbols
     let i = 0;
-    for (let arg in this.args) {
-      if (this.args.hasOwnProperty(arg)) {
+    this.args.forEach((data, arg) => {
+      if (data.pass === undefined || data.pass === 'val') {
         let casted;
         try {
-          casted = args[i].castTo(this.args[arg]);
+          casted = args[i].castTo(data.type);
         } catch (e) {
           throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${this.args[arg]} (function ${this.name}):\n ${e}`);
         }
-        this.rs.setVar(arg, casted);
-        i++;
+        this.rs.defineVar(arg, casted);
+      } else if (data.pass === 'ref') {
+        if (args[i].constructor.name !== 'VariableToken') {
+          throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: expected variable, got ${args[i]?.type()} ${args[i]}`);
+        }
+        if (!args[i].exists()) {
+          throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: passed value must be bound`);
+        }
+      } else {
+        throw new Error(`Unknown pass-by value '${data.pass}' for '${args[i]}'`);
       }
-    }
+      i++;
+    });
 
     let ret = await this.tstr.eval(evalObj);
     ret = ret.castTo('any'); // Cast to resolve variables
@@ -146,12 +161,10 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
     const o = {};
     // Assign 'param: value' in o
     let i = 0;
-    for (let arg in this.args) {
-      if (this.args.hasOwnProperty(arg)) {
-        o[arg] = args[i];
-        i++;
-      }
-    }
+    this.args.forEach((data, arg) => {
+      o[arg] = args[i];
+      i++;
+    });
     return await this.fn(o, evalObj);
   }
 

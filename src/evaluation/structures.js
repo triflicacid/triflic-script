@@ -54,7 +54,7 @@ class MapStructure extends Structure {
     this.values.forEach(e => e.prepare());
   }
 
-  async eval() {
+  async eval(evalObj) {
     let map = new MapValue(this.rs);
     for (let i = 0; i < this.keys.length; i++) {
       map.__set__(this.keys[i], await this.values[i].eval(evalObj));
@@ -75,7 +75,7 @@ class SetStructure extends Structure {
     this.elements.forEach(e => e.prepare());
   }
 
-  async eval() {
+  async eval(evalObj) {
     const values = await Promise.all(this.elements.map(el => el.eval(evalObj)));
     return new SetValue(this.rs, values);
   }
@@ -343,6 +343,7 @@ class ForInStructure extends Structure {
       iter = await this.iter.eval(obj);
       iter = iter.castTo("any");
     } catch (e) {
+      throw e;
       throw new Error(`[${errors.SYNTAX}] FOR IN loop: error whilst evaluating iterator:\n${e}`);
     }
 
@@ -351,7 +352,7 @@ class ForInStructure extends Structure {
     if (Array.isArray(collection[0])) {
       if (this.vars.length === 1) { // One var contains an array
         for (let i = 0; i < collection.length; i++) {
-          this.body.rs.setVar(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]));
+          this.body.rs.defineVar(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]));
           await this.body.eval(obj);
 
           if (obj.action === 1) break;
@@ -366,7 +367,7 @@ class ForInStructure extends Structure {
         if (this.vars.length !== collection[0].length) throw new Error(`[${errors.SYNTAX}] Syntax Error: FOR-IN: variable count mismatch: got ${this.vars.length}, expected ${collection[0].length} for type ${iter.type()}`);
         for (let i = 0; i < collection.length; i++) {
           for (let a = 0; a < this.vars.length; a++) {
-            this.body.rs.setVar(this.vars[a].value, collection[i][a]);
+            this.body.rs.defineVar(this.vars[a].value, collection[i][a]);
           }
           await this.body.eval(obj);
 
@@ -383,7 +384,7 @@ class ForInStructure extends Structure {
       // Single-value for-in
       if (this.vars.length !== 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: FOR-IN: variable count mismatch: got ${this.vars.length}, expected 1 for type ${iter.type()}`);
       for (let i = 0; i < collection.length; i++) {
-        this.body.rs.setVar(this.vars[0].value, collection[i]);
+        this.body.rs.defineVar(this.vars[0].value, collection[i]);
         await this.body.eval(obj);
 
         if (obj.action === 1) break;
@@ -399,45 +400,28 @@ class ForInStructure extends Structure {
 }
 
 class FuncStructure extends Structure {
+  /** args - { [arg: string]: string }. body = Block */
   constructor(pos, rs, args, body, name = undefined) {
     super("FUNC", pos);
     this.rs = rs;
     this.name = name;
-    this.args = args;
+    this.args = args ?? {};
     this.body = body;
   }
 
   validate() {
-    if (this.args.value.length > 1) throw new expectedSyntaxError(')', peek(this.args.value[2].tokens));
     this.body.breakable = 0;
     this.body.returnable = 2; // Handle returns directly
     this.body.prepare();
   }
 
-  async eval() {
-    let argObj = {};
-    if (this.args.value.length === 1) {
-      let args = this.args.value[0].splitByCommas(false); // DO NOT do extra parsing - not required for function arguments
-      for (let arg of args) {
-        if (arg.tokens[0] === undefined || arg.tokens[0].constructor.name !== 'VariableToken') throw new Error(`[${errors.SYNTAX}] Syntax Error: expected parameter name, got ${arg.tokens[0]} at position ${arg.tokens[0]?.pos}`);
-        if (arg.tokens.length === 1) { // "<arg>"
-          argObj[arg.tokens[0].value] = 'any';
-        } else if (arg.tokens.length === 3) { // "<arg>" ":" "<type>"
-          if (arg.tokens[1].constructor.name === 'OperatorToken' && arg.tokens[1].value === ':' && arg.tokens[2].constructor.name === 'VariableToken') {
-            argObj[arg.tokens[0].value] = arg.tokens[2].value;
-          } else {
-            throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax`);
-          }
-        }
-      }
-    }
-
-    let fn = new RunspaceUserFunction(this.rs, this.name ?? 'anonymous', argObj, this.body);
+  async eval(evalObj) {
+    let fn = new RunspaceUserFunction(this.rs, this.name ?? 'anonymous', this.args, this.body);
     let ref = new FunctionRefValue(this.rs, fn);
     let ret;
 
     if (this.name) { // Not anonymous - define function
-      this.rs.setVar(fn.name, ref);
+      this.rs.defineVar(fn.name, ref);
     } else {
       ref.func = fn; // Bind to reference
       ret = ref; // Return reference

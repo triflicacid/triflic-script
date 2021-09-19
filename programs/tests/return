@@ -1,6 +1,6 @@
 func fn() {
   for (i = 0; ; i = i + 1) {
-    if (i == 10) { return 10; }
+    if (i == 10) { return i; }
   }
 }
 

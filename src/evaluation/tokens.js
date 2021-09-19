@@ -474,7 +474,7 @@ class TokenLine {
             break;
           }
           case "func": {
-            let structure = new FuncStructure(this.tokens[i].pos, this.rs);
+            let structure = new FuncStructure(this.tokens[i].pos, this.rs, {});
 
             // Name?
             if (this.tokens[i + 1] instanceof VariableToken) {
@@ -483,9 +483,43 @@ class TokenLine {
             }
 
             if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
-              structure.args = this.tokens[i + 1];
+              const argLine = this.tokens[i + 1];
               structure.body = this.tokens[i + 2];
               this.tokens.splice(i, 3, structure);
+
+              // Extract argGroup
+              // Syntax: "arg[: [ref|val] [?]type]"
+              let argObj = {};
+              if (argLine.value.length === 1) {
+                let args = argLine.value[0].splitByCommas(false); // DO NOT do extra parsing - not required for function arguments
+                for (let arg of args) {
+                  if (arg.tokens[0] === undefined || !(arg.tokens[0] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected parameter name, got ${arg.tokens[0]} at position ${arg.tokens[0]?.pos}`);
+                  if (arg.tokens.length === 1) { // "<arg>"
+                    argObj[arg.tokens[0].value] = 'any';
+                  } else if (arg.tokens.length > 2) { // "<arg>" ":" ...
+                    if (arg.tokens[1] instanceof OperatorToken && arg.tokens[1].value === ':') {
+                      let i = 2, data = {}, ok = true;
+                      if (arg.tokens[i] instanceof VariableToken && arg.tokens.length > 3) {
+                        if (arg.tokens[i].value === 'val' || arg.tokens[i].value === 'ref') {
+                          data.pass = arg.tokens[i].value;
+                          i++;
+                        } else ok = false;
+                      }
+                      if (ok) {
+                        if (arg.tokens[i] instanceof VariableToken) {
+                          data.type = arg.tokens[i].value;
+                          i++;
+                        } else ok = false;
+                      }
+                      if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter string`);
+                      argObj[arg.tokens[0].value] = data;
+                    } else {
+                      throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax`);
+                    }
+                  }
+                }
+              }
+              structure.args = argObj;
             } else {
               throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal FUNC construct at position ${structure.pos}`);
             }

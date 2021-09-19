@@ -13,3 +13,15 @@ println(add(5 + i, 3));
 # With argument types
 func add(a: real, b: real) { a + b; }
 println(add(5 + i, 3));
+
+# Pass by reference
+func swap(a: ref any, b: ref any) {
+  tmp = a;
+  a = b;
+  b = tmp;
+}
+
+a = 5, b = 10;
+println("a:" + a + "; b:" + b);
+swap(a, b);
+println("a:" + a + "; b:" + b);

@@ -18,7 +18,6 @@ Currently, `a = [a]` infinity recurses as a is equal to an array containing itse
 - Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
 - Optional function parameters
 - `let` block
-- `ref` function parameters
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -248,11 +247,20 @@ This defines a function. `name` is optional.
 
 i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };` achieve the same result.
 
-- `<args>` is a comma-seperated list of identifiers. Types may be defined as a `?` before the type i.e.:
+- `<args>` is a comma-seperated list of identifiers. Syntax: `<arg>[: ["val"|"ref"] [?]<type>]`.
+  - `<arg>` - argument name
+  - `:` - marks that the fllowing information is describing the argument
+  - `["val"|"ref"]`: pass-by method of the argument. Is not present, default is `val`.
+    - `val`: pass-by-value. The value provided for this argument is copied into a new local variable upon calling.
+    - `ref`: pass-by-reference. The value provided for this argument must be a bound variable. Assigning to the parameter will alter the variable passed into the function.
+  - `[?]`: A question marke prefixing the type marks if the parameter is optional or not. If optional and a value is not provided, `undefined` is passed as the parameter's value.
+  - `<type>`: The type of the argument.
+
+Examples:
   - `func fn(a)` -> function `fn` takes an argument `a` of type `any`
-  - `func fn(a: ?any)` -> function `fn` takes an optional argument `a` of type `any` (*NB for optional arguments, a type must be present*)
-  - `func fn(a: real)` -> function `fn` takes an argument `a` of type `real`
-  - `func fn(a: ?real)` -> function `fn` takes an optional argument `a` of type `real`
+  - `func fn(a: ?<type>)` -> function `fn` takes an optional argument `a` of type `<type>`
+  - `func fn(a: ref <type>)` -> function `fn` takes a pass-by-reference argument `a` of type `<type>`
+  - `func fn(a: ref ?<type>)` -> function `fn` takes a pass-by-reference optional argument `a` of type `<type>`
 
 ### `break`
 Syntax: `break`
