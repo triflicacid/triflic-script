@@ -1,8 +1,10 @@
 # Operators
 
-There are some "types" present:
-- `numeric` - any numeric type: `real`, `complex`, `char`, `boolean`
-- `real-like` - `real`, `char`, `boolean`
+There are some types listed that are general terms:
+- `numeric` - any numeric type: `real` | `complex` | `char` | `boolean`
+- `real-like` - `real` | `char` | `boolean`
+- `complex-like` - `complex` | `char` | `boolean`
+- `symbol` - a variable
 
 | Operator | Argument 1 | Argument 2 | Action | Example |
 | -------- | ---------- | ---------- | ------ | ------- |
@@ -20,7 +22,7 @@ There are some "types" present:
 | `==` | `numeric` | `any` | Returns true if arg2 is numeric and the numbers are equivalent | `65 == 65.0` => `true` |
 | `~` | `real-like` | n/a | Inverts bits of number (note: twos complement) | `~12` => `-13` |
 | `&` | `real-like` | `real-like` | ANDs bits of numbers together | `12 & 20` => `4` |
-| `|` | `real-like` | `real-like` | ORs bits of numbers together | `12 & 20` => `28` |
+| `\|` | `real-like` | `real-like` | ORs bits of numbers together | `12 & 20` => `28` |
 | `^` | `real-like` | `real-like` | XORs bits of numbers together | `12 & 20` => `24` |
 | `**` | `numeric` | `numeric` | Raises arg1 to arg2 | `2 ** 8` => `256` |
 | `/` | `numeric` | `numeric` | Divides arg1 by arg2 | `10 / 2` => `5` |
@@ -49,7 +51,7 @@ There are some "types" present:
 | `==` | `bool` | `any` | Returns true if arg2 is a bool and has same logical value | `true == true` => `true` |
 | `~` | `bool` | n/a | Returns bitwise NOT of bool (true = 1, false = 0) | `~true` => `-2` |
 | `&` | `bool` | `real-like` | ANDs arg1 and arg2 | `true & 5` => `1` |
-| `|` | `bool` | `real-like` | ORs arg1 and arg2 | `true | 5` => `5` |
+| `\|` | `bool` | `real-like` | ORs arg1 and arg2 | `true | 5` => `5` |
 | `^` | `bool` | `real-like` | XORs arg1 and arg2 | `true ^ 5` => `4` |
 | `+` | `bool` | `numeric` | Adds arg1 and arg2 | `true + 1` => `2` |
 | `.` | `array` | `any` | Cast arg2 to `real_int` and return item at index arg2 (or undefined it out of bounds) | `[1,2,3].2` => `3` |
@@ -76,3 +78,9 @@ There are some "types" present:
 | `==` | `map` | `map` | Return true if same size and all keys are equivalent and values are equivalent | `{"name":"Joe"} == {"name":"Joe"}` => `true` |
 | `()` | `func` | argument string | Calls arg1 with arguments arg2 | `sin(1)` => `0.8414709848078965` |
 | `==` | `func` | `func` | Return true if function names match | `sin == sin` => `true` |
+| `=` | `symbol` | `any` | Sets variable arg1 to arg2 | `a = 10, a` => `10` |
+| `+=` | `symbol` | `any` | Adds arg2 to variable arg1 | `a = 10, a += 5, a` => `15` |
+| `-=` | `symbol` | `any` | Subtracts arg2 from variable arg1 | `a = 10, a -= 5, a` => `5` |
+| `*=` | `symbol` | `any` | Multiplies variable arg1 by arg2 | `a = 10, a *= 2, a` => `20` |
+| `/=` | `symbol` | `any` | Divides variable arg1 by arg2 | `a = 10, a /= 2, a` => `5` |
+| `%=` | `symbol` | `any` | Sets arg1 to arg1 % arg2 | `a = 10, a %= 3, a` => `1` |

@@ -69,6 +69,18 @@ Any other extension:
 - The file is read
 - The file contents are passed into `Runspace#execute`
 
+## Magic Methods
+Some functions call a method of the argument. As such, implementation may be changed by external code.
+
+- `del(a, b)` calls `a.__del__(b)` (NB with one argument `del(a)` does not)
+- `copy(a)` calls `a.__copy__()`
+- `len(a)` calls `a.__len__()`
+- `abs(a)` calls `a.__abs__()`
+- `get(a, b)` calls `a.__get__(b)`
+- `set(a, b, c)` calls `a.__set__(b, c)`
+- `reverse(a)` calls `a.__reverse__()`
+- `find(a, b)` calls `a.__find__(b)`
+
 ## Input
 A program may be interpreted and executed via `Runspace#execute`
 
@@ -170,6 +182,7 @@ See `Operators.md` for detailed operator help.
 | -= | Subtraction Assignment | 3 | rtl | Assigns RHS to RHS - LHS | `a = 10, a -= 2, a` => `8` | `__assignSub__` |
 | *= | Multiplication Assignment | 3 | rtl | Assigns RHS to RHS * LHS | `a = 10, a *= 2, a` => `20` | `__assignMul__` |
 | /= | Division Assignment | 3 | rtl | Assigns RHS to RHS / LHS | `a = 10, a /= 2, a` => `5` | `__assignDiv__` |
+| %= | Modulus Assignment | 3 | rtl | Assigns RHS to RHS % LHS | `a = 10, a %= 3, a` => `1` | `__assignMod__` |
 | , | Comma | 1 | ltr | Returns RHS argument | `1, 2` => `2` | n/a |
 
 *ltr = left-to-right*

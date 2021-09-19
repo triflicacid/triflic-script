@@ -185,6 +185,14 @@ class VariableToken extends Token {
     this.tstr.rs.setVar(this.value, value);
     return value;
   }
+
+  /** operator: %= */
+  __assignMod__(value) {
+    value = this.castTo("any").__mod__(value);
+    if (value === undefined) return undefined;
+    this.tstr.rs.setVar(this.value, value);
+    return value;
+  }
 }
 
 /** A bracketed TokenLine[] */

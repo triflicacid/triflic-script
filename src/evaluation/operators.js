@@ -410,6 +410,15 @@ const operators = {
     syntax: 'symbol /= v',
     assoc: 'rtl',
   },
+  "%=": {
+    name: 'modulus assignment',
+    precedence: 3,
+    args: 2,
+    fn: (symbol, value) => symbol.__assignMod__?.(value),
+    desc: 'Sets <symbol> to <symbol> % <v>',
+    syntax: 'symbol %= v',
+    assoc: 'rtl',
+  },
   ",": {
     name: 'comma',
     precedence: 1,
