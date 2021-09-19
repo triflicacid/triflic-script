@@ -4,7 +4,7 @@ const { types } = require("../evaluation/types");
 class RunspaceFunction {
   /**
    * @param {Runspace} rs 
-   * @param {{ [param: string]: string }} args - param:type or param:{ pass: "val"|"ref", type: string, optional: boolean, default: any }
+   * @param {{ [param: string]: string }} args - param:type or param:{ pass: "val"|"ref", type: string, optional: boolean, default: undefined | any }
    * @param {string} desc - optional description of function
    * @param {boolean} processArgs - process arguments in accordance to provided types, or leave as Token object?
    */
@@ -37,8 +37,9 @@ class RunspaceFunction {
           data.type = string;
         } else {
           data.pass = args[arg].pass;
-          data.type = args[arg].type;
+          data.type = args[arg].type ?? 'any';
           data.optional = !!args[arg].optional;
+          data.default = args[arg].default;
           if (data.type[0] === '?') {
             data.optional = true;
             data.type = data.type.substr(1);
@@ -105,7 +106,7 @@ class RunspaceUserFunction extends RunspaceFunction {
       if (data.pass === undefined || data.pass === 'val') {
         let casted;
         if (data.optional && args[i] === undefined) {
-          casted = this.rs.UNDEFINED;
+          casted = data.default ?? this.rs.UNDEFINED;
         } else {
           try {
             casted = args[i].castTo(data.type);

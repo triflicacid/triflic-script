@@ -260,7 +260,7 @@ This defines a function. `name` is optional.
 
 i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };` achieve the same result.
 
-- `<args>` is a comma-seperated list of identifiers. Syntax: `<arg>[: ["val"|"ref"] [?]<type>]`.
+- `<args>` is a comma-seperated list of identifiers. Syntax: `<arg>[: ["val"|"ref"] [?]<type>][= <value>]`.
   - `<arg>` - argument name
   - `:` - marks that the fllowing information is describing the argument
   - `["val"|"ref"]`: pass-by method of the argument. Is not present, default is `val`.
@@ -268,6 +268,8 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
     - `ref`: pass-by-reference. The value provided for this argument must be a bound variable. Assigning to the parameter will alter the variable passed into the function.
   - `[?]`: A question marke prefixing the type marks if the parameter is optional or not. If optional and a value is not provided, `undefined` is passed as the parameter's value.
   - `<type>`: The type of the argument.
+  - `=`: marks following as default value if parameter is omitted
+  - `<value>`: default value of the parameter if ommited (*Note, may only be a single token e.g. can't be '1 + 2'*)
 
 Examples:
   - `func fn(a)` -> function `fn` takes an argument `a` of type `any`

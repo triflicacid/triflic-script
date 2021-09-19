@@ -29,6 +29,20 @@ func swap(a: ref any, b: ref any) {
 }
 
 a = 5, b = 10;
-println("a:" + a + "; b:" + b);
+print("a:" + a + "; b:" + b);
 swap(a, b);
-println("a:" + a + "; b:" + b);
+println(" --> a:" + a + "; b:" + b);
+
+# Default value
+func greet(name = "Default") {
+  println("Hello, " + name);
+}
+greet();
+greet("Joe");
+
+# Default value with type
+func greet(name: string = "Default") {
+  println("Hello, " + name);
+}
+greet();
+greet(12 + i);

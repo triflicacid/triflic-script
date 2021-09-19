@@ -496,7 +496,7 @@ class TokenLine {
               this.tokens.splice(i, 3, structure);
 
               // Extract argGroup
-              // Syntax: "arg[: [ref|val] [?]type]"
+              // Syntax: "arg[: [ref|val] [?]type [= ...]]"
               let argObj = {}, lastOptional = null; // Last encountered optional argument
               if (argLine.value.length === 1) {
                 let args = argLine.value[0].splitByCommas(false); // DO NOT do extra parsing - not required for function arguments
@@ -507,7 +507,7 @@ class TokenLine {
                   } else if (arg.tokens.length > 2) { // "<arg>" ":" ...
                     if (arg.tokens[1] instanceof OperatorToken && arg.tokens[1].value === ':') {
                       let i = 2, data = {}, ok = true;
-                      if (arg.tokens[i] instanceof VariableToken && arg.tokens.length > 3) {
+                      if (arg.tokens[i] instanceof VariableToken && (arg.tokens[i + 1] instanceof VariableToken || (arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '?'))) {
                         if (arg.tokens[i].value === 'val' || arg.tokens[i].value === 'ref') {
                           data.pass = arg.tokens[i].value;
                           i++;
@@ -515,6 +515,7 @@ class TokenLine {
                       }
                       if (ok && arg.tokens[i] instanceof OperatorToken) {
                         if (arg.tokens[i].value === '?') {
+                          if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': pass-by-reference parameter '${arg.tokens[0].value}' cannot be optional`);
                           data.optional = true;
                           lastOptional = arg.tokens[0].value;
                           i++;
@@ -528,12 +529,32 @@ class TokenLine {
                           i++;
                         } else ok = false;
                       }
+                      if (ok && arg.tokens[i]) {
+                        if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === '=') {
+                          i++;
+                          if (arg.tokens[i] instanceof Token) {
+                            if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '=': pass-by-reference parameter '${arg.tokens[0].value}' cannot have a default value`);
+                            data.optional = true;
+                            data.default = arg.tokens[i];
+                            if (data.default instanceof ValueToken) data.default = data.default.value;
+                            i++;
+                          } else ok = false;
+                        } else ok = false;
+                      }
+                      if (ok && arg.tokens[i] !== undefined) ok = false;
                       if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter string at position ${arg.tokens[1].pos}`);
-                      if (lastOptional && !data.optional) if (lastOptional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${arg.tokens[0].value}' cannot precede optional argument '${lastOptional}' (position ${arg.tokens[0].pos})`);
+                      if (lastOptional && !data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${arg.tokens[0].value}' cannot precede optional argument '${lastOptional}' (position ${arg.tokens[0].pos})`);
                       argObj[arg.tokens[0].value] = data;
-                    } else {
-                      throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax`);
+                    } else if (arg.tokens[1] instanceof OperatorToken && arg.tokens[1].value === '=' && arg.tokens[2] instanceof Token) {
+                      let data = {
+                        optional: true,
+                        default: arg.tokens[2]
+                      };
+                      if (data.default instanceof ValueToken) data.default = data.default.value;
+                      argObj[arg.tokens[0].value] = data;
                     }
+                  } else {
+                    throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: expected ':' or '=' after parameter name '${arg.tokens[0].value}', got '${arg.tokens[1]}' at position ${arg.tokens[1].pos}`);
                   }
                 }
               }

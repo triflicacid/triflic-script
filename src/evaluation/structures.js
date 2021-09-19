@@ -426,7 +426,6 @@ class FuncStructure extends Structure {
       ref.func = fn; // Bind to reference
       ret = ref; // Return reference
     }
-    ref.id = ref._genid();
     return ret;
   }
 }
