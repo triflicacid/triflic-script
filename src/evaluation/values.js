@@ -1,10 +1,10 @@
 const Complex = require("../maths/Complex");
 const { factorial, factorialReal, range } = require("../maths/functions");
-const { RunspaceUserFunction, RunspaceFunction } = require("../runspace/Function");
+const { RunspaceFunction } = require("../runspace/Function");
 const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal, peek } = require("../utils");
 const { castingError, isNumericType, isRealType } = require("./types");
 const { errors } = require("../errors");
-const { v4, v5 } = require("uuid");
+const { v4 } = require("uuid");
 
 const valueIDs = new Map(); // Map constant value to IDs
 
@@ -44,11 +44,6 @@ class Value {
   }
 
   __assign__() { throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot assign to object ${this.type()}`); }
-
-  /** operator: u* */
-  __ref__() {
-    return new ReferenceValue(this.rs, rs => this);
-  }
 
   /** operator: u+ */
   __pos__() { return this.castTo('complex'); }
@@ -224,7 +219,7 @@ class NumberValue extends Value {
   /** Operator: : */
   __seq__(val) {
     const t = val.type();
-    if (isNumericType(t)) {
+    if (isRealType(t) && this.value.b === 0) {
       let rng = range(this.toPrimitive('real_int'), val.toPrimitive('real_int'));
       return new ArrayValue(this.rs, rng.map(n => new NumberValue(this.rs, n)));
     }
@@ -463,19 +458,19 @@ class BoolValue extends Value {
   /** operator: & */
   __bitwiseAnd__(arg) {
     const argt = arg.type();
-    if (argt === 'real' || argt === 'bool') return new NumberValue(this.rs, this.toPrimitive('real') & arg.toPrimitive('real'));
+    if (isRealType(argt)) return new NumberValue(this.rs, this.toPrimitive('real') & arg.toPrimitive('real'));
   }
 
   /** operator: | */
   __bitwiseOr__(arg) {
     const argt = arg.type();
-    if (argt === 'real' || argt === 'bool') return new NumberValue(this.rs, this.toPrimitive('real') | arg.toPrimitive('real'));
+    if (isRealType(argt)) return new NumberValue(this.rs, this.toPrimitive('real') | arg.toPrimitive('real'));
   }
 
   /** operator: ^ */
   __xor__(arg) {
     const argt = arg.type();
-    if (argt === 'real' || argt === 'bool') return new NumberValue(this.rs, this.toPrimitive('real') ^ arg.toPrimitive('real'));
+    if (isRealType(argt)) return new NumberValue(this.rs, this.toPrimitive('real') ^ arg.toPrimitive('real'));
   }
 
   /** operator: + */
@@ -550,6 +545,28 @@ class ArrayValue extends Value {
       if (copy === undefined) throw new Error(emsg(v, i));
       return copy;
     }));
+  }
+
+  __assign__(other) {
+    if (other.type() === 'array') {
+      try {
+        if (other.value.length !== this.value.length) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot unpack array of length ${other.value.length} into array of length ${this.value.length}`);
+        const tmpValues = [];
+        for (let i = 0; i < other.value.length; i++) {
+          if (typeof this.value[i].__assign__ !== 'function') {
+            throw new Error(`[${errors.TYPE_ERROR}] Type Error: Unable to unpack arrays: cannot assign to type ${this.value[i].type()} (${this.value[i]}) is `);
+          }
+          tmpValues.push(other.value[i].castTo("any"));
+        }
+
+        for (let i = 0; i < this.value.length; i++) {
+          this.value[i].__assign__(tmpValues[i]);
+        }
+        return this;
+      } catch (e) {
+        throw new Error(`[${errors.BAD_ARG}] Errors whilst unpacking array[${other.value.length}] into array[${this.value.length}]:\n${e}`);
+      }
+    }
   }
 
   /** operator: == */
@@ -653,7 +670,7 @@ class SetValue extends Value {
   }
 
   /** operator: == */
-  __eq__(a) { return new BoolValue(this.rs, a.type() === 'set' && this.value.length === a.value.length ? this.value.map((_, i) => equal(this.value[i], a.value[i])).every(x => x) : false); }
+  __eq__(a) { return new BoolValue(this.rs, a.type() === 'set' && this.value.length === a.value.length ? this.value.map(v => findIndex(v, a.value) !== -1).every(x => x) : false); }
 
   /** operator: ' */
   __not__() {

@@ -1,0 +1,78 @@
+# Operators
+
+There are some "types" present:
+- `numeric` - any numeric type: `real`, `complex`, `char`, `boolean`
+- `real-like` - `real`, `char`, `boolean`
+
+| Operator | Argument 1 | Argument 2 | Action | Example |
+| -------- | ---------- | ---------- | ------ | ------- |
+| `+` | `any` | n/a | Casts arg1 to type `complex` | `+"5"` => `5` |
+| `-` | `any` | n/a | Casts arg1 to type `complex` and negate | `-"5"` => `-5` |
+| `!` | `any` | n/a | Casts arg1 to type `boolean` and inverts | `!1` => `false` |
+| `in` | `any` | `array\|set` | Is arg1 an element present in arg2? | `2 in [1,2,3]` => `true` |
+| `in` | `any` | `string` | Is arg1 a character in arg2? | `'o' in "Hello"` => `true` |
+| `in` | `any` | `map` | Is arg1 a key in arg2? | `"name" in { "name": "Joe" }` => `true` |
+| `!=` | `any` | n/a | Invert result of `==` | `1 != 2` => `true` |
+| `&&` | `any` | `any` | Return arg2 if both arg1 and arg2 are truthy, else false | `1 && 2` => `2` |
+| `||` | `any` | `any` | Return arg1/args if arg1/arg2 are truthy, else false of both falsy | `0 || 2` => `2` |
+| `==` | `undefined` | `any` | Return true if arg2 is undefined | `undefined == undefined` => `true` |
+| `deg` | `numeric` | n/a | Converts arg1 from degrees to radians : `arg1 * (PI / 180)` | `180 deg` => `3.141592653589793` |
+| `==` | `numeric` | `any` | Returns true if arg2 is numeric and the numbers are equivalent | `65 == 65.0` => `true` |
+| `~` | `real-like` | n/a | Inverts bits of number (note: twos complement) | `~12` => `-13` |
+| `&` | `real-like` | `real-like` | ANDs bits of numbers together | `12 & 20` => `4` |
+| `|` | `real-like` | `real-like` | ORs bits of numbers together | `12 & 20` => `28` |
+| `^` | `real-like` | `real-like` | XORs bits of numbers together | `12 & 20` => `24` |
+| `**` | `numeric` | `numeric` | Raises arg1 to arg2 | `2 ** 8` => `256` |
+| `/` | `numeric` | `numeric` | Divides arg1 by arg2 | `10 / 2` => `5` |
+| `%` | `numeric` | `numeric` | Divides arg1 by arg2 and returns the remainder | `10 / 3` => `1` |
+| `*` | `numeric` | `numeric` | Multiplies arg1 by arg2 | `10 * 2` => `20` |
+| `*` | `numeric` | `string` | Casts arg2 to a number and multiplies arg1 by arg2 | `10 * "2"` => `20` |
+| `+` | `numeric` | `numeric` | Adds arg2 and arg2 | `5 + 3` => `8` |
+| `+` | `numeric` | `undefined` | Returns `NaN` | `10 + undefined` => `NaN` |
+| `+` | `numeric` | `string` | Concatenates arg1 (as a string) and arg2 | `10 + "2"` => `102` |
+| `++` | `numeric` | n/a | Increments (adds 1 to) arg1 | `13++` => `14` |
+| `-` | `numeric` | `numeric` | Subtracts arg2 from arg1 | `10 - 3` => `7` |
+| `-` | `numeric` | `string` | Casts arg2 to a number and subtracts arg2 from arg1 | `10 - "3"` => `7` |
+| `--` | `numeric` | n/a | Decrements (subtracts 1 from) arg1 | `13--` => `12` |
+| `<<` | `real-like` | `real-like` | Shifts arg1 arg2-bits to the left | `20 << 2` => `80` |
+| `>>` | `real-like` | `real-like` | Shifts arg1 arg2-bits to the right | `20 << 2` => `5` |
+| `<=` | `real-like` | `real-like` | Is arg1 less than or equal to arg2? | `12 <= 15` => `true` |
+| `<` | `real-like` | `real-like` | Is arg1 less than arg2? | `12 < 15` => `true` |
+| `>=` | `real-like` | `real-like` | Is arg1 greater than or equal to arg2? | `15 >= 12` => `true` |
+| `>` | `real-like` | `real-like` | Is arg1 greater than arg2? | `15 > 12` => `true` |
+| `:` | `real-like` | `real-like` | Generate a sequence arg1 to arg2 | `1:5` => `[1,2,3,4]` |
+| `.` | `string` | `any` | Cast arg2 to `real_int` and return character at index arg2 (or undefined it out of bounds) | `"Hello".2` => `"l"` |
+| `==` | `string` | `any` | Return true if arg2 is a string and equal to arg1, else false | `"Joe" == "Joe"` => `true` |
+| `*` | `string` | `real` | Repeat arg1 arg2 times | `"$" * 5` => `"$$$$$"` |
+| `+` | `string` | `any` | Concatenate arg1 and arg2 (as a string) | `"Hello" + "World"` => `"HelloWorld"` |
+| `:` | `string` | `string` | arg1 and arg2 must be of length 1. Return sequence using ASCII codes between the two strings. | `"a":"e"` => `["a","b","c","d"]` |
+| `==` | `bool` | `any` | Returns true if arg2 is a bool and has same logical value | `true == true` => `true` |
+| `~` | `bool` | n/a | Returns bitwise NOT of bool (true = 1, false = 0) | `~true` => `-2` |
+| `&` | `bool` | `real-like` | ANDs arg1 and arg2 | `true & 5` => `1` |
+| `|` | `bool` | `real-like` | ORs arg1 and arg2 | `true | 5` => `5` |
+| `^` | `bool` | `real-like` | XORs arg1 and arg2 | `true ^ 5` => `4` |
+| `+` | `bool` | `numeric` | Adds arg1 and arg2 | `true + 1` => `2` |
+| `.` | `array` | `any` | Cast arg2 to `real_int` and return item at index arg2 (or undefined it out of bounds) | `[1,2,3].2` => `3` |
+| `=` | `array` | `array` | If arrays are equal length, assign each item in arg1 to the corresponding item in arg2 | `[a,b] = [1,2]` => `a=1, b=2` |
+| `==` | `array` | `any` | Return true is arg2 is array, they are of equal length and each item in arg1 equals each item in arg2 | `[1,2] == [1,2]` => `true` |
+| `*` | `array` | `real` | Repeats contents of arg1 arg2 times | `[1] * 4` => `[1,1,1,1]` |
+| `*` | `array` | `array` | Returns intersection (overlap) of arg1 and arg2 | `[1,2,3] * [0,1,2]` => `[1,2]` |
+| `∩` | `array` | `array` | Returns intersection (overlap) of arg1 and arg2 | `[1,2,3] ∩ [0,1,2]` => `[1,2]` |
+| `∪` | `array` | `array` | Returns union (join) of arg1 and arg2 | `[1,2,3] ∪ [0,1,2]` => `[1,2,3,0,1,2]` |
+| `+` | `array` | `array` | Concatenates arg1 and arg2 | `[1,2] + [3,4]` => `[1,2,3,4]` |
+| `+` | `array` | `any` | Pushes arg2 onto arg1 | `[1,2] + 3` => `[1,2,3]` |
+| `++` | `array` | n/a | Pushes `undefined` onto arg1 | `[1]++` => `[1,undefined]` |
+| `-` | `array` | `array` | Removes items in arg2 from arg1 | `[1,2,3] - [0,2]` => `[1,3]` |
+| `--` | `array` | n/a | Pops value from arg1 | `[1,2,3] ∩ [0,1,2]` => `[]` |
+| `==` | `set` | `any` | Returns true if arg2 is a set and they contain the same items | `{1,2} == {2,1}` => `true` |
+| `!` | `set` | n/a | Removes every item in `universal_set` from arg1 | `universal_set = {1,3}`, `!{1,2}` => `{3}` |
+| `*` | `set` | `set` | Calculate intersection of arg1 and arg2 | `{0,1,2} * {1,2,3}` => `{1,2}` |
+| `∩` | `set` | `set` | Calculate intersection of arg1 and arg2 | `{0,1,2} ∩ {1,2,3}` => `{1,2}` |
+| `∪` | `set` | `set` | Calculate union of arg1 and arg2 | `{0,1,2} ∪ {1,2,3}` => `{0,1,2,3}` |
+| `+` | `set` | `set` | Join arg1 and arg2 | `{0,1,2} + {1,2,3}` => `{0,1,2,3}` |
+| `+` | `set` | `any` | Add arg2 to arg1 | `{0,1,2} + 3` => `{0,1,2,3}` |
+| `-` | `set` | `set` | Removes all items in arg2 from arg1 | `{1,2,3} - {0,2}` => `{1,3}` |
+| `.` | `map` | `any` | Get key arg2 from arg1 | `{"name":"Joe"}."name"` => `"Joe"` |
+| `==` | `map` | `map` | Return true if same size and all keys are equivalent and values are equivalent | `{"name":"Joe"} == {"name":"Joe"}` => `true` |
+| `()` | `func` | argument string | Calls arg1 with arguments arg2 | `sin(1)` => `0.8414709848078965` |
+| `==` | `func` | `func` | Return true if function names match | `sin == sin` => `true` |

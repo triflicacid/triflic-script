@@ -14,19 +14,19 @@ println(add(5 + i, 3));
 func add(a: real, b: real) { a + b; }
 println(add(5 + i, 3));
 
-# Pass by reference
-func swap(a: ref any, b: ref any) {
-  tmp = a;
-  a = b;
-  b = tmp;
-}
-
 # Optional arguments
 func greet(name: ?string) {
   println("Hello, " + (name ?? "Unknown"));
 }
 greet();
 greet("Joe");
+
+# Pass by reference
+func swap(a: ref any, b: ref any) {
+  tmp = a;
+  a = b;
+  b = tmp;
+}
 
 a = 5, b = 10;
 println("a:" + a + "; b:" + b);

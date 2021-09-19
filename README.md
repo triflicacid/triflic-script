@@ -126,49 +126,51 @@ There are two types of functions: `built-in`s and `user-defined`
   - Via `func` keyword
 
 ### Operators
-| Operator | Name | Precedence | Associativity | Description | Example |
-| -- | -- | -- | -- | -- | -- |
-| . | Member Access | 20 | ltr | Get member on RHS of LHS object | `headers."time"` => `1630433878509` |
-| \<fn\>(\<args\>) | Function Call | 20 | ltr | Call function `<fn>` with arguments `<args>` | `sin(1)` => `0.84...` |
-| ?. | Optional Member Access | 20 | ltr | Get member on RHS of LHS object. If RHS is undefined, return undefined | `undefined?.1` => `undefined` |
-| ++ | Increment | 18 | ltr | Add 1 to value | `pi++` => `4.14159265359` |
-| -- | Decrement | 18 | ltr | Subtract 1 from value | `pi--` => `2.14159265359` |
-| deg | Degrees | 18 | rtl | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` |
-| ~ | Bitwise NOT | 17 | rtl | Bitwise NOT value on LHS | `~20` => `-21` |
-| + | Unary plus | 17 | rtl | Convert LHS to number | `+"14"` => `14` |
-| - | Unary minus | 17 | rtl | Convert LHS to number and negate | `-"14"` => `-14` |
-| \<type\> | Type cast | 17 | rtl | Casts RHS to type `type` | `<bool>12` => `true`, `<array>"Hi"` => `["H","i"]` |
-| ! | Logical Not | 17 | rtl | Returns opposite boolean value | `!0` => `true` |
-| ** | Exponentation | 16 | rtl | Returns LHS to the power of the RHS | `2 ** 4` => `16` |
-| : | Sequence | 16 | rtl | Attempts to create sequence from LHS to RHS | `3:7` => `[3,4,5,6]`, `"a":"f"` => `["a","b","c","d","e"]` |
-| / | Division | 15 | ltr | Divide LHS by RHS | `5 / 2` => `2.5` |
-| % | Modulo/Remainder | 15 | ltr | Return remainder of LHS divided by RHS | `5 % 2` => `1` |
-| * | Multiplication | 15 | ltr | Multiply LHS by RHS | `5 * 2` => `10` |
-| ∩ | Intersection | 15 | ltr | Find the intersection between the LHS and RHS | `{1,2} ∩ {2,3}` => `{2}` |
-| ∪ | Union | 14 | ltr | Find the union between the LHS and RHS | `{1,2} ∪ {2,3}` => `{1,2,3}` |
-| + | Addition | 14 | ltr | Add RHS to LHS | `5 + 2` => `7` |
-| - | Subtraction | 14 | ltr | Subtract RHS from LHS | `5 - 2` => `3` |
-| << | Right Shift | 13 | ltr | Bit shift LHS right by RHS places | `5 << 2` => `20` |
-| >> | Left Shift | 13 | ltr | Bit shift LHS left by RHS places | `5 << 2` => `1` |
-| <= | Less Than or Equal To | 12 | ltr | Return boolean result of comparison between LHS and RHS | `5 <= 5` => `true` |
-| < | Less Than | 12 | ltr | Return boolean result of comparison between LHS and RHS | `4 < 5` => `true` |
-| >= | Greater Than or Equal To | 12 | ltr | Return boolean result of comparison between LHS and RHS | `5 >= 5` => `true` |
-| > | Greater Than | 12 | ltr | Return boolean result of comparison between LHS and RHS | `4 > 5` => `false` |
-| in | Member Test | 12 | rtl | Is LHS member of RHS (must have space after i.e. "in ") | `"time" in headers` => `true` |
-| == | Equality | 11 | ltr | Is the LHS equal to the RHS? | `5 == 5` => `true`, `2 == "2"` => `false` |
-| != | Not Equality | 11 | ltr | Is the LHS not equal to the RHS? | `5 != 5` => `false`, `2 != "2"` => `true` |
-| & | Bitwise And | 10 | ltr | Apply a bitwise AND to LHS and RHS | `5 & 3` => `1` |
-| ^ | Bitwise Xor | 9 | ltr | Apply a bitwise XOR to LHS and RHS | `5 ^ 3` => `6` |
-| \| | Bitwise Or | 8 | ltr | Apply bitwise OR to LHS and RHS | `5 \| 3` => `7` |
-| && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` |
-| \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` |
-| ?? | Nullish Coalescing | 5 | ltr | Returns LHS unless LHS is undefined, in which case return RHS | `undefined ?? 2` => `2` |
-| = | Assignment | 3 | rtl | Assigns the RHS to the LHS | `name = "john"` => `"john"` |
-| += | Addition Assignment | 3 | rtl | Assigns RHS to RHS + LHS | `a = 10, a += 2, a` => `12` |
-| -= | Subtraction Assignment | 3 | rtl | Assigns RHS to RHS - LHS | `a = 10, a -= 2, a` => `8` |
-| *= | Multiplication Assignment | 3 | rtl | Assigns RHS to RHS * LHS | `a = 10, a *= 2, a` => `20` |
-| /= | Division Assignment | 3 | rtl | Assigns RHS to RHS / LHS | `a = 10, a /= 2, a` => `5` |
-| , | Comma | 1 | ltr | Returns RHS argument | `1, 2` => `2` |
+See `Operators.md` for detailed operator help.
+
+| Operator | Name | Precedence | Associativity | Description | Example | Method |
+| -- | -- | -- | -- | -- | -- | -- |
+| . | Member Access | 20 | ltr | Get member on RHS of LHS object | `headers."time"` => `1630433878509` | `__get__` |
+| \<fn\>(\<args\>) | Function Call | 20 | ltr | Call function `<fn>` with arguments `<args>` | `sin(1)` => `0.84...` | `__call__` |
+| ?. | Optional Member Access | 20 | ltr | Get member on RHS of LHS object. If RHS is undefined, return undefined | `undefined?.1` => `undefined` | `__get__` |
+| ++ | Increment | 18 | ltr | Add 1 to value | `pi++` => `4.14159265359` | `__inc__` |
+| -- | Decrement | 18 | ltr | Subtract 1 from value | `pi--` => `2.14159265359` | `__dec__` |
+| deg | Degrees | 18 | rtl | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` | `__deg__` 
+| ~ | Bitwise NOT | 17 | rtl | Bitwise NOT value on LHS | `~20` => `-21` | `__bitwiseNot__` |
+| + | Unary plus | 17 | rtl | Convert LHS to number | `+"14"` => `14` | `__pos__` |
+| - | Unary minus | 17 | rtl | Convert LHS to number and negate | `-"14"` => `-14` | `__neg__` |
+| \<type\> | Type cast | 17 | rtl | Casts RHS to type `type` | `<bool>12` => `true`, `<array>"Hi"` => `["H","i"]` | `castTo` |
+| ! | Logical Not | 17 | rtl | Returns opposite boolean value | `!0` => `true` | `__not__` |
+| ** | Exponentation | 16 | rtl | Returns LHS to the power of the RHS | `2 ** 4` => `16` | `__pow__` |
+| : | Sequence | 16 | rtl | Attempts to create sequence from LHS to RHS | `3:7` => `[3,4,5,6]`, `"a":"f"` => `["a","b","c","d","e"]` | `__seq__` |
+| / | Division | 15 | ltr | Divide LHS by RHS | `5 / 2` => `2.5` | `__div__` |
+| % | Modulo/Remainder | 15 | ltr | Return remainder of LHS divided by RHS | `5 % 2` => `1` | `__mod__` |
+| * | Multiplication | 15 | ltr | Multiply LHS by RHS | `5 * 2` => `10` | `__mul__` |
+| ∩ | Intersection | 15 | ltr | Find the intersection between the LHS and RHS | `{1,2} ∩ {2,3}` => `{2}` | `__intersect__` |
+| ∪ | Union | 14 | ltr | Find the union between the LHS and RHS | `{1,2} ∪ {2,3}` => `{1,2,3}` | `__union__` |
+| + | Addition | 14 | ltr | Add RHS to LHS | `5 + 2` => `7` | `__add__` |
+| - | Subtraction | 14 | ltr | Subtract RHS from LHS | `5 - 2` => `3` | `__sub__` |
+| >> | Right Shift | 13 | ltr | Bit shift LHS right by RHS places | `5 << 2` => `20` | `__rshift__` |
+| << | Left Shift | 13 | ltr | Bit shift LHS left by RHS places | `5 << 2` => `1` | `__lshift__` |
+| <= | Less Than or Equal To | 12 | ltr | Return boolean result of comparison between LHS and RHS | `5 <= 5` => `true` | `__le__` |
+| < | Less Than | 12 | ltr | Return boolean result of comparison between LHS and RHS | `4 < 5` => `true` | `__lt__` |
+| >= | Greater Than or Equal To | 12 | ltr | Return boolean result of comparison between LHS and RHS | `5 >= 5` => `true` | `__ge__` |
+| > | Greater Than | 12 | ltr | Return boolean result of comparison between LHS and RHS | `4 > 5` => `false` | `__gt__` |
+| in | Member Test | 12 | rtl | Is LHS member of RHS (must have space after i.e. "in ") | `"time" in headers` => `true` | `__in__` |
+| == | Equality | 11 | ltr | Is the LHS equal to the RHS? | `5 == 5` => `true`, `2 == "2"` => `false` | `__eq__` |
+| != | Not Equality | 11 | ltr | Is the LHS not equal to the RHS? | `5 != 5` => `false`, `2 != "2"` => `true` | `__neq__` |
+| & | Bitwise And | 10 | ltr | Apply a bitwise AND to LHS and RHS | `5 & 3` => `1` | `__bitwiseAnd__` |
+| ^ | Bitwise Xor | 9 | ltr | Apply a bitwise XOR to LHS and RHS | `5 ^ 3` => `6` | `__xor__` |
+| \| | Bitwise Or | 8 | ltr | Apply bitwise OR to LHS and RHS | `5 \| 3` => `7` | `__bitwiseOr__` |
+| && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` | `__and__` |
+| \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` | `__or__` |
+| ?? | Nullish Coalescing | 5 | ltr | Returns LHS unless LHS is undefined, in which case return RHS | `undefined ?? 2` => `2` | n/a |
+| = | Assignment | 3 | rtl | Assigns the RHS to the LHS | `name = "john"` => `"john"` | `__assign__` |
+| += | Addition Assignment | 3 | rtl | Assigns RHS to RHS + LHS | `a = 10, a += 2, a` => `12` | `__assignAdd__` |
+| -= | Subtraction Assignment | 3 | rtl | Assigns RHS to RHS - LHS | `a = 10, a -= 2, a` => `8` | `__assignSub__` |
+| *= | Multiplication Assignment | 3 | rtl | Assigns RHS to RHS * LHS | `a = 10, a *= 2, a` => `20` | `__assignMul__` |
+| /= | Division Assignment | 3 | rtl | Assigns RHS to RHS / LHS | `a = 10, a /= 2, a` => `5` | `__assignDiv__` |
+| , | Comma | 1 | ltr | Returns RHS argument | `1, 2` => `2` | n/a |
 
 *ltr = left-to-right*
 
