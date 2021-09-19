@@ -1,6 +1,7 @@
 const { UndefinedValue } = require("./values");
-const { v4 } = require("uuid");
 const { createEvalObj } = require("../utils");
+
+var currBlockID = 0;
 
 /**
  * A Code block.
@@ -9,7 +10,7 @@ const { createEvalObj } = require("../utils");
  */
 class Block {
   constructor(rs, tokenLines, pos, parent = undefined) {
-    this.id = v4();
+    this.id = currBlockID++;
     this.rs = rs;
     this.rs._blocks.set(this.id, this);
     this.tokenLines = tokenLines;

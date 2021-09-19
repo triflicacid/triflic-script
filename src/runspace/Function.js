@@ -1,6 +1,5 @@
 const { errors } = require("../errors");
 const { types } = require("../evaluation/types");
-const { v4 } = require("uuid");
 
 class RunspaceFunction {
   /**
@@ -13,7 +12,6 @@ class RunspaceFunction {
     if (typeof processArgs !== 'boolean') throw new Error(`Function ${name} - invalid <processArgs>: ${processArgs}`);
 
     this.rs = rs;
-    this.id = v4();
     this.rargs = args;
     this.args = new Map(); // { [arg: string]: { pass: "val"|"ref", type: string } }
     this.argCount = 0; // Number of arguments

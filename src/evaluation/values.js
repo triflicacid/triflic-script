@@ -1,10 +1,9 @@
 const Complex = require("../maths/Complex");
-const { factorial, factorialReal, range } = require("../maths/functions");
+const { range } = require("../maths/functions");
 const { RunspaceFunction } = require("../runspace/Function");
 const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal, peek } = require("../utils");
 const { castingError, isNumericType, isRealType } = require("./types");
 const { errors } = require("../errors");
-const { v4 } = require("uuid");
 
 const valueIDs = new Map(); // Map constant value to IDs
 
@@ -31,17 +30,6 @@ class Value {
     return v;
   }
   toString() { return this.toPrimitive('string'); }
-
-  /** Constant - are all objects with this value equal? */
-  _genid(constant = true) {
-    if (constant) {
-      let key = this.toString();
-      if (!valueIDs.has(key)) valueIDs.set(key, v4());
-      return valueIDs.get(key);
-    } else {
-      return v4();
-    }
-  }
 
   __assign__() { throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot assign to object ${this.type()}`); }
 
@@ -93,7 +81,6 @@ class UndefinedValue extends Value {
 class NumberValue extends Value {
   constructor(runspace, num = 0) {
     super(runspace, Complex.assert(num));
-    this.id = this._genid(true);
   }
 
   type() { return this.value.isReal() ? "real" : "complex"; }
@@ -229,7 +216,6 @@ class NumberValue extends Value {
 class StringValue extends Value {
   constructor(runspace, string = '') {
     super(runspace, str(string));
-    this.id = this._genid(true);
   }
 
   type() { return "string"; }
@@ -482,7 +468,6 @@ class BoolValue extends Value {
 class ArrayValue extends Value {
   constructor(runspace, items = []) {
     super(runspace, items);
-    this.id = this._genid(false);
   }
 
   type() { return "array"; }
@@ -620,7 +605,6 @@ class SetValue extends Value {
   constructor(runspace, items = []) {
     super(runspace, items);
     this.check();
-    this.id = this._genid(false);
   }
 
   /** Remove duplicate values */
@@ -716,7 +700,6 @@ class MapValue extends Value {
   constructor(runspace) {
     super(runspace, null);
     this.value = new Map();
-    this.id = this._genid(false);
   }
 
   type() { return "map"; }
@@ -792,7 +775,6 @@ class MapValue extends Value {
 class FunctionRefValue extends Value {
   constructor(runspace, fn = undefined) {
     super(runspace, fn);
-    this.id = this._genid();
   }
 
   type() { return "func"; }
@@ -807,10 +789,6 @@ class FunctionRefValue extends Value {
 
   toString() {
     return `<function ${this.value.name}>`;
-  }
-
-  _genid() {
-    return this.value?.id;
   }
 
   /** del() function */

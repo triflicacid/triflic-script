@@ -33,7 +33,7 @@ const operators = {
     precedence: 20,
     args: 1,
     fn: async (fn, args, evalObj) => {
-      fn = fn.castTo("any")
+      fn = fn.castTo("any");
       if (!fn.__call__) throw new Error(`[${errors.NOT_CALLABLE}] Type Error: Type ${fn.type()} is not callable (${fn} is not a function)`);
       args = await Promise.all(args.map(t => t.eval(evalObj))); // EValuate arguments
       return await fn.__call__(evalObj, args);

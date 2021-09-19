@@ -12,4 +12,5 @@ println("Sum of first " + iters + " integers = " + sum);
 # Speed Update 2: iters=10000, time=~150ms (+00.6%)                 # Less expensive method of popping arguments for operators
 # Speed Update 3: iters=10000, time=~135ms (+11.1%)                 # Transform to RPN (.toRPN()) in .prepare()
 # Variable Update: iters=10000, time=~126ms (+07.1%)                # New methods to get/set variables. Use Map object.
-# Operator Update: iters=10000, time=~95ms (+32.6%)                 # Implemented new operators ++ and +=
+# Operator Update: iters=10000, time=~100ms (+26.0%)                # Implemented new operators ++ and +=
+# ID Update: iters=10000, time=~75ms (+33.3%)                       # Removed Value and Function IDs. Simplified Block IDs.
