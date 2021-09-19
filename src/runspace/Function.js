@@ -106,10 +106,14 @@ class RunspaceUserFunction extends RunspaceFunction {
     this.args.forEach((data, arg) => {
       if (data.pass === undefined || data.pass === 'val') {
         let casted;
-        try {
-          casted = args[i].castTo(data.type);
-        } catch (e) {
-          throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${this.args[arg]} (function ${this.name}):\n ${e}`);
+        if (data.optional && args[i] === undefined) {
+          casted = this.rs.UNDEFINED;
+        } else {
+          try {
+            casted = args[i].castTo(data.type);
+          } catch (e) {
+            throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${this.args[arg]} (function ${this.name}):\n ${e}`);
+          }
         }
         this.rs.defineVar(arg, casted);
       } else if (data.pass === 'ref') {

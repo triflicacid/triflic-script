@@ -43,6 +43,8 @@ class Runspace {
     });
   }
 
+  get UNDEFINED() { return new UndefinedValue(this); }
+
   /** Declare a new variable in the topmost scope */
   defineVar(name, value, desc = undefined, constant = false) {
     let obj;

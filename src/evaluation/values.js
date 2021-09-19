@@ -166,6 +166,7 @@ class NumberValue extends Value {
   /** operator: + */
   __add__(n) {
     const t = n.type();
+    if (t === 'undefined') return new NumberValue(this.rs, NaN);
     if (t === 'string') return new StringValue(this.rs, this.toPrimitive('string') + n.toPrimitive('string'));
     if (isNumericType(t)) return new NumberValue(this.rs, Complex.add(this.toPrimitive('complex'), n.toPrimitive('complex')));
   }

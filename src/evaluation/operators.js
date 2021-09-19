@@ -135,6 +135,16 @@ const operators = {
     assoc: 'rtl',
     hidden: true,
   },
+  "?": {
+    name: 'boolean cast',
+    precedence: 17,
+    args: 1,
+    fn: (val) => val.castTo("bool"),
+    desc: `attempt to cast <val> to a boolean`,
+    syntax: 'value?',
+    unary: "?",
+    assoc: 'ltr',
+  },
   "**": {
     name: 'exponentation',
     precedence: 16,

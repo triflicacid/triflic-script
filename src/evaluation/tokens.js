@@ -489,7 +489,7 @@ class TokenLine {
 
               // Extract argGroup
               // Syntax: "arg[: [ref|val] [?]type]"
-              let argObj = {};
+              let argObj = {}, lastOptional = null; // Last encountered optional argument
               if (argLine.value.length === 1) {
                 let args = argLine.value[0].splitByCommas(false); // DO NOT do extra parsing - not required for function arguments
                 for (let arg of args) {
@@ -505,13 +505,23 @@ class TokenLine {
                           i++;
                         } else ok = false;
                       }
+                      if (ok && arg.tokens[i] instanceof OperatorToken) {
+                        if (arg.tokens[i].value === '?') {
+                          data.optional = true;
+                          lastOptional = arg.tokens[0].value;
+                          i++;
+                        } else {
+                          ok = false;
+                        }
+                      }
                       if (ok) {
                         if (arg.tokens[i] instanceof VariableToken) {
                           data.type = arg.tokens[i].value;
                           i++;
                         } else ok = false;
                       }
-                      if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter string`);
+                      if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter string at position ${arg.tokens[1].pos}`);
+                      if (lastOptional && !data.optional) if (lastOptional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${arg.tokens[0].value}' cannot precede optional argument '${lastOptional}' (position ${arg.tokens[0].pos})`);
                       argObj[arg.tokens[0].value] = data;
                     } else {
                       throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax`);

@@ -8,15 +8,13 @@ If I has known how this would progress, I would've written this in Java or C++ f
 For more help, see `programs/` and the built-in `help` function.
 
 ## Important Notes
-- Inline function definitions in format `<name>(<args>) = ...` has been disabled 
-- Optional arguments in `func` are not implemented
+- Inline function definitions in format `<name>(<args>) = ...` has been disabled
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
 
 ## TODO
 - Nested-expression shortcut
 Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
 - Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
-- Optional function parameters
 - `let` block
 
 ## Execution Methods
@@ -310,5 +308,6 @@ Variables all have a type which may change. New types may be added - see `import
 | `set` | Represents a unique collection of values (no repeated values) | `Yes` | `Yes` | `{1, 2}`, `{"H", true, [1]}` |
 | `map` | Represents a collection of keys which map to a value | `Yes` | `Yes` | `{1: "a", 2: "b"}`, `{"name": "John Doe", "male": true}` |
 | `func` | Contains a function reference which may be called | `No` | `No` | `sin`, `print` |
+| `undefined` | Represents an absent value. As such, this is not really a type. | `No` | `No` | `undefined` |
 
 *\*These types are never returned from `type()`*

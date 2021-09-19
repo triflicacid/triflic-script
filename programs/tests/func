@@ -21,6 +21,13 @@ func swap(a: ref any, b: ref any) {
   b = tmp;
 }
 
+# Optional arguments
+func greet(name: ?string) {
+  println("Hello, " + (name ?? "Unknown"));
+}
+greet();
+greet("Joe");
+
 a = 5, b = 10;
 println("a:" + a + "; b:" + b);
 swap(a, b);
