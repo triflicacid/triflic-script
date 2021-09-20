@@ -24,7 +24,7 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'help', { item: '?any' }, ({ item }) => {
     let help = '';
     if (item === undefined) {
-      help = `help(?s) \t Get help on an argument\nerror_code(code) \t Return brief help on a given error code\nvars() \t List all variables\noperators() \t List all operators\ntypes() \t List all available types \nnew(type) \t Instantiates a new value of type <type> \nkeywords() \t List all reserved keywords \nexit() \t Terminate the program`;
+      help = `help(?s) \t Get help on an argument\ncopyright() \t View copyright information\nerror_code(code) \t Return brief help on a given error code\nvars() \t Return arry of all variables\noperators() \t Return array of all operators\ntypes() \t Return array of all available types \nnew(type) \t Instantiates a new value of type <type> \nkeywords() \t Return array of all keywords \nimport() \t Import a script relative to import_dir()\nexit() \t Terminate the program`;
     } else if (item instanceof VariableToken) {
       let v = item.getVar();
       if (v.value instanceof FunctionRefValue) {
@@ -51,6 +51,7 @@ function define(rs) {
     }
     return new StringValue(rs, help);
   }, 'Get general help or help on a provided argument', false));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copyright', {}, () => new StringValue(rs, "Copyright (c) 2021 Ruben Saunders.\nAll Right Reserved."), 'View copyright information'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, ({ obj, key }) => {
     const v = key === undefined ? obj.__del__?.(key) : obj.castTo("any").__del__?.(key);
     if (v === undefined) throw new Error(`[${errors.DEL}] Argument Error: cannot del() object of type ${obj.type()}`);
@@ -253,6 +254,10 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.execute(str.toString()), 'evaluate an input'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'iif', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'Inline IF: If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => rs.import(file.toString()), 'Import <file> - see README.md for more details'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import_dir', { dir: '?string' }, ({ dir }) => {
+    if (dir) rs.dir = dir.toPrimitive("string");
+    return new StringValue(rs, rs.dir);
+  }, 'Gets/Sets directory import() is relative to'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'error_code', { code: 'string' }, ({ code }) => {
     code = code.toPrimitive("string");
     if (code in errorDesc) {

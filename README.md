@@ -12,10 +12,11 @@ For more help, see `programs/` and the built-in `help` function.
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
 
 ## TODO
-- Nested-expression shortcut
-Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
+- Nested-expression shortcut. Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
 - Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
 - `let` block
+- String interpolation via `{}`
+- Expandable/Collapsable argument arrays via `...`
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -44,6 +45,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `reveal-headers` : `boolean`. Reveal CLI options and other information to Runspace as `headers` map?
 - `multiline` : `boolean`. Does the CLI allow multiline input?
 - `time` : `boolean`. CLI times each line of execution and displays it.
+- `dir` : `string`. Sets import directory.
 
 ## Built-Ins
 Base definitions to a `Runspace` instance are present in `src/def.js`

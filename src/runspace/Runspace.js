@@ -13,16 +13,17 @@ const { Block } = require("../evaluation/block");
 class Runspace {
   constructor(opts = {}) {
     this._vars = [new Map()]; // Arrays represents different scopes
-    this.dir = path.join(__dirname, "../../"); // Requires setting externally
 
     this.opts = opts;
     opts.time = Date.now();
+    if (opts.dir === undefined) opts.dir = path.join(__dirname, "../../");
+    this.dir = opts.dir;
     this.storeAns(!!opts.ans);
 
     if (opts.revealHeaders) {
       const map = new MapValue(this);
       Object.entries(this.opts).forEach(([k, v]) => map.value.set(k, primitiveToValueClass(this, v)));
-      this.setVar('headers', map, 'Config headers of current runspace [readonly]', true);
+      this.defineVar('headers', map, 'Config headers of current runspace [readonly]', true);
     }
 
     this.stdin = process.stdin;

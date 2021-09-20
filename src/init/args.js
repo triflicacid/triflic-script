@@ -18,6 +18,7 @@ function parseArgString(args, doHideBin = true) {
     revealHeaders: getArgvBool(argv, "reveal-headers", true),
     multiline: getArgvBool(argv, "multiline", false),
     timeExecution: getArgvBool(argv, "time", false),
+    dir: argv.dir,
   };
 }
 

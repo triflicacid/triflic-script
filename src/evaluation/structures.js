@@ -30,7 +30,7 @@ class ArrayStructure extends Structure {
 
   async eval(evalObj) {
     const values = await Promise.all(this.elements.map(el => el.eval(evalObj)));
-    return new ArrayValue(this.rs, values);
+    return new ArrayValue(this.rs, values.map(v => v.castTo('any')));
   }
 }
 
@@ -77,7 +77,7 @@ class SetStructure extends Structure {
 
   async eval(evalObj) {
     const values = await Promise.all(this.elements.map(el => el.eval(evalObj)));
-    return new SetValue(this.rs, values);
+    return new SetValue(this.rs, values.map(v => v.castTo('any')));
   }
 }
 class IfStructure extends Structure {

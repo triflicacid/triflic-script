@@ -9,7 +9,6 @@ const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values")
 const opts = parseArgString(process.argv, true);
 if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter;
 opts.app = 'CLI';
-opts.dir = __dirname;
 opts.file = __filename;
 const rs = new Runspace(opts);
 define(rs);
@@ -64,7 +63,7 @@ async function main() {
 
   // Print intro stuff to screen
   if (opts.intro) {
-    rs.io.output.write(`${__filename} - JS Maths CLI\nType help() for basic help\n`);
+    rs.io.output.write(`-- JS Maths CLI --\nType help(), copyright() for more information.\n`);
     let notes = [];
     if (opts.strict) notes.push("strict mode is enabled");
     if (!opts.bidmas) notes.push("BIDMAS is being ignored");
