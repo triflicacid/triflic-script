@@ -42,8 +42,10 @@ function define(rs) {
       const info = operators[item.value];
       const argStr = Array.isArray(info.args) ? `${info.args.join(' or ')} (${info.args.length} overloads)` : info.args;
       help = `Type: string (operator)\nName: ${info.name}\nDesc: ${info.desc}\nArgs: ${argStr}\nPrecedence: ${info.precedence}\nUnary Overload: ${info.unary ? `yes (${info.unary})` : 'no'}\nSyntax: ${info.syntax}\nAssociativity: ${info.assoc}`;
+    } else if (item instanceof StringValue && KeywordToken.keywords.indexOf(item.value)) { // Keyword
+      help = `Type: string (keyword)\nValue: ${item.value}`;
     } else if (item instanceof Value) {
-      help = `Type: ${item.type()}\nNumeric: ${item.toPrimitive('complex')}\nValue: ${item.toString()}`;
+      help = `Type: ${item.type()}\nValue: ${item.toString()}`;
     } else {
       if (rs.opts.strict) throw new Error(`[${errors.BAD_ARG}] Argument Error: Cannot get help on given argument`);
     }

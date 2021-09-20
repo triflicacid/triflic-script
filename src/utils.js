@@ -212,6 +212,30 @@ function sortObjectByLongestKey(o) {
   return newo;
 }
 
+/** Return character as extracted from an escape sequence. Return { char: string, pos: number }. Return new position in string. */
+function decodeEscapeSequence(string, pos) {
+  let char;
+  switch (string[pos]) {
+    case 'b': char = String.fromCharCode(0x8); pos++; break; // BACKSPACE
+    case 'n': char = String.fromCharCode(0xA); pos++; break; // LINE FEED
+    case 'r': char = String.fromCharCode(0xD); pos++; break; // CARRIAGE RETURN
+    case 't': char = String.fromCharCode(0x9); pos++; break; // HORIZONTAL TAB
+    case 'v': char = String.fromCharCode(0xB); pos++; break; // VERTICAL TAB
+    case '0': char = String.fromCharCode(0x0); pos++; break; // NULL
+    case 'x': { // HEXADECIMAL ESCAPE SEQUENCE
+      pos++;
+      let nlit = '';
+      while (/[0-9A-Fa-f]/.test(string[pos])) {
+        nlit += string[pos];
+        pos++;
+      }
+      char = String.fromCharCode(parseInt(nlit, 16));
+      break;
+    }
+  }
+  return { char, pos };
+}
+
 module.exports = {
-  input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey
+  input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence
 };

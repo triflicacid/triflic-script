@@ -103,7 +103,7 @@ These are structures in the code which define values:
   - An exponent `e`, followed by another valid number (note, this number may not contain `e`)
   *N.B.* Numbers may contain the seperator `_`. This cannot be at the start/end of a number.
 
-- `"..."` represents a strings
+- `"..."` represents a strings.
 - `[...]` represents an array
 - `{...}` represents a set, map or a block
   - **Block** if keyword structure expects a block and `{...}` is present e.g. `do {...}`, `if (...) {...}`.
@@ -113,6 +113,15 @@ These are structures in the code which define values:
   - Else, **set**.
 - `'...'` is a character literal. Must be empty or contain one character.
 
+Character escaped may appear in string and character literals. Any character following `\` (backslash) is escaped:
+- `b` - non-destructive backspace (`0x8`)
+- `n` - line feed (`0xA`)
+- `r` - carriage return (`0xD`)
+- `t` - horizontal tab (`0x9`)
+- `v` - vertical tab (`0xB`)
+- `0` - null (`0x0`)
+- `x([0-9A-Fa-f]+)` - inserts character with hexadecimal ascii code of `[0-9A-Fa-f]+` into literal. (`0x([0-9A-Fa-f]+)`)
+- Else, simply inserts following character into literal
 
 ### Variables
 Variables store values in memory. There are some predefined variables (assuming `--define-vars` is truthy).

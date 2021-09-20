@@ -1,4 +1,4 @@
-const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracketError, expectedSyntaxError } = require("../utils");
+const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracketError, expectedSyntaxError, isDigit, decodeEscapeSequence } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
 const operators = require("./operators");
@@ -277,7 +277,7 @@ class TokenLine {
   }
 
   parse() {
-    return this._parse();
+    // return this._parse();
     try {
       return this._parse();
     } catch (e) {
@@ -770,52 +770,56 @@ function tokenify(rs, source, singleStatement = false) {
 }
 
 function _tokenify(obj) {
-  let string = obj.string, inString = false, strPos, str = '', lastSourceIndex = 0;
+  let string = obj.string, lastSourceIndex = 0;
   let currentLine = new TokenLine(obj.rs, null), currentTokens = []; // Tokens for the current line
-  const addToTokenStringPositions = []; // Array of positions which should be added to TokenStringArray objects
 
   for (let i = 0; i < string.length;) {
-    // Start/End string?
+    // String literal?
     if (string[i] === '"') {
-      if (inString) {
-        const t = new ValueToken(obj.rs, new StringValue(obj.rs, str), obj.pos);
-        currentTokens.push(t);
-        str = '';
-      } else {
-        strPos = obj.pos;
+      let seq = '', j = i + 1;
+      while (true) {
+        if (string[j] === '"') break;
+        if (string[j] === '\\' && string[j + 1]) {
+          j++;
+          const obj = decodeEscapeSequence(string, j);
+          if (obj.char) {
+            j = obj.pos;
+            seq += obj.char;
+            continue;
+          }
+        }
+        if (string[j] === undefined) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected end of input in string literal at position ${j} (literal at ${i})`);
+        seq += string[j];
+        j++;
       }
-      inString = !inString;
-      i++;
-      obj.pos++;
-      continue;
-    }
-
-    // Add to string?
-    if (inString) {
-      if (string[i] === '\\' && string[i + 1]) {
-        str += string[i + 1];
-        i += 2;
-        obj.pos += 2;
-      } else {
-        str += string[i];
-        i++;
-        obj.pos++;
-      }
+      currentTokens.push(new ValueToken(currentLine, new StringValue(obj.rs, seq), i));
+      const d = (j - i) + 1;
+      i += d;
+      obj.pos += d;
       continue;
     }
 
     // Char literal?
     if (string[i] === '\'') {
-      let seq = '';
-      for (let j = i + 1; ; j++) {
+      let seq = '', j = i + 1;
+      while (true) {
         if (string[j] === '\'') break;
-        if (string[j] === '\\') j++;
-        if (string[j] === undefined) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected end of input in char literal (position ${j})`);
+        if (string[j] === '\\') {
+          j++;
+          const obj = decodeEscapeSequence(string, j);
+          if (obj.char) {
+            j = obj.pos;
+            seq += obj.char;
+            continue;
+          }
+        }
+        if (string[j] === undefined) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected end of input in char literal at position ${j} (literal at ${i})`);
         seq += string[j];
+        j++;
       }
-      if (seq.length > 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: multi-character string literal. Did you mean to use double quotes: "${seq}" ?`);
+      if (seq.length > 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: multi-character string literal. Did you mean to use double quotes: "${string.substring(i + 1, j)}" ?`);
       currentTokens.push(new ValueToken(currentLine, new CharValue(obj.rs, seq), i));
-      const d = seq.length + 2;
+      const d = (j - i) + 1;
       i += d;
       obj.pos += d;
       continue;
@@ -931,9 +935,6 @@ function _tokenify(obj) {
 
     throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '${string[i]}' (${string[i].charCodeAt(0)}) at position ${obj.pos} `);
   }
-
-  // Still scanning a string?
-  if (inString) throw new Error(`[${errors.UNTERM_STRING}] Syntax Error: unterminated string literal at position ${strPos} `);
 
   // Make sure any remnant tokens are pushes to a new line
   if (currentTokens.length > 0) {
