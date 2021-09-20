@@ -210,20 +210,24 @@ Defines following `{...}` as a block and allows `break` and `continue` to be use
 ### `while`
 A `while` structure consists of a condition and a block.
 
-`while (<condition>) {<block>}`
+`while (<condition>) {<block>} [then {<block>}]`
 - Execute `<block>` while `<condition>` is truthy
+- If `then` is present: execute `then <block>` when `<condition>` is falsy
 
-`{<block>} while (<condition>)`
+`{<block>} while (<condition>) [then {<block>}]`
 - Execute `<block>` and continue to execute `<block>` while `<condition>` is truthy
+- If `then` is present: execute `then <block>` when `<condition>` is falsy
 
 ### `until`
 An `until` structure consists of a condition and a block.
 
-`until (<condition>) {<block>}`
+`until (<condition>) {<block>} [then {<block>}]`
 - Execute `<block>` until `<condition>` is truthy
+- If `then` is present: execute `then <block>` when `<condition>` is falsy
 
-`{<block>} until (<condition>)`
+`{<block>} until (<condition>) [then {<block>}]`
 - Execute `<block>` and continue to execute `<block>` until `<condition>` is truthy
+- If `then` is present: execute `then <block>` when `<condition>` is falsy
 
 *Basically an opposite while loop - `while` runs while true, `until` runs while false*
 
@@ -233,7 +237,7 @@ Syntax: `loop {<block>}`
 Runs `{<block>}` infinitely until broken out of (like `while (true)` or `for(;;)`)
 
 ### `for`
-Syntax: `for (<action>) {<block>}`
+Syntax: `for (<action>) {<block>} [then {<block>}]`
 
 `(<action>)` in form `(<vars> in <collection>)`
 - `vars` : comma-seperated list of variables e.g. `a, b, c`. These will be allocated sepending on the collection.
@@ -249,6 +253,16 @@ Syntax: `for (<action>) {<block>}`
 - `cond` : the loop runs while `<cond>` is truthy. If empty, this will evaluate to `true`.
 - `step` : this is executed after each loop iteration
 Each one of these may be empty e.g. to construct an infitite loop: `for(;;)` where each `init`, `cond` and `step` is empty (empty `cond` is truthy).
+
+`[then {<block>}]`:
+- If present: execute `then <block>` when loop terminates
+
+### `then`
+Syntax: `<...loop...> then {<block>}`
+
+A keyword commonly used after loop statements.
+
+`<block>` is executed after the loop terminates *naturally* (i.e. will not execute if `break`/`return` is used)
 
 ### `func`
 Syntax: `func [name] (<args>) {<block>}`

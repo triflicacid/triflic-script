@@ -3,6 +3,8 @@ c = 10;
 do {
   print(c + " ");
   c--;
-} while (c > 0);
+} while (c > 0) then {
+  println("Finished!");
+}
 
 println();

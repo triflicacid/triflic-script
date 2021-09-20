@@ -1,7 +1,6 @@
-c = 100;
+c = 10;
 while (c > 0) {
-  print(c);
-  print(" ");
-  c = c - 1;
+  print(c + " ");
+  c--;
 }
 println();

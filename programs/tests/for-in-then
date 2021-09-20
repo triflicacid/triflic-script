@@ -1,0 +1,23 @@
+for (n in 1:10) {
+  print(n + " ");
+} then {
+  print("Finished!");
+}
+
+println();
+println();
+
+for (key, value in {"a":1, "b": 2, "c": 3}) {
+  println(key + " => " + value);
+} then {
+  print("Finished!");
+}
+println();
+println();
+
+for (pair in {"a":1, "b": 2, "c": 3}) {
+  print(<string>pair + " ");
+} then {
+  print("Finished!");
+}
+println();

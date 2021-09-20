@@ -1,0 +1,8 @@
+c = 10;
+do {
+  print(c + " ");
+  c--;
+} until (c < 0) then {
+  println("Finished!");
+}
+println();

@@ -71,7 +71,7 @@ const operators = {
     name: 'Decrement',
     precedence: 18,
     args: 1,
-    fn: (symbol) => symbol.__dec__?.(),
+    fn: (symbol) => symbol.castTo("any").__dec__?.(),
     desc: 'Subtract 1 from variable',
     syntax: '<var>--',
     assoc: 'ltr',

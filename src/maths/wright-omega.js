@@ -9,7 +9,7 @@ const { DBL_EPSILON } = require("./constants");
 /** @returns {{ w: Complex, cond: Complex }} where <w> is the return value, <cond> is the condition number estimate */
 function wrightomega_ext(z, cond = null) {
   let s = 1, I = new Complex(0, 1);
-  let near, e, r, pz, wp1, t, fac, w;
+  let near = 0.01, e, r, pz, wp1, t, fac, w;
 
   // Extract real/imag components
   let x = z.a;
@@ -18,7 +18,6 @@ function wrightomega_ext(z, cond = null) {
   // Compute: near branch cuts?
   let ympi = y - Math.PI;
   let yppi = y + Math.PI;
-  near = 0.01;
 
   if (isNaN(x) || isNaN(y)) {
     // NaN

@@ -1,5 +1,5 @@
 func fn() {
-  for (i = 0; ; i = i + 1) {
+  for (i = 0; ; i++) {
     if (i == 10) { return i; }
   }
 }

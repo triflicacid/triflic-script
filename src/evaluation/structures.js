@@ -80,16 +80,16 @@ class SetStructure extends Structure {
     return new SetValue(this.rs, values);
   }
 }
-
 class IfStructure extends Structure {
+
   /**
    * @param conditionals - array of [condition: BracketedTokenLines, body: Block]
-   * @param elseBlock - else block (Block)
+   * @param thenBlock - else block (Block)
    */
-  constructor(pos, conditionals = [], elseBlock = undefined) {
+  constructor(pos, conditionals = [], thenBlock = undefined) {
     super("IF", pos);
     this.conditionals = conditionals;
-    this.elseBlock = elseBlock;
+    this.thenBlock = thenBlock;
   }
 
   /** condition - BracketedTokenLines. body - Block */
@@ -98,7 +98,7 @@ class IfStructure extends Structure {
   }
 
   addElse(block) {
-    this.elseBlock = block;
+    this.thenBlock = block;
   }
 
   validate() {
@@ -109,7 +109,7 @@ class IfStructure extends Structure {
       condition.prepare();
       block.prepare();
     }
-    this.elseBlock?.prepare();
+    this.thenBlock?.prepare();
   }
 
   async eval(evalObj) {
@@ -123,18 +123,19 @@ class IfStructure extends Structure {
         break;
       }
     }
-    if (!foundTruthy && this.elseBlock) { // If no condition was truthy and there is an else block...
-      value = await this.elseBlock.eval(evalObj);
+    if (!foundTruthy && this.thenBlock) { // If no condition was truthy and there is an else block...
+      value = await this.thenBlock.eval(evalObj);
     }
     return value;
   }
 }
 
 class WhileStructure extends Structure {
-  constructor(pos, condition = undefined, body = undefined) {
+  constructor(pos, condition = undefined, body = undefined, thenBlock = undefined) {
     super("WHILE", pos);
     this.condition = condition;
     this.body = body;
+    this.thenBlock = thenBlock;
   }
 
   validate() {
@@ -144,13 +145,18 @@ class WhileStructure extends Structure {
     this.body.breakable = 1;
     this.body.prepare();
     this.condition.prepare();
+    if (this.thenBlock) this.thenBlock.prepare();
   }
 
   async eval(evalObj) {
     let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
     while (true) {
       let bool = await this.condition.eval(obj);
-      if (!bool.toPrimitive("bool")) break;
+      if (!bool.toPrimitive("bool")) {
+        if (this.thenBlock) await this.thenBlock.eval(obj);
+        if (obj.action === 3) propagateEvalObj(obj, evalObj);
+        break;
+      }
       await this.body.eval(obj);
 
       if (obj.action === 1) break;
@@ -165,10 +171,11 @@ class WhileStructure extends Structure {
 }
 
 class DoWhileStructure extends Structure {
-  constructor(pos, condition = undefined, body = undefined) {
+  constructor(pos, condition = undefined, body = undefined, thenBlock = undefined) {
     super("DOWHILE", pos);
     this.condition = condition;
     this.body = body;
+    this.thenBlock = thenBlock;
   }
 
   validate() {
@@ -178,6 +185,7 @@ class DoWhileStructure extends Structure {
     this.body.breakable = 1;
     this.body.prepare();
     this.condition.prepare();
+    if (this.thenBlock) this.thenBlock.prepare();
   }
 
   async eval(evalObj) {
@@ -194,16 +202,21 @@ class DoWhileStructure extends Structure {
       }
 
       let bool = await this.condition.eval(obj);
-      if (!bool.toPrimitive("bool")) break;
+      if (!bool.toPrimitive("bool")) {
+        if (this.thenBlock) await this.thenBlock.eval(obj);
+        if (obj.action === 3) propagateEvalObj(obj, evalObj);
+        break;
+      }
     }
   }
 }
 
 class UntilStructure extends Structure {
-  constructor(pos, condition = undefined, body = undefined) {
+  constructor(pos, condition = undefined, body = undefined, thenBlock = undefined) {
     super("UNTIL", pos);
     this.condition = condition;
     this.body = body;
+    this.thenBlock = thenBlock;
   }
 
   validate() {
@@ -213,13 +226,18 @@ class UntilStructure extends Structure {
     this.body.breakable = 1;
     this.body.prepare();
     this.condition.prepare();
+    if (this.thenBlock) this.thenBlock.prepare();
   }
 
   async eval(evalObj) {
     let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
     while (true) {
       let bool = await this.condition.eval(obj);
-      if (bool.toPrimitive("bool")) break;
+      if (bool.toPrimitive("bool")) {
+        if (this.thenBlock) await this.thenBlock.eval(obj);
+        if (obj.action === 3) propagateEvalObj(obj, evalObj);
+        break;
+      }
       await this.body.eval(obj);
 
       if (obj.action === 1) break;
@@ -234,10 +252,11 @@ class UntilStructure extends Structure {
 }
 
 class DoUntilStructure extends Structure {
-  constructor(pos, condition = undefined, body = undefined) {
+  constructor(pos, condition = undefined, body = undefined, thenBlock = undefined) {
     super("DOUNTIL", pos);
     this.condition = condition;
     this.body = body;
+    this.thenBlock = thenBlock;
   }
 
   validate() {
@@ -247,6 +266,7 @@ class DoUntilStructure extends Structure {
     this.body.breakable = 1;
     this.body.prepare();
     this.condition.prepare();
+    if (this.thenBlock) this.thenBlock.prepare();
   }
 
   async eval(evalObj) {
@@ -263,16 +283,21 @@ class DoUntilStructure extends Structure {
       }
 
       let bool = await this.condition.eval(obj);
-      if (bool.toPrimitive("bool")) break;
+      if (bool.toPrimitive("bool")) {
+        if (this.thenBlock) await this.thenBlock.eval(obj);
+        if (obj.action === 3) propagateEvalObj(obj, evalObj);
+        break;
+      }
     }
   }
 }
 
 class ForStructure extends Structure {
-  constructor(pos, loop, body) {
+  constructor(pos, loop, body, thenBlock = undefined) {
     super("FOR", pos);
     this.loop = loop;
     this.body = body;
+    this.thenBlock = thenBlock;
   }
 
   validate() {
@@ -283,6 +308,7 @@ class ForStructure extends Structure {
     this.loop.value.forEach(line => line.prepare());
     this.body.breakable = 1;
     this.body.prepare();
+    if (this.thenBlock) this.thenBlock.prepare();
   }
 
   async eval(evalObj) {
@@ -305,7 +331,11 @@ class ForStructure extends Structure {
     } else {
       while (true) {
         let cond = await this.loop.value[1].eval(obj);
-        if (!cond.toPrimitive("bool")) break;
+        if (!cond.toPrimitive("bool")) {
+          if (this.thenBlock) await this.thenBlock.eval(obj);
+          if (obj.action === 3) propagateEvalObj(obj, evalObj);
+          break;
+        }
         await this.body.eval(obj);
 
         if (obj.action === 1) break;
@@ -329,12 +359,14 @@ class ForInStructure extends Structure {
     this.vars = vars;
     this.iter = iter;
     this.body = body;
+    this.thenBlock = undefined;
   }
 
   validate() {
     this.iter.prepare();
     this.body.breakable = 1;
     this.body.prepare();
+    if (this.thenBlock) this.thenBlock.prepare();
   }
 
   async eval(evalObj) {
@@ -343,7 +375,6 @@ class ForInStructure extends Structure {
       iter = await this.iter.eval(obj);
       iter = iter.castTo("any");
     } catch (e) {
-      throw e;
       throw new Error(`[${errors.SYNTAX}] FOR IN loop: error whilst evaluating iterator:\n${e}`);
     }
 
@@ -351,7 +382,14 @@ class ForInStructure extends Structure {
     let collection = iter.__iter__();
     if (Array.isArray(collection[0])) {
       if (this.vars.length === 1) { // One var contains an array
-        for (let i = 0; i < collection.length; i++) {
+        let i = 0;
+        while (true) {
+          if (i >= collection.length) {
+            if (this.thenBlock) await this.thenBlock.eval(obj);
+            if (obj.action === 3) propagateEvalObj(obj, evalObj);
+            break;
+          }
+
           this.body.rs.defineVar(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]));
           await this.body.eval(obj);
 
@@ -362,10 +400,19 @@ class ForInStructure extends Structure {
             propagateEvalObj(obj, evalObj);
             break;
           }
+
+          i++;
         }
       } else { // Map every item in array to a variable
         if (this.vars.length !== collection[0].length) throw new Error(`[${errors.SYNTAX}] Syntax Error: FOR-IN: variable count mismatch: got ${this.vars.length}, expected ${collection[0].length} for type ${iter.type()}`);
-        for (let i = 0; i < collection.length; i++) {
+        let i = 0;
+        while (true) {
+          if (i >= collection.length) {
+            if (this.thenBlock) await this.thenBlock.eval(obj);
+            if (obj.action === 3) propagateEvalObj(obj, evalObj);
+            break;
+          }
+
           for (let a = 0; a < this.vars.length; a++) {
             this.body.rs.defineVar(this.vars[a].value, collection[i][a]);
           }
@@ -378,12 +425,21 @@ class ForInStructure extends Structure {
             propagateEvalObj(obj, evalObj);
             break;
           }
+
+          i++;
         }
       }
     } else {
       // Single-value for-in
       if (this.vars.length !== 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: FOR-IN: variable count mismatch: got ${this.vars.length}, expected 1 for type ${iter.type()}`);
-      for (let i = 0; i < collection.length; i++) {
+      let i = 0;
+      while (true) {
+        if (i >= collection.length) {
+          if (this.thenBlock) await this.thenBlock.eval(obj);
+          if (obj.action === 3) propagateEvalObj(obj, evalObj);
+          break;
+        }
+
         this.body.rs.defineVar(this.vars[0].value, collection[i]);
         await this.body.eval(obj);
 
@@ -394,6 +450,8 @@ class ForInStructure extends Structure {
           propagateEvalObj(obj, evalObj);
           break;
         }
+
+        i++;
       }
     }
   }

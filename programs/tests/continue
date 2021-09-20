@@ -1,5 +1,5 @@
 println(" ** FOR **");
-for (i = 0; i < 10; i = i + 1) {
+for (i = 0; i < 10; i++) {
   if (i == 5) { continue; }
   println(i);
 }
@@ -8,7 +8,7 @@ println();
 println(" ** WHILE **");
 i = 0;
 while (i < 10) {
-  i = i + 1;
+  i++;
   if (i == 5) { continue; }
   println("i = " + i);
 }

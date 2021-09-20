@@ -12,7 +12,7 @@ const { errors, errorDesc } = require("../errors");
 /** Core definitions !REQUIRED! */
 function define(rs) {
   /****************** CORE VARIABLES */
-  rs.defineVar('NaN', NaN, 'Value representing Not A Number', true);
+  rs.defineVar('nan', NaN, 'Value representing Not A Number', true);
   rs.defineVar('inf', Infinity, 'Value representing Infinity', true);
   rs.defineVar('true', true, '\'true\' is a boolean value that represents mathematical and logical truth', true);
   rs.defineVar('false', false, '\'false\' is a boolean value that is used when the result of a logical statement is false', true);
@@ -78,7 +78,7 @@ function define(rs) {
     }
     return new ArrayValue(rs, vars);
   }, 'list all defined variables in a given scope, or array of scopes'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'keywords', {}, () => new ArrayValue(rs, KeywordToken.keywords), 'list all keywords'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'keywords', {}, () => new ArrayValue(rs, KeywordToken.keywords.map(kw => new StringValue(rs, kw))), 'list all keywords'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Object.keys(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.castTo(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
@@ -306,7 +306,7 @@ function defineFuncs(rs) {
   }, 'returns date string constructed from <arg>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exp', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.exp(z.toPrimitive('complex'))), 'return e^x')); // raise e to the x
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'floor', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.floor(z.toPrimitive('complex'))), 'round x down to the nearest integer')); // floor (round down)
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isNaN', { z: 'complex' }, ({ z }) => new BoolValue(rs, Complex.isNaN(z.toPrimitive('complex'))), 'return 0 or 1 depending on is x is NaN'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isnan', { z: 'complex' }, ({ z }) => new BoolValue(rs, Complex.isNaN(z.toPrimitive('complex'))), 'return 0 or 1 depending on is x is NaN'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isinf', { z: 'complex' }, ({ z }) => new BoolValue(rs, !Complex.isFinite(z.toPrimitive('complex'))), 'return 0 or 1 depending on is x is infinite'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isprime', { x: 'real' }, ({ x }) => new BoolValue(rs, isPrime(x.toPrimitive('real'))), 'return 0 or 1 depending on if x is prime'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'primes', { limit: 'real_int' }, ({ limit }) => new ArrayValue(rs, generatePrimes(limit.toPrimitive('real'))), 'generate list of primes 0..limit'));
