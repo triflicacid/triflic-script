@@ -49,7 +49,7 @@ class Runspace {
   defineVar(name, value, desc = undefined, constant = false) {
     let obj;
     if (value instanceof Value || value instanceof RunspaceFunction) obj = new RunspaceVariable(name, value, desc, constant);
-    else if (value instanceof RunspaceVariable) obj = value.copy();
+    else if (value instanceof RunspaceVariable) obj = value;
     else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
 
     peek(this._vars).set(name, obj); // Insert into top-level scope
@@ -62,6 +62,17 @@ class Runspace {
         const vo = this._vars[i].get(name);
         vo.value = value;
         return vo;
+      }
+    }
+    return false;
+  }
+
+  /** Set a variable equivalent to another variable. Return Variable object or false. */
+  setVarObj(name, variable) {
+    for (let i = this._vars.length - 1; i >= 0; i--) {
+      if (this._vars[i].has(name)) {
+        this._vars[i].set(name, variable);
+        return variable;
       }
     }
     return false;
@@ -117,12 +128,17 @@ class Runspace {
   }
 
   /** Execute source code */
-  async execute(source, singleStatement = undefined) {
+  async execute(source, singleStatement = undefined, timingObj = {}) {
     this._blocks.clear();
     let lines = tokenify(this, source, singleStatement);
     this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN, undefined);
+    let start = Date.now();
     this.block.prepare();
-    let obj = createEvalObj(null, null), value = await this.block.eval(obj);
+    timingObj.parse = Date.now() - start;
+    let obj = createEvalObj(null, null);
+    start = Date.now();
+    let value = await this.block.eval(obj);
+    timingObj.exec = Date.now() - start;
     this._blocks.clear();
     return value;
   }

@@ -122,6 +122,7 @@ class RunspaceUserFunction extends RunspaceFunction {
         if (!args[i].exists()) {
           throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: passed value must be bound`);
         }
+        this.rs.defineVar(arg, args[i].getVar());
       } else {
         throw new Error(`Unknown pass-by value '${data.pass}' for '${args[i]}'`);
       }

@@ -16,7 +16,6 @@ function parseArgString(args, doHideBin = true) {
     imag: argv.imag,
     bidmas: getArgvBool(argv, "bidmas", true),
     revealHeaders: getArgvBool(argv, "reveal-headers", true),
-    defineAliases: getArgvBool(argv, "define-aliases", true),
     multiline: getArgvBool(argv, "multiline", false),
     timeExecution: getArgvBool(argv, "time", false),
   };

@@ -38,14 +38,16 @@ async function main() {
 
     rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
 
-    let start = Date.now(), ret, error;
+    let start = Date.now(), ret, error, time, timeObj = {};
     try {
-      ret = await rs.execute(source);
+      ret = await rs.execute(source, undefined, timeObj);
+      time = Date.now() - start;
     } catch (e) {
       error = e;
     }
 
-    rs.io.output.write(`${'-'.repeat(25)}\nExecution terminated with code ${error ? 1 : 0} in ${Date.now() - start} ms\n`);
+    rs.io.output.write(`${'-'.repeat(25)}\nExecution terminated with code ${error ? 1 : 0} in ${time} ms\n`);
+    if (opts.timeExecution) rs.io.output.write(`Timings: Took ${time} ms (${timeObj.parse} ms parsing, ${timeObj.exec} ms execution)\n`);
     if (error) {
       if (opts.niceErrors) {
         printError(error, x => rs.io.output.write(x));

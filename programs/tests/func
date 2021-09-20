@@ -22,10 +22,10 @@ greet();
 greet("Joe");
 
 # Pass by reference
-func swap(a: ref any, b: ref any) {
-  tmp = a;
-  a = b;
-  b = tmp;
+func swap(x: ref any, y: ref any) {
+  tmp = x;
+  x = y;
+  y = tmp;
 }
 
 a = 5, b = 10;

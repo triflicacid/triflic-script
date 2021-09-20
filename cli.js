@@ -20,10 +20,10 @@ rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitive
 
 // Evaluate some input
 async function evaluate(input) {
-  let output, err, time;
+  let output, err, time, timeObj = {};
   try {
     let start = Date.now();
-    output = await rs.execute(input);
+    output = await rs.execute(input, undefined, timeObj);
     time = Date.now() - start;
     if (output !== undefined) output = output.toString();
   } catch (e) {
@@ -41,7 +41,7 @@ async function evaluate(input) {
       rs.io.output.write(output + '\n');
     }
     if (opts.timeExecution) {
-      rs.io.output.write(`** Took ${time} ms\n`);
+      rs.io.output.write(`** Took ${time} ms (${timeObj.parse} ms parsing, ${timeObj.exec} ms execution)\n`);
     }
   }
   return output;
@@ -68,11 +68,10 @@ async function main() {
     let notes = [];
     if (opts.strict) notes.push("strict mode is enabled");
     if (!opts.bidmas) notes.push("BIDMAS is being ignored");
-    if (!opts.niceErrors) notes.push("fatal errors are enabled");
+    if (!opts.niceErrors) notes.push("nice error messages are disabled");
     if (!opts.defineVars) notes.push("pre-defined variables were not defined");
     if (!opts.defineFuncs) notes.push("pre-defined functions were not defined");
     if (!opts.ans) notes.push("variable ans is not defined");
-    if (!opts.defineAliases) notes.push("function/variables aliases were not defined");
     notes.forEach(note => rs.io.output.write(`${consoleColours.Bright}${consoleColours.FgWhite}${consoleColours.Reverse}Note${consoleColours.Reset} ${note}\n`));
     rs.io.output.write('\n');
   }
