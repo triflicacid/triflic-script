@@ -133,12 +133,12 @@ class Runspace {
     this._blocks.clear();
     let lines = tokenify(this, source, singleStatement);
     this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN, undefined);
-    let start = Date.now();
+    let start = Date.now(), value;
     this.block.prepare();
     timingObj.parse = Date.now() - start;
     let obj = createEvalObj(null, null);
     start = Date.now();
-    let value = await this.block.eval(obj);
+    value = await this.block.eval(obj);
     timingObj.exec = Date.now() - start;
     this._blocks.clear();
     return value;

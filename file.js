@@ -28,7 +28,6 @@ async function main() {
     const opts = parseArgString(process.argv, true);
     if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter;
     opts.app = 'Interpreter';
-    opts.dir = path.dirname(file);
     opts.file = path.basename(file);
     const rs = new Runspace(opts);
     define(rs);
