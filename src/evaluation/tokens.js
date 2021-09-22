@@ -112,7 +112,7 @@ class VariableToken extends Token {
     super(tstring, vname, pos);
   }
   type() {
-    return str(this.getVar().value.type());
+    return this.exists() ? str(this.getVar().value.type()) : `symbol`;
   }
   castTo(type) {
     let v = this.getVar();
@@ -153,6 +153,15 @@ class VariableToken extends Token {
     const name = this.value;
     // let varObj = this.exists() ? this.tstr.rs.setVar(name, value) : this.tstr.rs.defineVar(name, value);
     this.tstr.rs.defineVar(name, value);
+    return value;
+  }
+
+  /** operator: => */
+  __nonlocalAssign__(value) {
+    value = value.castTo("any");
+    const name = this.value;
+    if (!this.exists()) throw new Error(`[${errors.NULL_REF}] Null Reference: operator =>: non non-local binding for symbol '${name}'. Did you mean to use '=' ?`);
+    this.tstr.rs.setVar(name, value);
     return value;
   }
 
@@ -667,7 +676,6 @@ class TokenLine {
         }
       }
     }
-
     return this;
   }
 

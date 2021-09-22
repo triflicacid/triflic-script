@@ -10,12 +10,10 @@ For more help, see `programs/` and the built-in `help` function.
 ## Important Notes
 - Inline function definitions in format `<name>(<args>) = ...` has been disabled
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
-- Operators `++` and `--` directly change a value - `a = 10; b = a; b++;` b is 11 as expected, but a is also 11.
 
 ## TODO
 - Nested-expression shortcut. Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
 - Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
-- `let` block
 - proper block-scoped variable scoping (current system doesn't work well with e.g. recursion)
 - String interpolation via `{}`
 - Expandable/Collapsable argument arrays via `...`
@@ -90,9 +88,7 @@ A program may be interpreted and executed via `Runspace#execute`
 - `Runspace#parse` takes source code and returns an array of `TokenLine` objects
 - `Runspace#interpret` takes `TokenLine[]` and evaluates them
 
-### General Syntax
-
-Comments may be includes as `# ...`. Enything after `#` will be ignored until a newline is reached. If a comment is included in a function/variable definition, the contents of this comment will be displayed when `help(<thing>)` is called.
+### Syntax
 
 ### Literals
 These are structures in the code which define values:
@@ -320,14 +316,6 @@ Terminates current function and returns values `...` from the function.
 As everything is an expression and the last value is returned anyway, a `return` statement is not needed on the last line of a function.
 i.e. the lines `a = func() { 1; }();` and `a = func() { return 1; }();` are essentially the same.
 
-### `let`
-Syntax: `let <var>[: <type>] = ...`
-
-Declares a new variable(s) in the current scope, clamped to a type. Multiple declaration may appear in a `let` statement seperated by commas `,`
-- `<var>` - Name of variable
-- `<type>` - If present, clamps the type of the variable (attempt to cast value type `type` whenever variable is further assigned to)
-- `...` - Expression to assign to variable
-
 ## Types
 Variables all have a type which may change. New types may be added - see `imports/matrix.js` for an example.
 
@@ -353,3 +341,30 @@ Variables all have a type which may change. New types may be added - see `import
 | `undefined` | Represents an absent value. As such, this is not really a type. | `No` | `No` | `undefined` |
 
 *\*These types are never returned from `type()`*
+
+## Scope
+A `scope` is a lexical area in which variables may be defined. The concept of scope is managed by a stack, with entry into a scope pushing a new hashtable of symbols onto the scope stack.
+
+Code blocks have the ability to create a new scope if they are `hard blocks`. A new scope is created when:
+- `A program starts`
+- `A function is called`
+- `scope_push() is called`*
+
+\* This artificially pushes a new symbol hash table to the scope stack. To remove the scope, call `scope_pop()`. This may cause unexpected effects when not used correctly (see `programs/scope_push`)
+
+The assignation operator `=` assigns a value to a symbol **is the current scope**. A new binding for the symbol is created within the current lexical scope.
+
+The assignation operator `=>` assigns a value to a symbol **which is not in the current scope**. It assigns the value to the next available binding to that symbol and, if non is found, an error is thrown.
+
+See the programs in `programs/tests/scope` and compare the two functions.
+
+The scope model is odd, as things like this will not work as `x` is not in the scope stack.
+```
+func counter() {
+  x = 0;
+  func() {
+    x += 1;
+    x;
+  };
+}
+```

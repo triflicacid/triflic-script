@@ -168,7 +168,6 @@ const operators = {
     fn: (a, b) => a.castTo('any').__mul__?.(b.castTo('any')),
     desc: `a × b`,
     syntax: 'a * b',
-    unary: 'u*',
     assoc: 'ltr',
   },
   "∩": {
@@ -297,7 +296,6 @@ const operators = {
     fn: (a, b) => a.castTo('any').__bitwiseAnd__?.(b.castTo('any')),
     desc: `Bitwise AND`,
     syntax: 'a & b',
-    unary: 'u&',
     assoc: 'ltr',
   },
   "^": {
@@ -352,6 +350,15 @@ const operators = {
     fn: (symbol, value) => symbol.__assign__?.(value.castTo("any")),
     desc: 'Set symbol <symbol> equal to <v>',
     syntax: 'symbol = v',
+    assoc: 'rtl',
+  },
+  "=>": {
+    name: 'nonlocal assignment',
+    precedence: 3,
+    args: 2,
+    fn: (symbol, value) => symbol.__nonlocalAssign__?.(value.castTo("any")),
+    desc: 'Set symbol <symbol> in nonlocal scope equal to <v>',
+    syntax: 'symbol => v',
     assoc: 'rtl',
   },
   "+=": {

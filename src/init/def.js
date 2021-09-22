@@ -42,7 +42,7 @@ function define(rs) {
       const info = operators[item.value];
       const argStr = Array.isArray(info.args) ? `${info.args.join(' or ')} (${info.args.length} overloads)` : info.args;
       help = `Type: string (operator)\nName: ${info.name}\nDesc: ${info.desc}\nArgs: ${argStr}\nPrecedence: ${info.precedence}\nUnary Overload: ${info.unary ? `yes (${info.unary})` : 'no'}\nSyntax: ${info.syntax}\nAssociativity: ${info.assoc}`;
-    } else if (item instanceof StringValue && KeywordToken.keywords.indexOf(item.value)) { // Keyword
+    } else if (item instanceof StringValue && KeywordToken.keywords.includes(item.value)) { // Keyword
       help = `Type: string (keyword)\nValue: ${item.value}`;
     } else if (item instanceof Value) {
       help = `Type: ${item.type()}\nValue: ${item.toString()}`;
@@ -61,26 +61,21 @@ function define(rs) {
     print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
     process.exit(0);
   }, 'exit application with given code'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', { s: '?real_int' }, ({ s }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', {}, () => {
     const vars = [];
-    if (s === undefined) {
-      rs._vars.forEach((scope, i) => {
-        const svars = [];
-        for (let v in scope) {
-          if (scope.hasOwnProperty(v)) svars.push(v.toString());
-        }
-        vars.push(new ArrayValue(rs, svars));
-      });
-    } else {
-      if (rs._vars[s] === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: scope ${s} does not exist`);
-      for (let v in rs._vars[s]) {
-        if (rs._vars[s].hasOwnProperty(v)) {
-          if (rs._vars[s].hasOwnProperty(v)) vars.push(v.toString());
-        }
-      }
-    }
+    rs._vars[rs._vars.length - 1].forEach((variable, name) => {
+      vars.push(new StringValue(rs, name));
+    });
     return new ArrayValue(rs, vars);
-  }, 'list all defined variables in a given scope, or array of scopes'));
+  }, 'list all defined variables in the current scope'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_push', {}, () => {
+    rs.pushScope();
+    return new NumberValue(rs, rs._vars.length);
+  }, 'Force a creation of a new lexical scope'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_pop', {}, () => {
+    rs.popScope();
+    return new NumberValue(rs, rs._vars.length);
+  }, 'Force the destruction of the current local scope'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'keywords', {}, () => new ArrayValue(rs, KeywordToken.keywords.map(kw => new StringValue(rs, kw))), 'list all keywords'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Object.keys(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
@@ -96,9 +91,9 @@ function define(rs) {
   }, 'create new value of type <t>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'array', { len: '?real_int', val: '?any' }, ({ len, val }) => {
     if (len == undefined) return new ArrayValue(rs);
-    if (val == undefined) return new ArrayValue(rs, Array.from({length:len.toPrimitive('real_int')}).fill(rs.UNDEFINED));
+    if (val == undefined) return new ArrayValue(rs, Array.from({ length: len.toPrimitive('real_int') }).fill(rs.UNDEFINED));
     val = val.castTo('any');
-    return new ArrayValue(rs, Array.from({length:len.toPrimitive('real_int')}).fill(val));
+    return new ArrayValue(rs, Array.from({ length: len.toPrimitive('real_int') }).fill(val));
   }, 'create and return a new array of length <len=1>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copy', { o: 'any' }, ({ o }) => {
     const copy = o.castTo("any").__copy__?.();

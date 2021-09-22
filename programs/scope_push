@@ -1,0 +1,14 @@
+func main() {
+  a = 12;
+  b = 10;
+  scope_push();
+}
+
+main();
+println(vars()); # Unexpectedly, prints [a,b]
+
+# program created [PUSH] -> scopes [{ <global> }]
+# main function is called [PUSH] -> scopes [{ <global> }, { <function main> }]
+# scope_push called [PUSH] -> scopes [{ <global> }, { <function main> }, { <artificial> }]
+# main function exited [POP] -> scopes [{ <global> }, { <function main> }]
+#     <function main> scope should have been destroyed, but the artificial scope was destroyed instead. All local variables created in main() have 'leaked' into the 'global' (topmost) scope. 

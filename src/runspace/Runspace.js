@@ -120,7 +120,7 @@ class Runspace {
 
   /** Pop variable scope */
   popScope() {
-    if (this._vars.length > 1) this._vars.pop();
+    this._vars.pop();
   }
 
   /** Define a function - defines a variable with a reference to the function */

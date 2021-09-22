@@ -1,0 +1,10 @@
+func counter() {
+  x = 0;
+  func() {
+    x += 1;
+    x;
+  }
+}
+
+c = counter();
+println(c());

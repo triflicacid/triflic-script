@@ -769,7 +769,11 @@ class FunctionRefValue extends Value {
   async __call__(evalObj, args) {
     const fn = this.getFn();
     if (fn) {
-      return await fn.call(evalObj, args);
+      try {
+        return await fn.call(evalObj, args);
+      } catch (e) {
+        throw new Error(`[${errors.GENERAL}] Function ${this.value.name}(${args.map(a => `${a.type()}`).join(', ')}):\n${e}`);
+      }
     } else {
       this._throwNullRef();
     }

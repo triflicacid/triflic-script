@@ -1,22 +1,24 @@
 const errors = {
-  BAD_ARG: 'EARG', // Argument error GENERAL
-  ARG_COUNT: 'EARGCNT', // Argument Error: bad number of arguments
-  BAD_IMPORT: 'EIMP', // Import error
+  GENERAL: `ERGEN`,
+  BAD_ARG: 'ERARG', // Argument error GENERAL
+  ARG_COUNT: 'EARGN', // Argument Error: bad number of arguments
+  BAD_IMPORT: 'EIMPT', // Import error
   PROP: 'EPROP', // Cannot access given key/property
   SYNTAX: 'ESYTX', // General syntax error
-  UNMATCHED_BRACKET: 'EBRCKT', // Unmatched bracket
+  UNMATCHED_BRACKET: 'EBRKT', // Unmatched bracket
   UNTERM_STRING: 'ESTR', // Unterminated string
   NAME: 'ENAME', // Name Error
-  NULL_REF: 'ENULLREF', // Null reference error
+  NULL_REF: 'ENREF', // Null reference error
   NOT_CALLABLE: 'ECALL', // Unable to call given object
   CANT_COPY: 'ECOPY', // Error whilst copying type
-  ASSIGN: 'EASSGN', // Assignment error
-  DEL: 'EDEL', // Error whilst deleting value
+  ASSIGN: 'EASGN', // Assignment error
+  DEL: 'ERDEL', // Error whilst deleting value
   TYPE_ERROR: 'ETYPE', // Error to do with types
   CAST_ERROR: 'ECAST', // Error whilst casting
 };
 
 const errorDesc = {
+  [errors.GENERAL]: `An error has occured which relates to no specific code`,
   [errors.BAD_ARG]: `A bad or malformed argument was passed to a function, procedure or operator`,
   [errors.ARG_COUNT]: `An invalid number of arguments was passed to function, procedure or operator`,
   [errors.BAD_IMPORT]: `Error whilst importing a script via import()`,
