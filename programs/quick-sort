@@ -1,0 +1,21 @@
+func quicksort(arr: array) {
+    length = len(arr);
+    if (length < 2) { return arr; }
+    mid = ceil(length / 2), midVal = get(arr, mid);
+    lhs = [], rhs = [];
+    for (i = 0; i < length; i += 1) {
+        if (i == mid) { continue; }
+        item = get(arr, i);
+        if (item < midVal) {
+            push(lhs, item);
+        } else {
+            push(rhs, item);
+        }
+    }
+    return quicksort(lhs) + midVal + quicksort(rhs);
+}
+
+arr = [41, 28, 42, 31, 36, 32, 29];
+println(arr);
+x = quicksort(arr);
+println(x);

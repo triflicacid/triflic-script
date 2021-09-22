@@ -1,7 +1,7 @@
 sum = 0;
 iters = 10000;
 
-for (i = 0; i < iters; i++) {
+for (i = 0; i < iters; i += 1) {
     sum += i;
 }
 

@@ -153,22 +153,10 @@ class NumberValue extends Value {
     if (isNumericType(t)) return new NumberValue(this.rs, Complex.add(this.toPrimitive('complex'), n.toPrimitive('complex')));
   }
 
-  /** operator: ++ */
-  __inc__() {
-    this.value.a++;
-    return this;
-  }
-
   /** operator: - */
   __sub__(n) {
     const t = n.type();
     if (t === 'string' || isNumericType(t)) return new NumberValue(this.rs, Complex.sub(this.toPrimitive('complex'), n.toPrimitive('complex')));
-  }
-
-  /** operator: -- */
-  __dec__() {
-    this.value.a--;
-    return this;
   }
 
   /** operator: << */
@@ -365,22 +353,10 @@ class CharValue extends Value {
     if (t === 'string' || isRealType(t)) return new CharValue(this.rs, this.value + n.toPrimitive('real'));
   }
 
-  /** operator: ++ */
-  __inc__() {
-    this.value++;
-    return this;
-  }
-
   /** operator: - */
   __sub__(n) {
     const t = n.type();
     if (t === 'string' || isRealType(t)) return new CharValue(this.rs, this.value - n.toPrimitive('real'));
-  }
-
-  /** operator: -- */
-  __dec__() {
-    this.value--;
-    return this;
   }
 
   /** operator: << */
@@ -583,21 +559,10 @@ class ArrayValue extends Value {
     return new ArrayValue(this.rs, [...this.toPrimitive('array'), n]);
   }
 
-  /** operator: ++ */
-  __inc__() {
-    this.value.push(new UndefinedValue(this.rs));
-    return new NumberValue(this.rs, this.value.length);
-  }
-
   /** operator: - */
   __sub__(n) {
     const t = n.type();
     if (t === 'array') return new ArrayValue(this.rs, arrDifference(this.toPrimitive('array'), n.toPrimitive('array')));
-  }
-
-  /** operator: --*/
-  __dec__() {
-    return this.value.pop() ?? new UndefinedValue(this.rs);
   }
 }
 

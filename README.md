@@ -10,11 +10,13 @@ For more help, see `programs/` and the built-in `help` function.
 ## Important Notes
 - Inline function definitions in format `<name>(<args>) = ...` has been disabled
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
+- Operators `++` and `--` directly change a value - `a = 10; b = a; b++;` b is 11 as expected, but a is also 11.
 
 ## TODO
 - Nested-expression shortcut. Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
 - Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
 - `let` block
+- proper block-scoped variable scoping (current system doesn't work well with e.g. recursion)
 - String interpolation via `{}`
 - Expandable/Collapsable argument arrays via `...`
 
@@ -116,12 +118,13 @@ These are structures in the code which define values:
 - `'...'` is a character literal. Must be empty or contain one character.
 
 Character escaped may appear in string and character literals. Any character following `\` (backslash) is escaped:
-- `b` - non-destructive backspace (`0x8`)
-- `n` - line feed (`0xA`)
-- `r` - carriage return (`0xD`)
-- `t` - horizontal tab (`0x9`)
-- `v` - vertical tab (`0xB`)
 - `0` - null (`0x0`)
+- `b` - non-destructive backspace (`0x8`)
+- `t` - horizontal tab (`0x9`)
+- `n` - line feed (`0xA`)
+- `v` - vertical tab (`0xB`)
+- `r` - carriage return (`0xD`)
+- `s` - space (`0x20`)
 - `x([0-9A-Fa-f]+)` - inserts character with hexadecimal ascii code of `[0-9A-Fa-f]+` into literal. (`0x([0-9A-Fa-f]+)`)
 - Else, simply inserts following character into literal
 
@@ -155,8 +158,6 @@ See `Operators.md` for detailed operator help.
 | . | Member Access | 20 | ltr | Get member on RHS of LHS object | `headers."time"` => `1630433878509` | `__get__` |
 | \<fn\>(\<args\>) | Function Call | 20 | ltr | Call function `<fn>` with arguments `<args>` | `sin(1)` => `0.84...` | `__call__` |
 | ?. | Optional Member Access | 20 | ltr | Get member on RHS of LHS object. If RHS is undefined, return undefined | `undefined?.1` => `undefined` | `__get__` |
-| ++ | Increment | 18 | ltr | Add 1 to value | `pi++` => `4.14159265359` | `__inc__` |
-| -- | Decrement | 18 | ltr | Subtract 1 from value | `pi--` => `2.14159265359` | `__dec__` |
 | deg | Degrees | 18 | rtl | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` | `__deg__` 
 | ~ | Bitwise NOT | 17 | rtl | Bitwise NOT value on LHS | `~20` => `-21` | `__bitwiseNot__` |
 | + | Unary plus | 17 | rtl | Convert LHS to number | `+"14"` => `14` | `__pos__` |

@@ -149,14 +149,16 @@ class VariableToken extends Token {
 
   /** operator: = */
   __assign__(value) {
+    value = value.castTo("any");
     const name = this.value;
-    let varObj = this.exists() ? this.tstr.rs.setVar(name, value) : this.tstr.rs.defineVar(name, value);
+    // let varObj = this.exists() ? this.tstr.rs.setVar(name, value) : this.tstr.rs.defineVar(name, value);
+    this.tstr.rs.defineVar(name, value);
     return value;
   }
 
   /** operator: += */
   __assignAdd__(value) {
-    value = this.castTo("any").__add__(value);
+    value = this.castTo("any").__add__(value.castTo("any"));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value);
     return value;
@@ -164,7 +166,7 @@ class VariableToken extends Token {
 
   /** operator: -= */
   __assignSub__(value) {
-    value = this.castTo("any").__sub__(value);
+    value = this.castTo("any").__sub__(value.castTo("any"));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value);
     return value;
@@ -172,7 +174,7 @@ class VariableToken extends Token {
 
   /** operator: *= */
   __assignMul__(value) {
-    value = this.castTo("any").__mul__(value);
+    value = this.castTo("any").__mul__(value.castTo("any"));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value);
     return value;
@@ -180,7 +182,7 @@ class VariableToken extends Token {
 
   /** operator: /= */
   __assignDiv__(value) {
-    value = this.castTo("any").__div__(value);
+    value = this.castTo("any").__div__(value.castTo("any"));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value);
     return value;
@@ -188,7 +190,7 @@ class VariableToken extends Token {
 
   /** operator: %= */
   __assignMod__(value) {
-    value = this.castTo("any").__mod__(value);
+    value = this.castTo("any").__mod__(value.castTo("any"));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value);
     return value;

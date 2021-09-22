@@ -32,10 +32,8 @@ There are some types listed that are general terms:
 | `+` | `numeric` | `numeric` | Adds arg2 and arg2 | `5 + 3` => `8` |
 | `+` | `numeric` | `undefined` | Returns `NaN` | `10 + undefined` => `NaN` |
 | `+` | `numeric` | `string` | Concatenates arg1 (as a string) and arg2 | `10 + "2"` => `102` |
-| `++` | `numeric` | n/a | Increments (adds 1 to) arg1 | `13++` => `14` |
 | `-` | `numeric` | `numeric` | Subtracts arg2 from arg1 | `10 - 3` => `7` |
 | `-` | `numeric` | `string` | Casts arg2 to a number and subtracts arg2 from arg1 | `10 - "3"` => `7` |
-| `--` | `numeric` | n/a | Decrements (subtracts 1 from) arg1 | `13--` => `12` |
 | `<<` | `real-like` | `real-like` | Shifts arg1 arg2-bits to the left | `20 << 2` => `80` |
 | `>>` | `real-like` | `real-like` | Shifts arg1 arg2-bits to the right | `20 << 2` => `5` |
 | `<=` | `real-like` | `real-like` | Is arg1 less than or equal to arg2? | `12 <= 15` => `true` |

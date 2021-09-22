@@ -2,7 +2,7 @@ func bubble_sort(arr: array) {
   sorted = 0, length = len(arr) - 1;
   while (!sorted) {
     sorted = 1;
-    for (i = 0; i < length; i = i + 1) {
+    for (i = 0; i < length; i += 1) {
       a = get(arr, i), b = get(arr, i+1);
       if (a > b) {
         set(arr, i, b);
@@ -17,7 +17,7 @@ func bubble_sort_debug(arr: array) {
   sorted = 0, length = len(arr) - 1, iters = 0;
   while (!sorted) {
     sorted = 1;
-    for (i = 0; i < length; i = i + 1) {
+    for (i = 0; i < length; i += 1) {
       a = get(arr, i), b = get(arr, i+1);
       if (a > b) {
         set(arr, i, b);
@@ -26,9 +26,9 @@ func bubble_sort_debug(arr: array) {
       }
     }
     println(iters + " : " + arr);
-    iters = iters + 1;
+    iters += 1;
   }
-  iters;
+  return iters;
 }
 
 array = [25, 22, 30, 18, 29, 21, 27, 21];

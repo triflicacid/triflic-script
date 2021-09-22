@@ -222,10 +222,11 @@ function decodeEscapeSequence(string, pos) {
     case 't': char = String.fromCharCode(0x9); pos++; break; // HORIZONTAL TAB
     case 'v': char = String.fromCharCode(0xB); pos++; break; // VERTICAL TAB
     case '0': char = String.fromCharCode(0x0); pos++; break; // NULL
+    case 's': char = String.fromCharCode(0x20); pos++; break; // WHITESPACE
     case 'x': { // HEXADECIMAL ESCAPE SEQUENCE
       pos++;
       let nlit = '';
-      while (/[0-9A-Fa-f]/.test(string[pos])) {
+      while (string[pos] && /[0-9A-Fa-f]/.test(string[pos])) {
         nlit += string[pos];
         pos++;
       }

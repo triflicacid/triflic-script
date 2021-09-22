@@ -94,6 +94,12 @@ function define(rs) {
     if (value === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: Type ${t} cannot be initialised`);
     return value;
   }, 'create new value of type <t>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'array', { len: '?real_int', val: '?any' }, ({ len, val }) => {
+    if (len == undefined) return new ArrayValue(rs);
+    if (val == undefined) return new ArrayValue(rs, Array.from({length:len.toPrimitive('real_int')}).fill(rs.UNDEFINED));
+    val = val.castTo('any');
+    return new ArrayValue(rs, Array.from({length:len.toPrimitive('real_int')}).fill(val));
+  }, 'create and return a new array of length <len=1>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copy', { o: 'any' }, ({ o }) => {
     const copy = o.castTo("any").__copy__?.();
     if (copy === undefined) throw new Error(`[${errors.CANT_COPY}] Type Error: Type ${o.type()} cannot be copied`);
