@@ -16,7 +16,7 @@ function define(rs) {
   rs.defineVar('inf', Infinity, 'Value representing Infinity', true);
   rs.defineVar('true', true, '\'true\' is a boolean value that represents mathematical and logical truth', true);
   rs.defineVar('false', false, '\'false\' is a boolean value that is used when the result of a logical statement is false', true);
-  rs.defineVar('undefined', new UndefinedValue(rs), 'A variable that has not been assigned a value is of type undefined', true);
+  rs.defineVar('undef', new UndefinedValue(rs), 'A variable that has not been assigned a value is of type undefined', true);
   rs.defineVar('universal_set', new SetValue(rs, []), 'Universal set', false);
 
   /****************** CORE FUNCTIONS */
@@ -33,7 +33,7 @@ function define(rs) {
           item._throwNullRef();
         } else {
           let type = (fn instanceof RunspaceBuiltinFunction ? 'built-in' : 'user-defined') + (fn.constant ? '; constant' : '');
-          help = `Type: function [${type}]\nDesc: ${fn.about()}\nSyntax: ${fn.defString()}`;
+          help = `Type: function [${type}]\nDesc: ${fn.about()}\nArgs: ${fn.argCount}${fn.optional !== 0 ? ` (${fn.optional} optional)` : ''}\nSignature: ${fn.defString()}`;
         }
       } else {
         help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.toPrimitive('string')}`;
@@ -80,7 +80,7 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Object.keys(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.castTo(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, typeOf(o)), 'attempt a direct cast from object <o> to type <type>', false));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, typeOf(o)), 'returns the type of object <o>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'void', { o: 'any' }, ({ o }) => new UndefinedValue(rs), 'throws away given argument - returns undefined'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
@@ -165,79 +165,41 @@ function define(rs) {
       return v.toPrimitive('real');
     })).map(n => new NumberValue(rs, n)));
   }, 'sort array numerically'));
-  // rs.defineFunc(new RunspaceBuiltinFunction(rs, 'apply', { arr: 'array', action: 'any' }, ({ arr, action }) => {
-  //   arr = arr.castTo("any");
-  //   action = action.castTo("any");
-
-  //   if (action instanceof StringValue) {
-  //     const op = operators[action.value];
-  //     if (op) {
-  //       if (op.args === 2 || (Array.isArray(op.args) && op.args.includes(2))) {
-  //         let acc = new NumberValue(rs, 0);
-  //         const func = op[Array.isArray(op.args) ? 'fn2' : 'fn'];
-  //         for (let i = 0; i < arr.value.length; i++) acc = func(acc, arr.value[i]);
-  //         return acc;
-  //       } else if (op.args === 1 || (Array.isArray(op.args) && op.args.includes(1))) {
-  //         for (let i = 0; i < arr.value.length; i++) {
-  //           let tmp = op[Array.isArray(op.args) ? 'fn1' : 'fn'](arr.value[i]);
-  //           if (tmp === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: no operator overload for '${action.value}' for { <${arr.value[i].type()}> ${arr.value[i].castTo('string')} }`);
-  //           arr.value[i] = tmp;
-  //         }
-  //         return arr;
-  //       } else {
-  //         throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot apply operator '${action.value}' to array`);
-  //       }
-  //     } else {
-  //       let tl;
-  //       try {
-  //         tl = rs.parse(action.value);
-  //       } catch (e) {
-  //         throw new Error(`Apply action: ${action.value}:\n${e}`);
-  //       }
-
-  //       tl.rs.pushScope();
-  //       for (let i = 0; i < arr.value.length; i++) {
-  //         try {
-  //           tl.rs.var('x', arr.value[i]);
-  //           arr.value[i] = tl.eval();
-  //         } catch (e) {
-  //           throw new Error(`${action.value} when x = ${arr.value[i].toPrimitive('string')}:\n${e}`);
-  //         }
-  //       }
-  //       tl.rs.popScope();
-  //       return arr;
-  //     }
-  //   } else if (action instanceof FunctionRefValue) {
-  //     const fn = action.getFn(), args = Object.entries(fn.args);
-  //     for (let i = 0, ans; i < arr.value.length; i++) {
-  //       try {
-  //         if (args.length === 1) ans = fn.eval([arr.value[i].eval(args[0][1])]);
-  //         else if (args.length === 2) ans = fn.eval([arr.value[i].eval(args[0][1]), new NumberValue(rs, i).eval(args[1][1])]);
-  //         else if (args.length === 3) ans = fn.eval([arr.value[i].eval(args[0][1]), new NumberValue(rs, i).eval(args[1][1]), arr.eval(args[2][1])]);
-  //         else throw new Error(`[${errors.ARG_COUNT}] Argument Error: cannot apply ${action} to array: unsupported argument count ${args.length}`);
-  //         arr.value[i] = ans;
-  //       } catch (e) {
-  //         throw new Error(`${fn.defString()}:\n${e}`);
-  //       }
-  //     }
-  //     return arr;
-  //   } else {
-  //     for (let i = 0; i < arr.value.length; i++) {
-  //       arr.value[i] = action;
-  //     }
-  //     return arr;
-  //   }
-  // }, 'Apply <action> to an array: operator, function [f(<item>) or f(<item>,<index>) or f(<item>,<index>,<array>)]. Else, eveything in array is set to <action>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'filter', { arr: 'array', fn: 'func' }, ({ arr, fn }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'filter', { arr: 'array', fn: 'func' }, async ({ arr, fn }, evalObj) => {
     const array = [];
-    fn = fn.castTo("any").getFn();
+    fn = fn.castTo("func").getFn();
+    if (fn.argCount !== 1 && fn.argCount !== 2) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must have 1 or 2 arguments, got function with ${fn.argCount} arguments`);
     arr = arr.toPrimitive('array');
     for (let i = 0; i < arr.length; i++) {
-      let b = fn.argCount === 1 ? fn.call([arr[i]]) : fn.call([arr[i], new NumberValue(rs, i)]);
-      if (b.toPrimitive('bool')) array.push(arr[i]);
+      let args = fn.argCount === 1 ? [arr[i]] : [arr[i], new NumberValue(rs, i)];
+      let bool = await fn.call(evalObj, args);
+      if (bool.toPrimitive('bool')) array.push(arr[i]);
     }
     return new ArrayValue(rs, array);
   }, 'Remove all values from arr for which fn(value, ?index) is false'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'map', { arr: 'array', fn: 'func' }, async ({ arr, fn }, evalObj) => {
+    const array = [];
+    fn = fn.castTo("func").getFn();
+    if (fn.argCount !== 1 && fn.argCount !== 2) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must have 1 or 2 arguments, got function with ${fn.argCount} arguments`);
+    arr = arr.toPrimitive('array');
+    for (let i = 0; i < arr.length; i++) {
+      let args = fn.argCount === 1 ? [arr[i]] : [arr[i], new NumberValue(rs, i)];
+      let mapped = await fn.call(evalObj, args);
+      array.push(mapped);
+    }
+    return new ArrayValue(rs, array);
+  }, 'Apply func(value, ?index) to each item in array (returns new array)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'reduce', { arr: 'array', fn: 'func' }, async ({ arr, fn }, evalObj) => {
+    let acc = new NumberValue(rs, 0);
+    fn = fn.castTo('func').getFn();
+    if (fn.argCount !== 2 && fn.argCount !== 3) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must have 2 or 3 arguments, got function with ${fn.argCount} arguments`);
+    arr = arr.toPrimitive('array');
+    for (let i = 0; i < arr.length; i++) {
+      let args = fn.argCount === 2 ? [acc, arr[i]] : [acc, arr[i], new NumberValue(rs, i)];
+      acc = await fn.call(evalObj, args);
+    }
+    return acc;
+  }, 'Reduce array to single value via func(acc, current, ?index). Initially acc = 0'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'find', { obj: 'any', item: 'any' }, ({ obj, item }) => {
     item = item.castTo("any");
     obj = obj.castTo("any");
@@ -286,7 +248,6 @@ function defineVars(rs) {
   rs.defineVar('log10e', Math.LOG10E, 'Base-10 logarithm of e');
   rs.defineVar('sqrt1_2', Math.SQRT1_2, 'Square root of 0.5');
   rs.defineVar('sqrt2', Math.SQRT2, 'Square root of 2');
-  rs.defineVar('empty_set', new SetValue(rs, []), 'Empty set', true);
 }
 
 /** Built-in functions */
@@ -363,51 +324,6 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sin', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sin(z.toPrimitive('complex'))), 'return sine of z')); // sine
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sinh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sinh(z.toPrimitive('complex'))), 'return hyperbolic sine of z')); // hyperbolic sine
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sqrt', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.sqrt(z.toPrimitive('complex'))), 'return square root of z')); // cube root
-  // rs.defineFunc(new RunspaceBuiltinFunction(rs, 'summation', { start: 'any', limit: 'any', action: 'any', svar: '?any' }, ({ start, limit, action, svar }) => {
-  //   let sumVar = 'x', sum = new Complex(0);
-  //   start = start.toPrimitive('real_int');
-  //   limit = limit.toPrimitive('real_int');
-  //   if (svar !== undefined) {
-  //     if (svar instanceof StringValue) {
-  //       sumVar = svar.toString();
-  //       let extract = parseVariable(sumVar);
-  //       if (sumVar !== extract) throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid variable provided '${sumVar}'`);
-  //     } else throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid value for <svar>`);
-  //   }
-  //   if (action instanceof FunctionRefValue) { // Execute action as a function
-  //     const fn = action.getFn();
-  //     for (let i = start; i <= limit; i++) {
-  //       try {
-  //         sum.add(fn.eval([new NumberValue(rs, i)]).toPrimitive('complex'));
-  //       } catch (e) {
-  //         throw new Error(`${fn.defString()}:\n${e}`);
-  //       }
-  //     }
-  //   } else if (action instanceof NumberValue) { // Stored value
-  //     sum = Complex.mult(action.toPrimitive('complex'), Complex.sub(limit, start).add(1));
-  //   } else if (action instanceof StringValue) { // Evaluate action as source code
-  //     let tl;
-  //     try {
-  //       tl = rs.parse(action.value);
-  //     } catch (e) {
-  //       throw new Error(`Summation action: ${action.value}:\n${e}`);
-  //     }
-
-  //     tl.rs.pushScope();
-  //     for (let i = start; i <= limit; i++) {
-  //       try {
-  //         tl.rs.var(sumVar, i);
-  //         sum.add(tl.eval().toPrimitive('complex'));
-  //       } catch (e) {
-  //         throw new Error(`${action.value} when ${sumVar} = ${i}:\n${e}`);
-  //       }
-  //     }
-  //     tl.rs.popScope();
-  //   } else {
-  //     throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid summation action`);
-  //   }
-  //   return new NumberValue(rs, sum);
-  // }, 'Calculate a summation series between <start> and <limit>, executing <action> (may be constant, function or string). Use variable <svar> as counter.'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'tan', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tan(z.toPrimitive('complex'))), 'return tangent of z')); // tangent
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'tanh', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.tanh(z.toPrimitive('complex'))), 'return hyperbolic tangent of z')); // hyperbolic tangent
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'lambertw', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));

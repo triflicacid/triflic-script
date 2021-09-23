@@ -70,7 +70,7 @@ class UndefinedValue extends Value {
     super(runspace, undefined);
   }
 
-  type() { return 'undefined'; }
+  type() { return 'undef'; }
 
   /* operator: == */
   __eq__(v) {
@@ -837,7 +837,8 @@ Value.__new__ = (rs, t) => {
 
 /** Setup casting maps */
 UndefinedValue.castMap = {
-  string: o => new StringValue(o.rs, 'undefined'),
+  string: o => new StringValue(o.rs, 'undef'),
+  char: o => new CharValue(o.rs, 0),
   complex: o => new NumberValue(o.rs, NaN),
   complex_int: o => new NumberValue(o.rs, NaN),
   real: o => new NumberValue(o.rs, NaN),

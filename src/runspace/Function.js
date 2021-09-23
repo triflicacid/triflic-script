@@ -64,9 +64,9 @@ class RunspaceFunction {
   checkArgCount(args) {
     let req = this.argCount - this.optional;
     let expected = this.optional === 0 ? req : `${req}-${this.argCount}`;
-    if (args.length < req || args.length > this.argCount) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects ${expected} argument${expected == 1 ? '' : 's'}, got ${args.length}`);
+    if (args.length < req || args.length > this.argCount) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects ${expected} argument${expected == 1 ? '' : 's'} {${Array.from(this.args.values()).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()} "${a}"`).join(', ')}}`);
   }
-
+  
   defString() {
     return `${this.name}(${Object.entries(this.rargs).map(([k, v]) => `${k}: ${v}`).join(', ')})`;
   }

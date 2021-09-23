@@ -14,6 +14,7 @@ class Token {
     this.value = v;
     this.pos = pos; // Definition position
   }
+  setBlock(block) { this.block = block; }
   castTo(type) { throw new Error(`Overload Required (type provided: ${type})`); }
   is(klass, val = undefined) {
     return (this instanceof klass && (val != undefined && this.value === val));
@@ -39,7 +40,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "return", "then", "goto"];
+KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "return", "then"];
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
@@ -213,6 +214,11 @@ class BracketedTokenLines extends Token {
     this.opening = openingBracket;
   }
 
+  setBlock(block) {
+    super.setBlock(block);
+    this.value.forEach(tl => tl.setBlock(block));
+  }
+
   prepare(doRPN = true) {
     this.value.forEach(line => {
       if (line.block !== undefined && line.block === null) line.block = this.tstr.block;
@@ -248,6 +254,12 @@ class TokenLine {
     this.updateTokens(tokens);
   }
 
+  /** Set Block object - also assign to every token object in line */
+  setBlock(block) {
+    this.block = block;
+    this.tokens.forEach(t => t.setBlock(block));
+  }
+
   /** Update token array and process them so they're ready for exection. */
   updateTokens(tokens) {
     this._ready = false;
@@ -258,7 +270,7 @@ class TokenLine {
   prepare(doRPN = true) {
     if (this._ready) return;
     this._ready = true;
-    this.tokens.forEach(t => (t.block = this.block)); // Set block for each token
+    this.setBlock(this.block);
     this.parse(); // Parse
     if (doRPN) this.tokens = this.toRPN();
   }

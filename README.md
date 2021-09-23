@@ -184,7 +184,8 @@ See `Operators.md` for detailed operator help.
 | && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` | `__and__` |
 | \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` | `__or__` |
 | ?? | Nullish Coalescing | 5 | ltr | Returns LHS unless LHS is undefined, in which case return RHS | `undefined ?? 2` => `2` | n/a |
-| = | Assignment | 3 | rtl | Assigns the RHS to the LHS | `name = "john"` => `"john"` | `__assign__` |
+| = | Assignment | 3 | rtl | Assigns the RHS to the LHS (creates new symbol binding) | `name = "john"` => `"john"` | `__assign__` |
+| => | Nonlocal Assignment | 3 | rtl | Assigns the RHS to the LHS (uses existing symbol binding) | `name => "john"` => `"john"` | `__nonlocalAssign__` |
 | += | Addition Assignment | 3 | rtl | Assigns RHS to RHS + LHS | `a = 10, a += 2, a` => `12` | `__assignAdd__` |
 | -= | Subtraction Assignment | 3 | rtl | Assigns RHS to RHS - LHS | `a = 10, a -= 2, a` => `8` | `__assignSub__` |
 | *= | Multiplication Assignment | 3 | rtl | Assigns RHS to RHS * LHS | `a = 10, a *= 2, a` => `20` | `__assignMul__` |

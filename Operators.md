@@ -76,7 +76,8 @@ There are some types listed that are general terms:
 | `==` | `map` | `map` | Return true if same size and all keys are equivalent and values are equivalent | `{"name":"Joe"} == {"name":"Joe"}` => `true` |
 | `()` | `func` | argument string | Calls arg1 with arguments arg2 | `sin(1)` => `0.8414709848078965` |
 | `==` | `func` | `func` | Return true if function names match | `sin == sin` => `true` |
-| `=` | `symbol` | `any` | Sets variable arg1 to arg2 | `a = 10, a` => `10` |
+| `=` | `symbol` | `any` | Creates new binding for symbol arg1 and sets to arg2 | `a = 10, a` => `10` |
+| `=>` | `symbol` | `any` | Sets existing binding to symbol arg1 to arg2 (symbol must already have been defined) | `a => 10, a` => `10` |
 | `+=` | `symbol` | `any` | Adds arg2 to variable arg1 | `a = 10, a += 5, a` => `15` |
 | `-=` | `symbol` | `any` | Subtracts arg2 from variable arg1 | `a = 10, a -= 5, a` => `5` |
 | `*=` | `symbol` | `any` | Multiplies variable arg1 by arg2 | `a = 10, a *= 2, a` => `20` |
