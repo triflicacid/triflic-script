@@ -1,7 +1,6 @@
 func main() {
   a = 12;
   b = 10;
-  scope_push();
 }
 
 main();
