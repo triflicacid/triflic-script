@@ -231,7 +231,30 @@ function decodeEscapeSequence(string, pos) {
         nlit += string[pos];
         pos++;
       }
+      if (nlit.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid hexadecimal escape sequence. Expected hexadecimal character, got '${string[pos]}'`);
       char = String.fromCharCode(parseInt(nlit, 16));
+      break;
+    }
+    case 'o': { // OCTAL ESCAPE SEQUENCE
+      pos++;
+      let nlit = '';
+      while (string[pos] && /[0-7]/.test(string[pos])) {
+        nlit += string[pos];
+        pos++;
+      }
+      if (nlit.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid octal escape sequence. Expected octal character, got '${string[pos]}'`);
+      char = String.fromCharCode(parseInt(nlit, 8));
+      break;
+    }
+    case 'd': { // DECIMAL ESCAPE SEQUENCE
+      pos++;
+      let nlit = '';
+      while (string[pos] && /[0-9]/.test(string[pos])) {
+        nlit += string[pos];
+        pos++;
+      }
+      if (nlit.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid decimal escape sequence. Expected decimal character, got '${string[pos]}'`);
+      char = String.fromCharCode(parseInt(nlit, 10));
       break;
     }
   }

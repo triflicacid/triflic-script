@@ -691,16 +691,29 @@ class TokenLine {
                 while (true) {
                   if (!currLine.tokens[currTokenI]) throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct: unexpected end of input`);
                   if (currLine.tokens[currTokenI] instanceof KeywordToken && currLine.tokens[currTokenI].value === 'case') {
-                    if (currLine.tokens[currTokenI + 1] instanceof BracketedTokenLines && currLine.tokens[currTokenI + 1].opening === '(') {
-                      if (currLine.tokens[currTokenI + 2] instanceof BracketedTokenLines && currLine.tokens[currTokenI + 2].opening === '{') {
-                        const block = this.block.createChild(currLine.tokens[currTokenI + 2].value, currLine.tokens[currTokenI + 2].pos);
-                        structure.addCase(currLine.tokens[currTokenI + 1], block);
-                        currTokenI += 3;
+                    let conditions = [], offset = 1;
+
+                    while (true) {
+                      if (currLine.tokens[currTokenI + offset] instanceof BracketedTokenLines && currLine.tokens[currTokenI + offset].opening === '(') {
+                        conditions.push(currLine.tokens[currTokenI + offset]);
+                        offset++;
+
+                        if (currLine.tokens[currTokenI + offset] instanceof OperatorToken && currLine.tokens[currTokenI + offset].value === ',') {
+                          offset++;
+                        } else {
+                          break;
+                        }
                       } else {
-                        throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct at position ${structure.pos}: expected '{' following 'case (...)', got '${currLine.tokens[currTokenI + 2]?.toString()[0] ?? 'end of input'}' following position ${currLine.tokens[currTokenI + 1].pos}`);
+                        throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct at position ${structure.pos}: expected '(' following case-clause (at ${currLine.tokens[currTokenI].pos}), got '${currLine.tokens[currTokenI + offset]?.toString()[0] ?? 'end of input'}' at ${currLine.tokens[currTokenI + offset].pos}`);
                       }
+                    }
+
+                    if (currLine.tokens[currTokenI + offset] instanceof BracketedTokenLines && currLine.tokens[currTokenI + offset].opening === '{') {
+                      const block = this.block.createChild(currLine.tokens[currTokenI + offset].value, currLine.tokens[currTokenI + offset].pos);
+                      structure.addCase(conditions, block);
+                      currTokenI += offset + 1;
                     } else {
-                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct at position ${structure.pos}: expected '(' following 'case', got '${currLine.tokens[currTokenI + 1]?.toString()[0] ?? 'end of input'}' at ${currLine.tokens[currTokenI].pos}`);
+                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct at position ${structure.pos}: expected '{' following 'case (...)', got '${currLine.tokens[currTokenI + 2]?.toString()[0] ?? 'end of input'}' following position ${currLine.tokens[currTokenI + 1].pos}`);
                     }
                   } else if (currLine.tokens[currTokenI] instanceof KeywordToken && currLine.tokens[currTokenI].value === 'else') {
                     if (currLine.tokens[currTokenI + 1] instanceof BracketedTokenLines && currLine.tokens[currTokenI + 1].opening === '{') {

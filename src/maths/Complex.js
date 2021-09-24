@@ -123,15 +123,29 @@ class Complex {
     return this.a === z.a && this.b === z.b;
   }
 
-  toString() {
+  toString(radix = undefined) {
     if (Complex.isNaN(this)) return 'NaN';
     if (this.a === 0 && this.b === 0) return '0';
     let str = '';
-    if (this.a !== 0) str += this.a;
+    if (this.a !== 0) str += this.a.toString(radix);
     if (this.b !== 0) {
       if (this.b >= 0 && this.a !== 0) str += '+';
       if (this.b === -1) str += '-';
-      else if (this.b !== 1) str += this.b;
+      else if (this.b !== 1) str += this.b.toString(radix);
+      str += Complex.imagLetter;
+    }
+    return str;
+  }
+
+  toLocaleString(locales = undefined, options = undefined) {
+    if (Complex.isNaN(this)) return 'NaN';
+    if (this.a === 0 && this.b === 0) return '0';
+    let str = '';
+    if (this.a !== 0) str += this.a.toLocaleString(locales, options);
+    if (this.b !== 0) {
+      if (this.b >= 0 && this.a !== 0) str += '+';
+      if (this.b === -1) str += '-';
+      else if (this.b !== 1) str += this.b.toLocaleString(locales, options);
       str += Complex.imagLetter;
     }
     return str;

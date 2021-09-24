@@ -1,7 +1,7 @@
-a = 5;
+a = 10;
 
 switch (a) {
-    case (5) { println("Multiple of Five!"); }
+    case (5), (10) { println("Five or Ten"); }
     case (1) { println("One!"); }
     else { println("Other!"); }
 }

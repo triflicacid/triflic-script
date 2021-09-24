@@ -559,7 +559,7 @@ class ReturnStructure extends Structure {
 class SwitchStructure extends Structure {
   /**
    * @param query - query value in switch(<query>)
-   * @param cases - array of [case: BracketedTokenLines, body: Block]
+   * @param cases - array of [cases: BracketedTokenLines[], body: Block]
    * @param elseBlock - else block (Block)
    */
   constructor(pos, query, cases = [], elseBlock = undefined) {
@@ -569,8 +569,8 @@ class SwitchStructure extends Structure {
     this.elseBlock = elseBlock;
   }
 
-  addCase(condition, block) {
-    this.cases.push([condition, block]);
+  addCase(conditions, block) {
+    this.cases.push([conditions, block]);
   }
 
   addElse(block) {
@@ -583,10 +583,12 @@ class SwitchStructure extends Structure {
     this.query.prepare();
 
     // Check that each case condition only has ONE line
-    for (const [condition, block] of this.cases) {
-      if (condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
-      if (condition.value.length > 1) throw new expectedSyntaxError(')', peek(condition.value[0].tokens));
-      condition.prepare();
+    for (const [conditions, block] of this.cases) {
+      for (const condition of conditions) {
+        if (condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
+        if (condition.value.length > 1) throw new expectedSyntaxError(')', peek(condition.value[0].tokens));
+        condition.prepare();
+      }
       block.breakable = 1;
       block.prepare();
     }
@@ -599,19 +601,21 @@ class SwitchStructure extends Structure {
     let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
     let lastVal;
 
-    for (const [condition, block] of this.cases) {
-      let value = await condition.eval(evalObj);
-      if (equal(query, value)) {
-        lastVal = await block.eval(obj);
-        enteredCase = true;
-      }
-
-      if (enteredCase || obj.action === 1) break;
-      else if (obj.action === 2) {
-        obj.action = 0;
-      } else if (obj.action === 3) {
-        propagateEvalObj(obj, evalObj);
-        break;
+    for (const [conditions, block] of this.cases) {
+      for (const condition of conditions) {
+        let value = await condition.eval(evalObj);
+        if (equal(query, value)) {
+          lastVal = await block.eval(obj);
+          enteredCase = true;
+        }
+  
+        if (enteredCase || obj.action === 1) break;
+        else if (obj.action === 2) {
+          obj.action = 0;
+        } else if (obj.action === 3) {
+          propagateEvalObj(obj, evalObj);
+          break;
+        }
       }
     }
 

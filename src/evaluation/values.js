@@ -37,7 +37,7 @@ class Value {
   __pos__() { return this.castTo('complex'); }
 
   /** operator: u- */
-  __neg__() { return new NumberValue(this.rs, this.toPrimitive('complex').mult(-1)); }
+  __neg__() { return new NumberValue(this.rs, Complex.mult(this.toPrimitive('complex'), -1)); }
 
   /** operator: ' */
   __not__() { return new BoolValue(this.rs, !this.toPrimitive('bool')); }
@@ -249,12 +249,23 @@ class StringValue extends Value {
   /** copy() function */
   __copy__() { return new StringValue(this.rs, this.value); }
 
+  /** min() function */
+  __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.min(...this.value.split('').map(chr => chr.charCodeAt(0)))); }
+  
+  /** max() function */
+  __max__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.max(...this.value.split('').map(chr => chr.charCodeAt(0)))); }
+
   __iter__() {
     return this.value.split('');
   }
 
   /** operator: == */
-  __eq__(a) { return new BoolValue(this.rs, a.type() === 'string' ? this.toString() === a.toString() : false); }
+  __eq__(a) {
+    let eq = false, aT = a.type();
+    if (aT === 'string') eq = this.toString() === a.toString();
+    else if (aT === 'char') eq = this.value.length === 1 && this.value.charCodeAt(0) === a.value;
+    return new BoolValue(this.rs, eq);
+  }
 
   /** operator: * */
   __mul__(n) {
@@ -301,8 +312,9 @@ class CharValue extends Value {
   __eq__(other) {
     let t = other.type(), eq = false;
     if (t === 'char') eq = this.value === other.value;
-    else if (t === 'string') eq = this.value === other.value.charCodeAt(0);
-    else if (isRealType(t)) eq = this.value === other.value.a;
+    else if (t === 'string') eq = other.value.length === 1 && this.value === other.value.charCodeAt(0);
+    else if (t === 'real') eq = this.value === other.value.a;
+    else if (t === 'bool') eq = this.value === other.value;
     return new BoolValue(this.rs, eq);
   }
 
@@ -458,6 +470,12 @@ class ArrayValue extends Value {
   /** abs() function */
   __abs__() { return this.value.length; }
 
+  /** min() function */
+  __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.min(...this.value.map(v => v.toPrimitive('real')))); }
+  
+  /** max() function */
+  __max__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.max(...this.value.map(v => v.toPrimitive('real')))); }
+
   /** get() function */
   __get__(i) {
     i = i.toPrimitive('real_int');
@@ -585,6 +603,12 @@ class SetValue extends Value {
   /** abs() function */
   __abs__() { return this.value.length; }
 
+  /** min() function */
+  __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.min(...this.value.map(v => v.toPrimitive('real')))); }
+  
+  /** max() function */
+  __max__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.max(...this.value.map(v => v.toPrimitive('real')))); }
+
   /** reverse() function */
   __reverse__() {
     this.value.reverse();
@@ -675,6 +699,32 @@ class MapValue extends Value {
   /** abs() function */
   __abs__() { return this.value.size; }
 
+  /** min() function */
+  __min__() {
+    if (this.value.size === 0) return this.rs.UNDEFINED;
+    let minKey, minVal = new NumberValue(this.rs, -Infinity);
+    this.value.forEach((val, key) => {
+      if (val.__gt__(minVal)) {
+        minKey = key;
+        minVal = val;
+      }
+    });
+    return minKey;
+  }
+  
+  /** max() function */
+  __max__() {
+    if (this.value.size === 0) return this.rs.UNDEFINED;
+    let maxKey, maxVal = new NumberValue(this.rs, Infinity);
+    this.value.forEach((val, key) => {
+      if (val.__lt__(maxVal)) {
+        maxKey = key;
+        maxVal = val;
+      }
+    });
+    return maxKey;
+  }
+
   /** get() function */
   __get__(key) {
     key = key.toString();
@@ -755,15 +805,6 @@ class FunctionRefValue extends Value {
   toString() {
     return `<function ${this.value.name}>`;
   }
-
-  /** del() function */
-  // __del__() {
-  //   if (this.func) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot delete unbound function`);
-  //   const f = this.getFn();
-  //   if (f.constant) throw new Error(`[${errors.DEL}] Argument Error: Attempt to delete constant reference to ${this.toString()}`);
-  //   this.rs.func(this.value, null);
-  //   return new NumberValue(this.rs, 0);
-  // }
 
   /** When this is called. Takes array of Value classes as arguments */
   async __call__(evalObj, args) {

@@ -72,7 +72,7 @@ Any other extension:
 ## Magic Methods
 Some functions call a method of the argument. As such, implementation may be changed by external code.
 
-- `del(a, b)` calls `a.__del__(b)` (NB with one argument `del(a)` does not)
+- `del(a, b)` calls `a.__del__(b)`
 - `copy(a)` calls `a.__copy__()`
 - `len(a)` calls `a.__len__()`
 - `abs(a)` calls `a.__abs__()`
@@ -80,6 +80,8 @@ Some functions call a method of the argument. As such, implementation may be cha
 - `set(a, b, c)` calls `a.__set__(b, c)`
 - `reverse(a)` calls `a.__reverse__()`
 - `find(a, b)` calls `a.__find__(b)`
+- `min(a)` calls `a.__min__()`
+- `max(a)` calls `a.__max__()`
 
 ## Input
 A program may be interpreted and executed via `Runspace#execute`
@@ -120,7 +122,9 @@ Character escaped may appear in string and character literals. Any character fol
 - `v` - vertical tab (`0xB`)
 - `r` - carriage return (`0xD`)
 - `s` - space (`0x20`)
-- `x([0-9A-Fa-f]+)` - inserts character with hexadecimal ascii code of `[0-9A-Fa-f]+` into literal. (`0x([0-9A-Fa-f]+)`)
+- `x([0-9A-Fa-f]+)` - inserts character with hexadecimal ascii code of `[0-9A-Fa-f]+` into literal.
+- `o([0-7]+)` - inserts character with octal ascii code of `[0-7]+` into literal.
+- `d([0-9]+)` - inserts character with decimal ascii code of `[0-9]+` into literal.
 - Else, simply inserts following character into literal
 
 ### Variables
@@ -317,8 +321,7 @@ i.e. the lines `a = func() { 1; }();` and `a = func() { return 1; }();` are esse
 Syntax:
 ```
 switch (<match>) { 
-  case (<value>) { <block> }
-  case (<value>) { <block> }
+  case (<value>)[, (<value2>)[, ...]] { <block> }
   [else { <block> }]
 }
 ```

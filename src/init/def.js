@@ -124,6 +124,16 @@ function define(rs) {
     if (length === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no len()`);
     return new NumberValue(rs, length === undefined ? NaN : length);
   }, 'return length of argument'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'max', { o: 'any' }, ({ o }) => {
+    const max = o.castTo("any").__max__?.();
+    if (max === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no max()`);
+    return max;
+  }, 'return maximum value of the argument'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'min', { o: 'any' }, ({ o }) => {
+    const min = o.castTo("any").__min__?.();
+    if (min === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no min()`);
+    return min;
+  }, 'return minimum value of the argument'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'abs', { o: 'any' }, ({ o }) => {
     const abs = o.castTo("any").__abs__?.();
     if (abs === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no abs()`);
@@ -347,30 +357,27 @@ function defineFuncs(rs) {
     rs.setVarObj(a.value, b.getVar());
     return a;
   }, 'Place a reference to variable b in variable a (ties both variables together)'));
-  // TODO Finish implementation
-  // rs.defineFunc(new RunspaceBuiltinFunction(rs, 'complex_roots', { n: 'complex', r: 'complex' }, ({ n, r }) => {
-  //   n = n.toPrimitive("complex");
-  //   r = r.toPrimitive("complex");
-  //   const solutions = [];
-  //   const ztwopi = Complex.mult(2, Math.PI);
-  //   const newR = Math.pow(r, 1/n), imag = new Complex(0, 1);
-  //   const formula = k => {
-  //     const theta = Complex.add(Math.PI, Complex.mult(ztwopi, k)).div(n);
-  //     const C = Complex.cos(theta).mult(newR);
-  //     const S = Complex.sin(theta).mult(newR).mult(imag);
-  //     return Complex.add(C, S);
-  //   };
-  //   let i = 1, k = 1, neg = 0, abs = Complex.abs(n);
-  //   solutions.push(formula(0));
-  //   while (true) {
-  //     solutions.push(formula(neg ? -k : k));
-  //     if (i > abs) break;
-  //     if (neg === 1) k++;
-  //     neg ^= 1;
-  //     i++;
-  //   }
-  //   return new SetValue(rs, solutions.map(z => new NumberValue(rs, z))).castTo('array');
-  // }, 'Returns array of roots for x**n = r'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nformat', { n: 'complex', region: '?string' }, ({ n, region }) => new StringValue(rs, n.toPrimitive('complex').toLocaleString(region ? region.toPrimitive('string') : 'en-GB')), 'Return formatted number string'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'zroots', { n: 'real_int', r: 'complex' }, ({ n, r }) => {
+    n = n.toPrimitive("real_int");
+    r = r.toPrimitive("complex");
+    const angles = [];
+    const ztwopi = Complex.mult(2, Math.PI);
+    const getAngle = k => Complex.add(Math.PI, Complex.mult(ztwopi, k)).div(n); // Get angle of rotation using constant k
+    let k = 1, neg = 0;
+    angles.push(getAngle(0));
+    while (true) {
+      let angle = getAngle(neg ? -k : k);
+      let already = angles.some(a => a === angle);
+      if (!already) angles.push(angle);
+      if (angles.length > n) break;
+      if (neg === 1) k++;
+      neg ^= 1;
+    }
+    const newR = Math.pow(r, Complex.div(1, n)), imag = new Complex(0, 1);
+    const solutions = angles.map(angle => Complex.add(Complex.cos(angle).mult(newR), Complex.sin(angle).mult(newR).mult(imag))); // Transform from angle to full complex number (r*e**(i*theta) to a+bi)
+    return new ArrayValue(rs, solutions.map(n => new NumberValue(rs, n)));
+  }, 'Returns array of roots for z**n = r'));
 }
 
 module.exports = { define, defineVars, defineFuncs };
