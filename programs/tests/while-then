@@ -1,8 +1,7 @@
 i = 10;
 while (i > 0) {
   println(i);
-  i--;
-  # break;
+  i -= 1;
 } then {
   println("Finished!");
 }

@@ -2,7 +2,7 @@ const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest } = require("../maths/functions");
-const { print, sort, findIndex } = require("../utils");
+const { print, sort, findIndex, system } = require("../utils");
 const { typeOf, types, isNumericType } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
@@ -189,8 +189,8 @@ function define(rs) {
     }
     return new ArrayValue(rs, array);
   }, 'Apply func(value, ?index) to each item in array (returns new array)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'reduce', { arr: 'array', fn: 'func' }, async ({ arr, fn }, evalObj) => {
-    let acc = new NumberValue(rs, 0);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'reduce', { arr: 'array', fn: 'func', initial: '?any' }, async ({ arr, fn, initial }, evalObj) => {
+    let acc = initial ? initial.castTo('any') : new NumberValue(rs, 0);
     fn = fn.castTo('func').getFn();
     if (fn.argCount !== 2 && fn.argCount !== 3) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must have 2 or 3 arguments, got function with ${fn.argCount} arguments`);
     arr = arr.toPrimitive('array');
@@ -199,7 +199,7 @@ function define(rs) {
       acc = await fn.call(evalObj, args);
     }
     return acc;
-  }, 'Reduce array to single value via func(acc, current, ?index). Initially acc = 0'));
+  }, 'Reduce array to single value via func(acc, current, ?index). Initially, acc = initial or 0'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'find', { obj: 'any', item: 'any' }, ({ obj, item }) => {
     item = item.castTo("any");
     obj = obj.castTo("any");
@@ -229,6 +229,16 @@ function define(rs) {
       throw new Error(`[${errors.BAD_ARG}] Argument Error: no such error code [${code}]`);
     }
   }, 'Return brief description of an error code (the [...] in an error message)'));
+
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'system', { cmd: 'string' }, async ({ cmd }) => {
+    cmd = cmd.castTo('string');
+    try {
+      let ret = await system(cmd.toPrimitive('string'));
+      return new StringValue(rs, ret);
+    } catch (e) {
+      throw new Error(`[${errors.GENERAL}] Error whilst running command '${cmd}':\n${e}`);
+    }
+  }, 'Execute a system command and return STDOUT'));
 
   return rs;
 }
@@ -337,6 +347,30 @@ function defineFuncs(rs) {
     rs.setVarObj(a.value, b.getVar());
     return a;
   }, 'Place a reference to variable b in variable a (ties both variables together)'));
+  // TODO Finish implementation
+  // rs.defineFunc(new RunspaceBuiltinFunction(rs, 'complex_roots', { n: 'complex', r: 'complex' }, ({ n, r }) => {
+  //   n = n.toPrimitive("complex");
+  //   r = r.toPrimitive("complex");
+  //   const solutions = [];
+  //   const ztwopi = Complex.mult(2, Math.PI);
+  //   const newR = Math.pow(r, 1/n), imag = new Complex(0, 1);
+  //   const formula = k => {
+  //     const theta = Complex.add(Math.PI, Complex.mult(ztwopi, k)).div(n);
+  //     const C = Complex.cos(theta).mult(newR);
+  //     const S = Complex.sin(theta).mult(newR).mult(imag);
+  //     return Complex.add(C, S);
+  //   };
+  //   let i = 1, k = 1, neg = 0, abs = Complex.abs(n);
+  //   solutions.push(formula(0));
+  //   while (true) {
+  //     solutions.push(formula(neg ? -k : k));
+  //     if (i > abs) break;
+  //     if (neg === 1) k++;
+  //     neg ^= 1;
+  //     i++;
+  //   }
+  //   return new SetValue(rs, solutions.map(z => new NumberValue(rs, z))).castTo('array');
+  // }, 'Returns array of roots for x**n = r'));
 }
 
 module.exports = { define, defineVars, defineFuncs };

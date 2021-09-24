@@ -1,8 +1,7 @@
 const { errors } = require("../errors");
 const { RunspaceUserFunction } = require("../runspace/Function");
-const { expectedSyntaxError, peek, createEvalObj, propagateEvalObj } = require("../utils");
-const { parseSymbol } = require("./parse");
-const { FunctionRefValue, ArrayValue, SetValue, MapValue, UndefinedValue } = require("./values");
+const { expectedSyntaxError, peek, createEvalObj, propagateEvalObj, equal } = require("../utils");
+const { FunctionRefValue, ArrayValue, SetValue, MapValue } = require("./values");
 
 class Structure {
   constructor(name, pos) {
@@ -81,7 +80,6 @@ class SetStructure extends Structure {
   }
 }
 class IfStructure extends Structure {
-
   /**
    * @param conditionals - array of [condition: BracketedTokenLines, body: Block]
    * @param thenBlock - else block (Block)
@@ -558,10 +556,77 @@ class ReturnStructure extends Structure {
   }
 }
 
+class SwitchStructure extends Structure {
+  /**
+   * @param query - query value in switch(<query>)
+   * @param cases - array of [case: BracketedTokenLines, body: Block]
+   * @param elseBlock - else block (Block)
+   */
+  constructor(pos, query, cases = [], elseBlock = undefined) {
+    super("SWITCH", pos);
+    this.query = query;
+    this.cases = cases;
+    this.elseBlock = elseBlock;
+  }
+
+  addCase(condition, block) {
+    this.cases.push([condition, block]);
+  }
+
+  addElse(block) {
+    this.elseBlock = block;
+  }
+
+  validate() {
+    if (this.query.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
+    if (this.query.value.length > 1) throw new expectedSyntaxError(')', peek(this.query.value[0].tokens));
+    this.query.prepare();
+
+    // Check that each case condition only has ONE line
+    for (const [condition, block] of this.cases) {
+      if (condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
+      if (condition.value.length > 1) throw new expectedSyntaxError(')', peek(condition.value[0].tokens));
+      condition.prepare();
+      block.breakable = 1;
+      block.prepare();
+    }
+    if (this.elseBlock) this.elseBlock.prepare();
+  }
+
+  async eval(evalObj) {
+    let query = await this.query.eval(evalObj);
+    let enteredCase = false;
+    let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    let lastVal;
+
+    for (const [condition, block] of this.cases) {
+      let value = await condition.eval(evalObj);
+      if (equal(query, value)) {
+        lastVal = await block.eval(obj);
+        enteredCase = true;
+      }
+
+      if (enteredCase || obj.action === 1) break;
+      else if (obj.action === 2) {
+        obj.action = 0;
+      } else if (obj.action === 3) {
+        propagateEvalObj(obj, evalObj);
+        break;
+      }
+    }
+
+    if (this.elseBlock && !enteredCase) {
+      lastVal = await this.elseBlock.eval(obj);
+    }
+
+    return lastVal;
+  }
+}
+
 module.exports = {
   Structure,
   ArrayStructure, SetStructure, MapStructure,
-  IfStructure,
+  IfStructure, SwitchStructure,
   WhileStructure, DoWhileStructure, UntilStructure, DoUntilStructure, LoopStructure,
   ForStructure, ForInStructure,
   FuncStructure,

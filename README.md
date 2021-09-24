@@ -8,15 +8,14 @@ If I has known how this would progress, I would've written this in Java or C++ f
 For more help, see `programs/` and the built-in `help` function.
 
 ## Important Notes
-- Inline function definitions in format `<name>(<args>) = ...` has been disabled
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
 
 ## TODO
-- Nested-expression shortcut. Currently, `a = [a]` infinity recurses as a is equal to an array containing itself. Detecting this and printing e.g. `...` or `<ref a>` would be optimal.
 - Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
-- proper block-scoped variable scoping (current system doesn't work well with e.g. recursion)
 - String interpolation via `{}`
 - Expandable/Collapsable argument arrays via `...`
+- Switch..Case blocks: multi-case blocks e.g. `case (5) || (10) {...}`
+- Lambda functions e.g. `(<arglist>) -> ... ;` (contents of function is until EOL)
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -130,12 +129,10 @@ Variables store values in memory. There are some predefined variables (assuming 
 Variables may be assigned to using the `=` assignment operator. Variables may be functions.
 
 - Assignment using `=`:
-  - Does the variable exist?
-  - If so, update the value of that variable
-  - If not, create a new variable with the value
+  - Creates a new local variable `symbol` with value `value`
 
-- Assignment using `let`
-  - Defines a new variable in the current scope.
+- Assignment using `=>`
+  - Sets `symbol` to `value`. If no binding to `symbol` exists, throws an error.
 
 ### Functions
 Functions recieve arguments and return a value.
@@ -143,7 +140,6 @@ Functions recieve arguments and return a value.
 There are two types of functions: `built-in`s and `user-defined`
 - `built-in`s are pre-defined internally using JavaScript.
 - `user-defined`s are defined by the user
-  - Inline via `<name>(<arg1>[, <arg2>[, ...]]) = ...`
   - Via `func` keyword
 
 ### Operators
@@ -316,6 +312,18 @@ Terminates current function and returns values `...` from the function.
 
 As everything is an expression and the last value is returned anyway, a `return` statement is not needed on the last line of a function.
 i.e. the lines `a = func() { 1; }();` and `a = func() { return 1; }();` are essentially the same.
+
+### `switch`
+Syntax:
+```
+switch (<match>) { 
+  case (<value>) { <block> }
+  case (<value>) { <block> }
+  [else { <block> }]
+}
+```
+
+Tests the value `<match>` against each case `<value>`. If a case `<block>` is enetered, the rest of `case`s are skipped. `else` is executed if no `case` is matched.
 
 ## Types
 Variables all have a type which may change. New types may be added - see `imports/matrix.js` for an example.

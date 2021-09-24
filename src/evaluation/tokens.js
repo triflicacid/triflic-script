@@ -3,9 +3,10 @@ const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = r
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
 const operators = require("./operators");
 const { errors } = require("../errors");
-const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure } = require("./structures");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure, SwitchStructure } = require("./structures");
 const { Block } = require("./block");
 const { isNumericType } = require("./types");
+const { Structures } = require("discord.js");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -40,7 +41,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "return", "then"];
+KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "return", "then", "switch", "case"];
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
@@ -304,7 +305,8 @@ class TokenLine {
     try {
       return this._parse();
     } catch (e) {
-      throw new Error(`${this.source}: \n${e} `);
+      throw e;
+      // throw new Error(`${this.source}: \n${e} `);
     }
   }
 
@@ -398,10 +400,10 @@ class TokenLine {
                         structure.addBranch(this.tokens[i + 2], this.tokens[i + 3]);
                         this.tokens.splice(i, 4); // Remove "else" "if" "(...)" "{...}"
                       } else {
-                        throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 3] ?? 'end of input'} at ${this.tokens[i].pos}`);
+                        throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct at position ${this.tokens[i].pos}: expected condition (...) got ${this.tokens[i + 3] ?? 'end of input'} at ${this.tokens[i].pos}`);
                       }
                     } else {
-                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct: expected condition (...) got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
+                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE-IF construct at position ${this.tokens[i].pos}: expected condition (...) got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
                     }
                   } else {
                     let block = this.tokens[i + 1];
@@ -410,7 +412,7 @@ class TokenLine {
                       this.tokens.splice(i, 2); // Remove "else" "{...}"
                       break;
                     } else {
-                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE construct: expected block {...} got ${this.tokens[i + 1] ?? 'end of input'}`);
+                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal ELSE construct at position ${this.tokens[i].pos}: expected block {...} got ${this.tokens[i + 1] ?? 'end of input'}`);
                     }
                   }
                 }
@@ -418,10 +420,10 @@ class TokenLine {
                 structure.validate();
                 this.tokens.splice(i, 0, structure);
               } else {
-                throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected block {...} got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
+                throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct at position ${this.tokens[i].pos}: expected block {...} got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
               }
             } else {
-              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct: expected condition (...) got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos}`);
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal IF construct at position ${this.tokens[i].pos}: expected condition (...) got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos}`);
             }
             break;
           }
@@ -671,6 +673,60 @@ class TokenLine {
               let structure = new ReturnStructure(this.tokens[i].pos, tokenLine);
               structure.validate();
               this.tokens[i] = structure;
+            }
+            break;
+          }
+          case "switch": {
+            if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === "(") {
+              if (this.tokens[i + 2] instanceof Block) {
+                const structure = new SwitchStructure(this.tokens[i].pos, this.tokens[i + 1]);
+                const switchBlock = this.tokens[i + 2];
+
+                this.tokens.splice(i, 3); // Remove "switch" "(...)" "{...}"
+
+                let currLine = switchBlock.tokenLines[0];
+                if (!currLine) throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct: empty block {...} at ${switchBlock.pos}`);
+
+                let currLineI = 0, currTokenI = 0;
+                while (true) {
+                  if (!currLine.tokens[currTokenI]) throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct: unexpected end of input`);
+                  if (currLine.tokens[currTokenI] instanceof KeywordToken && currLine.tokens[currTokenI].value === 'case') {
+                    if (currLine.tokens[currTokenI + 1] instanceof BracketedTokenLines && currLine.tokens[currTokenI + 1].opening === '(') {
+                      if (currLine.tokens[currTokenI + 2] instanceof BracketedTokenLines && currLine.tokens[currTokenI + 2].opening === '{') {
+                        const block = this.block.createChild(currLine.tokens[currTokenI + 2].value, currLine.tokens[currTokenI + 2].pos);
+                        structure.addCase(currLine.tokens[currTokenI + 1], block);
+                        currTokenI += 3;
+                      } else {
+                        throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct at position ${structure.pos}: expected '{' following 'case (...)', got '${currLine.tokens[currTokenI + 2]?.toString()[0] ?? 'end of input'}' following position ${currLine.tokens[currTokenI + 1].pos}`);
+                      }
+                    } else {
+                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct at position ${structure.pos}: expected '(' following 'case', got '${currLine.tokens[currTokenI + 1]?.toString()[0] ?? 'end of input'}' at ${currLine.tokens[currTokenI].pos}`);
+                    }
+                  } else if (currLine.tokens[currTokenI] instanceof KeywordToken && currLine.tokens[currTokenI].value === 'else') {
+                    if (currLine.tokens[currTokenI + 1] instanceof BracketedTokenLines && currLine.tokens[currTokenI + 1].opening === '{') {
+                      if (structure.elseBlock) throw new Error(`[${errors.SYNTAX}] Syntax Error: More than one else clause in switch statement at position ${currLine.tokens[currTokenI].pos} (previous else clause at position ${structure.elseBlock.pos})`);
+                      const block = this.block.createChild(currLine.tokens[currTokenI + 1].value, currLine.tokens[currTokenI + 1].pos);
+                      structure.addElse(block);
+                      currTokenI += 2;
+                    } else {
+                      throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct at position ${structure.pos}: expected '{' following 'else', got '${currLine.tokens[currTokenI + 1]?.toString()[0] ?? 'end of input'}' following position ${currLine.tokens[currTokenI].pos}`);
+                    }
+                  } else {
+                    throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct at position ${structure.pos}: expected 'case' or 'else', got '${currLine.tokens[currTokenI]}' at ${currLine.tokens[currTokenI].pos}`);
+                  }
+                  if (currTokenI >= currLine.tokens.length) {
+                    currLineI++;
+                    if (!switchBlock.tokenLines[currLineI]) break;
+                  }
+                }
+
+                structure.validate();
+                this.tokens.splice(i, 0, structure);
+              } else {
+                throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct: expected block {...} got ${this.tokens[i + 2] ?? 'end of input'} at ${this.tokens[i].pos}`);
+              }
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: illegal SWITCH construct: expected condition (...) got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos}`);
             }
             break;
           }

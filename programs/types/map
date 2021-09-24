@@ -1,9 +1,0 @@
-func set_ab(m: map) {
-  set(m, "a", 5);
-  set(m, "b", 5);
-}
-
-m = new("map");
-println(m);
-set_ab(m);
-println(m);

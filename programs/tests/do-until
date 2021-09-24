@@ -1,6 +1,6 @@
 c = 10;
 do {
   print(c + " ");
-  c--;
+  c -= 1;
 } until (c < 0);
 println();

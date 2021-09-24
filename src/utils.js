@@ -1,6 +1,7 @@
 const Complex = require("./maths/Complex");
 const readline = require("readline");
 const { errors } = require("./errors");
+const { exec } = require('child_process');
 
 const STDIN = process.stdin, STDOUT = process.stdout;
 
@@ -237,6 +238,19 @@ function decodeEscapeSequence(string, pos) {
   return { char, pos };
 }
 
+/** Run a system command */
+async function system(command) {
+  return new Promise((resolve, reject) => {
+    exec(command.toString(), (err, stdout, stderr) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
+}
+
 module.exports = {
-  input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence
+  system, input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence
 };
