@@ -14,8 +14,6 @@ For more help, see `programs/` and the built-in `help` function.
 - Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
 - String interpolation via `{}`
 - Expandable/Collapsable argument arrays via `...`
-- Switch..Case blocks: multi-case blocks e.g. `case (5) || (10) {...}`
-- Lambda functions e.g. `(<arglist>) -> ... ;` (contents of function is until EOL)
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -145,6 +143,18 @@ There are two types of functions: `built-in`s and `user-defined`
 - `built-in`s are pre-defined internally using JavaScript.
 - `user-defined`s are defined by the user
   - Via `func` keyword
+  - Via a lambda
+
+#### lambda
+A lambda is a short-hand syntax for defining single-line, anonymous functions
+
+Syntax: `<args> -> <body>`
+- `<args>` - either a single symbol e.g. `x` or an argument list e.g. `(x, y: ref string)`
+- `<body>` - function body. Either a block `{...}`, or up to `;` or `,`
+
+*NB This syntax is syntactic sugar for a `func` keyword. As such, while error positions may match, error messages may not*
+
+`f = x -> x * 2` is equivalent to `f = func(x) { x * 2 }`
 
 ### Operators
 See `Operators.md` for detailed operator help.

@@ -316,6 +316,28 @@ class TokenLine {
     for (let i = 0; i < this.tokens.length; i++) {
       if (this.tokens[i] instanceof ValueToken) {
         this.tokens[i] = this.tokens[i].value; // Remove all ValueToken objects
+      } else if ((this.tokens[i] instanceof VariableToken || (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '(')) && this.tokens[i+1] instanceof OperatorToken && this.tokens[i+1].value === '-' && this.tokens[i+2] instanceof OperatorToken && this.tokens[i+2].value === '>') {
+        let block, j = i + 3;
+        
+        if (this.tokens[j] instanceof BracketedTokenLines && this.tokens[j].opening === '{') {
+          block = this.block.createChild(this.tokens[j].value, this.tokens[j].pos);
+          j++;
+        } else {
+          // Extract everything up to EOL or COMMA
+          let tokens = [];
+          for (; j < this.tokens.length; j++) {
+            if (this.tokens[j] instanceof EOLToken || (this.tokens[j] instanceof OperatorToken && this.tokens[j].value === ',')) {
+              break;
+            } else {
+              tokens.push(this.tokens[j]);
+            }
+          }
+          if (tokens.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected following '->', got ${this.tokens[j] ? `${this.tokens[j]} at position ${this.tokens[j].pos}` : `end of input at position ${this.tokens[j-1].pos}`}`);
+          block = this.block.createChild([new TokenLine(this.rs, undefined, tokens)], this.tokens[i+3]?.pos);
+        }
+
+        let args = this.tokens[i] instanceof VariableToken ? new BracketedTokenLines(this, [new TokenLine(this.rs, undefined, [this.tokens[i]])], '(', this.tokens[i].pos) : this.tokens[i];
+        this.tokens.splice(i, j - i, new KeywordToken(this, 'func', this.tokens[i].pos), args, block);
       } else if (this.tokens[i] instanceof BracketedTokenLines) {
         let ok = true;
         if (this.tokens[i].opening === '[') { // *** ARRAY
@@ -778,7 +800,7 @@ class TokenLine {
         stack.push(cT);
       } else if (cT instanceof OperatorToken) {
         const info = cT.info();
-        if (stack.length < info.args) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${cT}' at position ${cT.pos} - stack underflow (expects ${info.args} values, got ${stack.length})`);
+        if (stack.length < info.args) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${cT.value}' at position ${cT.pos} - stack underflow (expects ${info.args} values, got ${stack.length})`);
         const args = stack.splice(stack.length - info.args);
         const val = await cT.eval(args, evalObj);
         stack.push(val);
