@@ -65,8 +65,10 @@ client.on('message', async msg => {
         if (envSessions[msg.author.id]) {
           envSessions[msg.author.id].discordLatestMsg = msg;
           try {
-            let out = await envSessions[msg.author.id].execute(msg.content);
+            let timeObj = {};
+            let out = await envSessions[msg.author.id].execute(msg.content, undefined, timeObj);
             if (out !== undefined) await msg.reply('`' + out.toString() + '`');
+            if (envSessions[msg.author.id]?.opts.timeExecution) await msg.reply(`Timeings: ${timeObj.parse} ms parsing, ${timeObj.exec} ms execution`);
           } catch (e) {
             let error = e.toString().split('\n').map(l => `\`⚠ ${l}\``).join('\n');
             await msg.reply(error);
