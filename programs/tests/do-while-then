@@ -2,7 +2,7 @@ c = 10;
 
 do {
   print(c + " ");
-  c--;
+  c -= 1;
 } while (c > 0) then {
   println("Finished!");
 }

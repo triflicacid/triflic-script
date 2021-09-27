@@ -24,4 +24,4 @@ func main() {
 
 main();
 
-# 500 ms
+// 500 ms

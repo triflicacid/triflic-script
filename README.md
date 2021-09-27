@@ -93,7 +93,8 @@ A program may be interpreted and executed via `Runspace#execute`
 ### Literals
 These are structures in the code which define values:
 
-- `#...` - comment is ignored
+- `// ...` - single line comment. Ends on a newline `\n` (ignored)
+- `/* ... */` - multiline comment. Ends on `*/` (ignored)
 - `123...` define numbers. Numbers:
   - May start with a sign `+/-`. Default is `+`.
   - Radix indicator `0[x|b|o|d]`. Default is `d`.

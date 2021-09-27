@@ -1,27 +1,27 @@
-# Function declaration
+// Function declaration
 func hi() { println("Hello"); }
 hi();
 
-# Function expression (remember semicolon at end)
+// Function expression (remember semicolon at end)
 hi = func() { println("Hello"); };
 hi();
 
-# With arguments
+// With arguments
 func add(a, b) { a + b; }
 println(add(5 + i, 3));
 
-# With argument types
+// With argument types
 func add(a: real, b: real) { a + b; }
 println(add(5 + i, 3));
 
-# Optional arguments
+// Optional arguments
 func greet(name: ?string) {
   println("Hello, " + (name ?? "Unknown"));
 }
 greet();
 greet("Joe");
 
-# Pass by reference
+// Pass by reference
 func swap(x: ref any, y: ref any) {
   tmp = x;
   x = y;
@@ -33,21 +33,21 @@ print("a:" + a + "; b:" + b);
 swap(a, b);
 println(" --> a:" + a + "; b:" + b);
 
-# Default value
+// Default value
 func greet(name = "Default") {
   println("Hello, " + name);
 }
 greet();
 greet("Joe");
 
-# Default value with type
+// Default value with type
 func greet(name: string = "Default") {
   println("Hello, " + name);
 }
 greet();
 greet(12 + i);
 
-# Lambda function
+// Lambda function
 f = x -> x * 2, pow = (a, b = 2) -> a ** b;
 println(f(10));
 println(pow(3));

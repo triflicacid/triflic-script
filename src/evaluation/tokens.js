@@ -971,11 +971,30 @@ function _tokenify(obj) {
       continue;
     }
 
-    // Comment? (only recognise in depth=0)
-    if (string[i] === '#') {
+    // Comment?
+    if (string[i] === '/' && string[i+1] === '/') {
       let comment = '';
+      i += 3; // Skip '//' 
       for (; i < string.length; i++, obj.pos++) {
-        if (string[i] === '\n') break;
+        if (string[i] === '\n') {
+          i++;
+          break;
+        }
+        comment += string[i];
+      }
+      currentLine.comment = comment;
+      continue;
+    }
+
+    // Multi-line Comment?
+    if (string[i] === '/' && string[i+1] === '*') {
+      let comment = '';
+      i += 3; // SKip '/*'
+      for (; i < string.length; i++, obj.pos++) {
+        if (string[i] === '*' && string[i+1] === '/') {
+          i += 2; // Skip '*/'
+          break;
+        }
         comment += string[i];
       }
       currentLine.comment = comment;

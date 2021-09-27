@@ -1,32 +1,32 @@
 func example1() {
-  x = 20; # Declare new local variable 'x' with value 20
-  println("Outer = " + x); # Print local variable 'x' value 20
+  x = 20; // Declare new local variable 'x' with value 20
+  println("Outer = " + x); // Print local variable 'x' value 20
   func() {
-    println("Inner = " + x); # No local 'x' exists, so search upper scope. 'x' with value 20 exists
-    x = 30; # Declare new local variable 'x' with value 30
-    println("Inner = " + x); # Local variable 'x' with value 30
+    println("Inner = " + x); // No local 'x' exists, so search upper scope. 'x' with value 20 exists
+    x = 30; // Declare new local variable 'x' with value 30
+    println("Inner = " + x); // Local variable 'x' with value 30
   }();
-  println("Outer = " + x); # Print local variable 'x' with value 20
+  println("Outer = " + x); // Print local variable 'x' with value 20
 }
 
 println("==== EXAMPLE ONE ====");
 example1();
 
-# Output: 20 20 30 20
+// Output: 20 20 30 20
 
 
 func example2() {
-  x = 20; # Declare new local variable 'x' with value 20
-  println("Outer = " + x); # Print local variable 'x' value 20
+  x = 20; // Declare new local variable 'x' with value 20
+  println("Outer = " + x); // Print local variable 'x' value 20
   func() {
-    println("Inner = " + x); # No local 'x' exists, so search upper scope. 'x' with value 20 exists
-    x => 30; # Search for nonlocal variable 'x' and set if to 30
-    println("Inner = " + x); # No local 'x' exists, so search upper scope. 'x' with value 30 exists
+    println("Inner = " + x); // No local 'x' exists, so search upper scope. 'x' with value 20 exists
+    x => 30; // Search for nonlocal variable 'x' and set if to 30
+    println("Inner = " + x); // No local 'x' exists, so search upper scope. 'x' with value 30 exists
   }();
-  println("Outer = " + x); # Print local variable 'x' with value 30 (as it was changed in the above function)
+  println("Outer = " + x); // Print local variable 'x' with value 30 (as it was changed in the above function)
 }
 
 println("\n==== EXAMPLE 2 ====");
 example2();
 
-# Output: 20 20 30 30
+// Output: 20 20 30 30
