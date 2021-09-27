@@ -1,7 +1,7 @@
 const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
-const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest } = require("../maths/functions");
+const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli } = require("../maths/functions");
 const { print, sort, findIndex, system } = require("../utils");
 const { typeOf, types, isNumericType } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue } = require("../evaluation/values");
@@ -349,6 +349,9 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'lambertw', { z: 'complex', k: '?real', tol: '?real' }, ({ z, k, tol }) => new NumberValue(rs, lambertw(z.toPrimitive('complex'), k?.toPrimitive('real'), tol?.toPrimitive('real'))), 'return approximation of the Lambert W function at <k> branch with <tol> tolerance'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'wrightomega', { z: 'complex' }, ({ z }) => new NumberValue(rs, wrightomega(z.toPrimitive('complex'))), 'return approximation of the Wright Omega function'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'gamma', { z: 'complex' }, ({ z }) => new NumberValue(rs, gamma(z.toPrimitive('complex'))), 'Return the gamma function at z'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'zeta', { x: 'real', q: '?real' }, ({ x, q }) => new NumberValue(rs, zeta(x.toPrimitive('real'), q?.toPrimitive('real'))), 'return approximation of the Zeta function of <x>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'bernoulli', { n: 'real' }, ({ n }) => new NumberValue(rs, bernoulli(n.toPrimitive('real'))), 'return approximation of the Zeta function of <x>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'stirling', { z: 'complex' }, ({ z }) => new NumberValue(rs, stirling(z.toPrimitive('complex'))), 'Return Stirling\'s Approximation at z'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nextNearest', { n: 'real', next: 'real' }, ({ n, next }) => new NumberValue(rs, nextNearest(n.toPrimitive('real'), next.toPrimitive('real'))), 'Return the next representable double from value <n> towards <next>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sleep', { ms: 'real_int' }, async ({ ms }) => new Promise((resolve) => setTimeout(() => resolve(ms), ms.toPrimitive('real_int'))), 'Suspend execution for <ms> milliseconds (1000ms = 1s)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ref', { a: 'any', b: 'any' }, ({ a, b }) => {

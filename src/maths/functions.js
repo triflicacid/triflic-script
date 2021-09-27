@@ -1,7 +1,9 @@
 const { sum } = require("../utils");
 const Complex = require("./Complex");
+const { TWO_PI } = require("./constants");
 const { lambertw_scalar } = require("./lambertw");
 const { wrightomega_ext } = require("./wright-omega");
+const { zeta2 } = require("./zeta");
 
 /**
  * @param {Complex} z 
@@ -23,6 +25,14 @@ function lambertw(z, k = 0, tol = 1e-8) {
 function wrightomega(z) {
   const o = wrightomega_ext(z);
   return o.w;
+}
+
+/**
+ * @param {number} x 
+ * @param {number} q 
+ */
+function zeta(x, q = undefined) {
+  return q === undefined ? NaN : zeta2(x, q);
 }
 
 /** Find the factorial of a REAL INTEGER using the classic algorithm */
@@ -117,7 +127,7 @@ const gamma = (z, EPSILON = 1e-7) => {
   if (z.a < 0.5) {
     y = Complex.div(Math.PI, Complex.mult(Complex.sin(Complex.mult(Math.PI, z)), gamma(Complex.sub(1, z))));
   } else {
-    z.sub(1);
+    z = Complex.sub(z, 1);
     let x = new Complex(0.99999999999980993);
     for (let i = 0; i < p.length; i++) {
       x.add(Complex.div(p[i], Complex.add(z, i).add(1)));
@@ -129,8 +139,24 @@ const gamma = (z, EPSILON = 1e-7) => {
   return y.b <= EPSILON ? new Complex(y.a) : y; // Remove imaginary component is too small
 };
 
+const B = [1, 0.5];
+
+function bernoulli(n) {
+    if (B[n] !== undefined) return B[n];
+    let sum = 1;
+    let nfac = gamma(n + 1);
+    for (let k = 0; k < n; k++) {
+        sum -= (nfac / (gamma(k + 1) * gamma((n - k) + 1))) * (bernoulli(k) / (n - k + 1));
+    }
+    B[n] = sum;
+    return sum;
+}
+
 /** Factorial using gamma function */
 const factorial = n => gamma(Complex.add(n, 1));
+
+/** Stirling's factorial */
+const stirling = n => Complex.mult(Complex.sqrt(Complex.mult(TWO_PI, n)), Complex.pow(Complex.div(n, Math.E), n));
 
 /* Return the next representable double from value towards next */
 // https://stackoverflow.com/questions/27659675/get-next-smallest-nearest-number-to-a-decimal
@@ -170,4 +196,4 @@ function range(a, b, step = 1) {
   return range;
 }
 
-module.exports = { lambertw, factorialReal, LCF, primeFactors, isPrime, generatePrimes, mean, PMCC, variance, gamma, factorial, nextNearest, wrightomega, range };
+module.exports = { bernoulli, lambertw, zeta, factorialReal, LCF, primeFactors, isPrime, generatePrimes, mean, PMCC, variance, gamma, factorial, stirling, nextNearest, wrightomega, range };

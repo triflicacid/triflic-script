@@ -46,3 +46,9 @@ func greet(name: string = "Default") {
 }
 greet();
 greet(12 + i);
+
+# Lambda function
+f = x -> x * 2, pow = (a, b = 2) -> a ** b;
+println(f(10));
+println(pow(3));
+println(pow(3, 4));

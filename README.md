@@ -11,7 +11,6 @@ For more help, see `programs/` and the built-in `help` function.
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
 
 ## TODO
-- Do more syntax checking in initial `_tokenify` e.g. cannot be two consecutive constant values e.g. `<number|ientifier> <number|identifier>` will throw.
 - String interpolation via `{}`
 - Expandable/Collapsable argument arrays via `...`
 
@@ -21,7 +20,7 @@ For more help, see `programs/` and the built-in `help` function.
   Type `!start` to start the maths environment. Everything after this point will be fed into the engine. Type `!close` to close session.
 - `file.js` - takes a filename to execute
 
-## CLI - Command-line Arguments
+## Interpreter Arguments
 All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. They are all optional.
 
 ### Position
@@ -30,6 +29,8 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `file.js` - Arguments proceed `node file.js <file>`
 
 ### Arguments
+Not every argument does used in every execution method.
+
 - `strict` : `boolean`. Strict mode? (actions are more tightly controlled).
 - `bidmas` : `boolean`. Should expressions obey BIDMAS (order of operations)?
 - `define-vars` : `boolean`. Whether or not to define common variables such as `pi` and `e`.

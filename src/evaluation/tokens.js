@@ -886,9 +886,16 @@ function _tokenify(obj) {
   let string = obj.string, lastSourceIndex = 0;
   let currentLine = new TokenLine(obj.rs, null), currentTokens = []; // Tokens for the current line
 
+  const checkLastToken = (unexpected, pos) => {
+    const topmost = peek(currentTokens);
+    if (topmost instanceof ValueToken || topmost instanceof VariableToken)
+      throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '${unexpected}' at position ${pos}`);
+  };
+
   for (let i = 0; i < string.length;) {
     // String literal?
     if (string[i] === '"') {
+      checkLastToken('"', obj.pos);
       let seq = '', j = i + 1;
       while (true) {
         if (string[j] === '"') break;
@@ -914,6 +921,7 @@ function _tokenify(obj) {
 
     // Char literal?
     if (string[i] === '\'') {
+      checkLastToken('\'', obj.pos);
       let seq = '', j = i + 1;
       while (true) {
         if (string[j] === '\'') break;
@@ -1022,6 +1030,7 @@ function _tokenify(obj) {
       throw new Error(`[${errors.SYNTAX}] Syntax Error: ${e.message} (literal at position ${obj.pos})`); // Error whilst parsing number literal
     }
     if (numObj.str.length > 0) {
+      checkLastToken(numObj.str, obj.pos);
       const t = new ValueToken(currentLine, new NumberValue(obj.rs, numObj.num), obj.pos);
       currentTokens.push(t);
       i += numObj.pos;
@@ -1036,6 +1045,7 @@ function _tokenify(obj) {
       if (KeywordToken.keywords.includes(symbol)) { // Keyword?
         t = new KeywordToken(currentLine, symbol, obj.pos);
       } else {
+        checkLastToken(symbol, obj.pos);
         t = new VariableToken(currentLine, symbol, obj.pos);
       }
 
@@ -1055,22 +1065,6 @@ function _tokenify(obj) {
     currentLine.source = string.substr(lastSourceIndex).trim();
     obj.lines.push(currentLine);
   }
-
-  // if (addToTokenStringPositions.length !== 0) {
-  //   let tkstr = new TokenLine(this.rs);
-  //   while (addToTokenStringPositions.length > 0) {
-  //     if (peek(addToTokenStringPositions) >= peek(currentLine.tokens).pos) {
-  //       addToTokenStringPositions.pop();
-  //       let old = tkstr;
-  //       tkstr = new TokenLine(this.rs);
-  //       if (old.tokens.length > 0) tkstr.tokens.push(old);
-  //     } else {
-  //       let t = currentLine.tokens.pop();
-  //       tkstr.tokens.unshift(t);
-  //     }
-  //   }
-  //   currentLine.tokens.push(new TokenStringArray(this, tkstr.tokens, tkstr.tokens[0]?.pos ?? NaN));
-  // }
 
   return;
 }
