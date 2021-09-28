@@ -888,7 +888,7 @@ function _tokenify(obj) {
 
   const checkLastToken = (unexpected, pos) => {
     const topmost = peek(currentTokens);
-    if (topmost instanceof ValueToken || topmost instanceof VariableToken)
+    if (topmost instanceof ValueToken)
       throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '${unexpected}' at position ${pos}`);
   };
 

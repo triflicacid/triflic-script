@@ -5,8 +5,6 @@ const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, e
 const { castingError, isNumericType, isRealType } = require("./types");
 const { errors } = require("../errors");
 
-const valueIDs = new Map(); // Map constant value to IDs
-
 class Value {
   constructor(runspace, value) {
     this.rs = runspace;
@@ -20,7 +18,7 @@ class Value {
     if (peek(type) === '*') throw new Error(`[${errors.CAST_ERROR}] Type Error: Cannot cast object ${this.type()} to ${type} (reference)`);
     const mapObj = this.constructor.castMap;
     let value = mapObj && type in mapObj ? mapObj[type](this) : undefined;
-    if (value == undefined) castingError(this, type);
+    if (value === undefined) castingError(this, type);
     return value;
   }
 
@@ -892,7 +890,13 @@ NumberValue.castMap = {
   complex_int: o => new NumberValue(o.rs, Complex.floor(o.value)),
   real: o => new NumberValue(o.rs, o.value.a),
   real_int: o => new NumberValue(o.rs, Math.floor(o.value.a)),
-  string: o => new StringValue(o.rs, str(o.value)),
+  string: o => {
+    let s;
+    if (isNaN(o.value.a) || isNaN(o.value.b)) s = 'nan';
+    else if (!isFinite(o.value.a) || !isFinite(o.value.b)) s = 'inf';
+    else s = str(o.value);
+    return new StringValue(o.rs, s);
+  },
   char: o => new CharValue(o.rs, Math.floor(o.value.a)),
   bool: o => {
     if (o.value.b === 0) return new BoolValue(o.rs, !!o.value.a);
