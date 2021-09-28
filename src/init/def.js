@@ -188,17 +188,26 @@ function define(rs) {
     return new ArrayValue(rs, array);
   }, 'Remove all values from arr for which fn(value, ?index) is false'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'map', { arr: 'array', fn: 'func' }, async ({ arr, fn }, evalObj) => {
-    const array = [];
     fn = fn.castTo("func").getFn();
-    if (fn.argCount !== 1 && fn.argCount !== 2) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must have 1 or 2 arguments, got function with ${fn.argCount} arguments`);
     arr = arr.toPrimitive('array');
-    for (let i = 0; i < arr.length; i++) {
-      let args = fn.argCount === 1 ? [arr[i]] : [arr[i], new NumberValue(rs, i)];
-      let mapped = await fn.call(evalObj, args);
-      array.push(mapped);
-    }
+    const array = [];
+    if (fn.argCount === 0) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, []));
+    else if (fn.argCount === 1) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i]]));
+    else if (fn.argCount === 2) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i], new NumberValue(rs, i)]));
+    else if (fn.argCount === 3) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i], new NumberValue(rs, i), arr]));
+    else throw new Error(`${errors.BAD_ARG} Argument Error: func must take 0-4 arguments, got ${fn.signature()}`);
     return new ArrayValue(rs, array);
-  }, 'Apply func(value, ?index) to each item in array (returns new array)'));
+  }, 'Apply func to each item in array, push return value to new array and return new array. Func -> (?item, ?index, ?array)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'foreach', { arr: 'array', fn: 'func' }, async ({ arr, fn }, evalObj) => {
+    fn = fn.castTo("func").getFn();
+    arr = arr.toPrimitive('array');
+    if (fn.argCount === 0) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, []);
+    else if (fn.argCount === 1) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i]]);
+    else if (fn.argCount === 2) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i], new NumberValue(rs, i)]);
+    else if (fn.argCount === 3) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i], new NumberValue(rs, i), arr]);
+    else throw new Error(`${errors.BAD_ARG} Argument Error: func must take 0-4 arguments, got ${fn.signature()}`);
+    return new UndefinedValue(rs);
+  }, 'Apply func to each item in array. Func -> (?item, ?index, ?array)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'reduce', { arr: 'array', fn: 'func', initial: '?any' }, async ({ arr, fn, initial }, evalObj) => {
     let acc = initial ? initial.castTo('any') : new NumberValue(rs, 0);
     fn = fn.castTo('func').getFn();

@@ -1,0 +1,21 @@
+func cipher(msg: string) {
+    output = "";
+    for (c in msg) {
+        c = <char>c;
+        if (c >= 'a' && c <= 'z') {
+            output += <char>('z' - (c - 'a'));
+        } else if (c >= 'A' && c <= 'Z') {
+            output += <char>('Z' - (c - 'A'));
+        } else {
+            output += c;
+        }
+    }
+    output;
+}
+
+if (len(argv) == 0) {
+    text = input("Text: ");
+    println("Encrypted: " + cipher(text));
+} else {
+    map(argv, msg -> println(cipher(msg)));
+}

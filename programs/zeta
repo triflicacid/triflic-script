@@ -1,0 +1,5 @@
+func zeta(s: complex) {
+    reduce(map(1:51, k -> 1/(k**s)), (a,b) -> a+b);
+}
+
+map(argv, z -> println("ζ("+z+") = " + zeta(z)));

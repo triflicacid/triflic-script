@@ -1,0 +1,20 @@
+func cipher(msg: string, shift: real_int) {
+	output = "";
+	for (c in msg) {
+		c = <char>c;
+		if (c >= 'a' && c <= 'z') {
+			output += <char>('a' + (c - 'a' + shift) % 25);
+		} else if (c >= 'A' && c <= 'Z') {
+			output += <char>('A' + (c - 'A' + shift) % 25);
+		} else {
+			output += c;
+		}
+	}
+	output;
+}
+
+text = input("Text to Encrypt: ");
+shift = <real_int>input("Shift: ");
+ciphertext = cipher(text, shift);
+println("Raw: " + text);
+println("Encrypted: " + ciphertext);

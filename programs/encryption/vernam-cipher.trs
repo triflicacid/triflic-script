@@ -1,0 +1,19 @@
+func strToHex(str: ref string) {
+	join(map(split(str), c -> base(ord(c), 10, 16)), '-');
+}
+
+func cipher(string: string, code: string) {
+	join(map(split(string), (_, i) -> <char>string.i ^ <char>code.i));
+}
+
+text = input("Text: ");
+code = input("Code: ");
+if (code == "") {
+	for (i = 0; i < len(text); i += 1) {
+		code += <char>random(<real>'A', <real>'Z' + 1);
+	}
+};
+enc = cipher(text, code);
+println("Raw: " + strToHex(text));
+println("Key: " + strToHex(code));
+println("Encrypted: " + strToHex(enc));

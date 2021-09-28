@@ -604,7 +604,7 @@ class TokenLine {
                   } else if (arg.tokens.length > 2) { // "<arg>" ":" ...
                     if (arg.tokens[1] instanceof OperatorToken && arg.tokens[1].value === ':') {
                       let i = 2, data = {}, ok = true;
-                      if (arg.tokens[i] instanceof VariableToken && (arg.tokens[i + 1] instanceof VariableToken || (arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '?'))) {
+                      if (arg.tokens[i] instanceof VariableToken && (arg.tokens[i + 1] instanceof VariableToken || arg.tokens[i + 1] instanceof KeywordToken || (arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '?'))) {
                         if (arg.tokens[i].value === 'val' || arg.tokens[i].value === 'ref') {
                           data.pass = arg.tokens[i].value;
                           i++;
@@ -621,7 +621,7 @@ class TokenLine {
                         }
                       }
                       if (ok) {
-                        if (arg.tokens[i] instanceof VariableToken) {
+                        if (arg.tokens[i] instanceof VariableToken || arg.tokens[i] instanceof KeywordToken) {
                           data.type = arg.tokens[i].value;
                           i++;
                         } else ok = false;
@@ -639,7 +639,7 @@ class TokenLine {
                         } else ok = false;
                       }
                       if (ok && arg.tokens[i] !== undefined) ok = false;
-                      if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter string at position ${arg.tokens[1].pos}`);
+                      if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter '${arg.tokens[0].value}' at position ${arg.tokens[1].pos}`);
                       if (lastOptional && !data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${arg.tokens[0].value}' cannot precede optional argument '${lastOptional}' (position ${arg.tokens[0].pos})`);
                       argObj[arg.tokens[0].value] = data;
                     } else if (arg.tokens[1] instanceof OperatorToken && arg.tokens[1].value === '=' && arg.tokens[2] instanceof Token) {

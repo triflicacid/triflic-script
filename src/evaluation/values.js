@@ -811,7 +811,7 @@ class FunctionRefValue extends Value {
       try {
         return await fn.call(evalObj, args);
       } catch (e) {
-        throw new Error(`[${errors.GENERAL}] Function ${this.value.name}(${args.map(a => `${a.type()}`).join(', ')}):\n${e}`);
+        throw new Error(`[${errors.GENERAL}] Function ${fn.signature()}:\n${e}`);
       }
     } else {
       this._throwNullRef();

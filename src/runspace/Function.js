@@ -78,6 +78,10 @@ class RunspaceFunction {
   raw() {
     return '[internal]';
   }
+
+  signature() {
+    return `${this.name}(${Array.from(this.args.values()).map(data => `${data.type}`).join(', ')})`;
+  }
 }
 
 /** User defined function using a TokenList */
