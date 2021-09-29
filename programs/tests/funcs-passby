@@ -1,0 +1,14 @@
+func fn1(arr: array) {
+    push(arr, 4);
+}
+
+func fn2(arr: ref array) {
+    push(arr, 4);
+}
+
+list = [1, 2, 3];
+println(list);
+fn1(list); // Doesn't modify array as a copy is passed to fn1
+println(list);
+fn2(list); // Modifies array as reference is passed to fn2
+println(list);

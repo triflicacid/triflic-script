@@ -317,6 +317,19 @@ class TokenLine {
     // Before put into RPN...
     for (let i = 0; i < this.tokens.length; i++) {
       if (this.tokens[i] instanceof ValueToken) {
+        if (this.tokens[i].value instanceof StringValue) {
+          let tstr = this.tokens[i].value;
+          for (let ipos in tstr.interpolations) {
+            if (tstr.interpolations.hasOwnProperty(ipos)) {
+              try {
+                tstr.interpolations[ipos].setBlock(this.block);
+                tstr.interpolations[ipos].prepare();
+              } catch (e) {
+                throw new Error(`[${errors.GENERAL}] Error in interpolated string at ${this.tokens[i].pos} at string index ${ipos}:\n${e}`);
+              }
+            }
+          }
+        }
         this.tokens[i] = this.tokens[i].value; // Remove all ValueToken objects
       } else if ((this.tokens[i] instanceof VariableToken || (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '(')) && this.tokens[i+1] instanceof OperatorToken && this.tokens[i+1].value === '-' && this.tokens[i+2] instanceof OperatorToken && this.tokens[i+2].value === '>') {
         let block, j = i + 3;
@@ -604,8 +617,12 @@ class TokenLine {
                   if (arg.tokens.length === 1) { // "<arg>"
                     argObj[arg.tokens[0].value] = 'any';
                   } else if (arg.tokens.length > 2) { // "<arg>" ":" ...
+                    let data = {}, ok = true, i = 1;
+
+                    // Type information?
                     if (arg.tokens[1] instanceof OperatorToken && arg.tokens[1].value === ':') {
-                      let i = 2, data = {}, ok = true;
+                      i++;
+
                       if (arg.tokens[i] instanceof VariableToken && (arg.tokens[i + 1] instanceof VariableToken || arg.tokens[i + 1] instanceof KeywordToken || (arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '?'))) {
                         if (arg.tokens[i].value === 'val' || arg.tokens[i].value === 'ref') {
                           data.pass = arg.tokens[i].value;
@@ -628,30 +645,27 @@ class TokenLine {
                           i++;
                         } else ok = false;
                       }
-                      if (ok && arg.tokens[i]) {
-                        if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === '=') {
-                          i++;
-                          if (arg.tokens[i] instanceof Token) {
-                            if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '=': pass-by-reference parameter '${arg.tokens[0].value}' cannot have a default value`);
-                            data.optional = true;
-                            data.default = arg.tokens[i];
-                            if (data.default instanceof ValueToken) data.default = data.default.value;
-                            i++;
-                          } else ok = false;
-                        } else ok = false;
-                      }
-                      if (ok && arg.tokens[i] !== undefined) ok = false;
-                      if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter '${arg.tokens[0].value}' at position ${arg.tokens[1].pos}`);
-                      if (lastOptional && !data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${arg.tokens[0].value}' cannot precede optional argument '${lastOptional}' (position ${arg.tokens[0].pos})`);
-                      argObj[arg.tokens[0].value] = data;
-                    } else if (arg.tokens[1] instanceof OperatorToken && arg.tokens[1].value === '=' && arg.tokens[2] instanceof Token) {
-                      let data = {
-                        optional: true,
-                        default: arg.tokens[2]
-                      };
-                      if (data.default instanceof ValueToken) data.default = data.default.value;
-                      argObj[arg.tokens[0].value] = data;
                     }
+
+                    // Default value?
+                    if (ok && arg.tokens[i]) {
+                      if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === '=') {
+                        i++;
+                        if (arg.tokens[i] instanceof Token) {
+                          if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '=' at position ${arg.tokens[i].pos}: ${data.pass} parameter '${arg.tokens[0].value}' cannot have a default value`);
+                          data.optional = true;
+                          data.default = arg.tokens[i];
+                          if (data.default instanceof ValueToken) data.default = data.default.value;
+                          i++;
+                        } else ok = false;
+                      } else ok = false;
+                    }
+
+                    // Set parameter info
+                    if (ok && arg.tokens[i] !== undefined) ok = false;
+                    if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter '${arg.tokens[0].value}' at position ${arg.tokens[1].pos}`);
+                    if (lastOptional && !data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${arg.tokens[0].value}' cannot precede optional argument '${lastOptional}' (position ${arg.tokens[0].pos})`);
+                    argObj[arg.tokens[0].value] = data;
                   } else {
                     throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: expected ':' or '=' after parameter name '${arg.tokens[0].value}', got '${arg.tokens[1]}' at position ${arg.tokens[1].pos}`);
                   }
@@ -799,6 +813,7 @@ class TokenLine {
     for (let i = 0; i < T.length; i++) {
       const cT = T[i];
       if (cT instanceof Value || cT instanceof VariableToken) {
+        if (cT.eval) await cT.eval(evalObj);
         stack.push(cT);
       } else if (cT instanceof OperatorToken) {
         const info = cT.info();
@@ -898,7 +913,7 @@ function _tokenify(obj) {
     // String literal?
     if (string[i] === '"') {
       checkLastToken('"', obj.pos);
-      let seq = '', j = i + 1;
+      let seq = '', j = i + 1, interpolations = {};
       while (true) {
         if (string[j] === '"') break;
         if (string[j] === '\\' && string[j + 1]) {
@@ -910,11 +925,23 @@ function _tokenify(obj) {
             continue;
           }
         }
+        if (string[j] === '{') {
+          const pobj = createTokenStringParseObj(obj.rs, string.substr(j + 1), obj.pos + j + 1, obj.depth + 1, ['}'], false);
+          _tokenify(pobj);
+
+          // Check that everything was matched
+          if (pobj.terminateOn !== '}') throw throwMatchingBracketError('{', '}', obj.pos);
+          if (pobj.lines.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected expression, got '}' at position ${pobj.pos}`);
+          interpolations[j] = pobj.lines[0];
+          const source = string.substr(i, (pobj.pos - (obj.pos + j)) + 1);
+          j += source.length;
+          continue;
+        }
         if (string[j] === undefined) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected end of input in string literal at position ${j} (literal at ${i})`);
         seq += string[j];
         j++;
       }
-      currentTokens.push(new ValueToken(currentLine, new StringValue(obj.rs, seq), i));
+      currentTokens.push(new ValueToken(currentLine, new StringValue(obj.rs, seq, interpolations), i));
       const d = (j - i) + 1;
       i += d;
       obj.pos += d;

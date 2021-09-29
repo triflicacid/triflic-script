@@ -257,6 +257,8 @@ function decodeEscapeSequence(string, pos) {
       char = String.fromCharCode(parseInt(nlit, 10));
       break;
     }
+    default:
+      char = string[pos++];
   }
   return { char, pos };
 }

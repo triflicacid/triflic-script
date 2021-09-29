@@ -120,9 +120,6 @@ class RunspaceUserFunction extends RunspaceFunction {
         if (args[i].constructor.name !== 'VariableToken') {
           throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: expected variable, got ${args[i]?.type()} ${args[i]}`);
         }
-        if (!args[i].exists()) {
-          throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: passed value must be bound`);
-        }
         let varObj = this.rs.defineVar(arg, args[i].getVar());
         varObj.isRef = true;
       } else {

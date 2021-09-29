@@ -12,7 +12,6 @@ For more help, see `programs/` and the built-in `help` function.
 - Array-unpacking `[a, b] = [1, 2]` does not work
 
 ## TODO
-- String interpolation via `{}`
 - Expandable/Collapsable argument arrays via `...`
 
 ## Execution Methods
@@ -106,6 +105,7 @@ These are structures in the code which define values:
   *N.B.* Numbers may contain the seperator `_`. This cannot be at the start/end of a number.
 
 - `"..."` represents a strings.
+  - `{...}` inside the string is string interpolation. `...` is executed, converted to a string and spliced inside of the string. It is quicker than `"..." + ... + "..."`
 - `[...]` represents an array
 - `{...}` represents a set, map or a block
   - **Block** if keyword structure expects a block and `{...}` is present e.g. `do {...}`, `if (...) {...}`.
@@ -166,7 +166,7 @@ See `Operators.md` for detailed operator help.
 | -- | -- | -- | -- | -- | -- | -- |
 | . | Member Access | 20 | ltr | Get member on RHS of LHS object | `headers."time"` => `1630433878509` | `__get__` |
 | \<fn\>(\<args\>) | Function Call | 20 | ltr | Call function `<fn>` with arguments `<args>` | `sin(1)` => `0.84...` | `__call__` |
-| ?. | Optional Member Access | 20 | ltr | Get member on RHS of LHS object. If RHS is undefined, return undefined | `undefined?.1` => `undefined` | `__get__` |
+| ?. | Optional Member Access | 20 | ltr | Get member on RHS of LHS object. If RHS is undef, return undef | `undef?.1` => `undef` | `__get__` |
 | deg | Degrees | 18 | rtl | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` | `__deg__` 
 | ~ | Bitwise NOT | 17 | rtl | Bitwise NOT value on LHS | `~20` => `-21` | `__bitwiseNot__` |
 | + | Unary plus | 17 | rtl | Convert LHS to number | `+"14"` => `14` | `__pos__` |
@@ -196,7 +196,7 @@ See `Operators.md` for detailed operator help.
 | \| | Bitwise Or | 8 | ltr | Apply bitwise OR to LHS and RHS | `5 \| 3` => `7` | `__bitwiseOr__` |
 | && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` | `__and__` |
 | \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` | `__or__` |
-| ?? | Nullish Coalescing | 5 | ltr | Returns LHS unless LHS is undefined, in which case return RHS | `undefined ?? 2` => `2` | n/a |
+| ?? | Nullish Coalescing | 5 | ltr | Returns LHS unless LHS is undef, in which case return RHS | `undef ?? 2` => `2` | n/a |
 | = | Assignment | 3 | rtl | Assigns the RHS to the LHS (creates new symbol binding) | `name = "john"` => `"john"` | `__assign__` |
 | => | Nonlocal Assignment | 3 | rtl | Assigns the RHS to the LHS (uses existing symbol binding) | `name => "john"` => `"john"` | `__nonlocalAssign__` |
 | += | Addition Assignment | 3 | rtl | Assigns RHS to RHS + LHS | `a = 10, a += 2, a` => `12` | `__assignAdd__` |
@@ -301,7 +301,7 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
   - `["val"|"ref"]`: pass-by method of the argument. Is not present, default is `val`.
     - `val`: pass-by-value. The value provided for this argument is **copied** into a new local variable upon calling.
     - `ref`: pass-by-reference. The value provided for this argument is **transfered** into a new local variable upon calling (i.e. changing argument will change variable). This is suggested when the value will not be changed inside the function (as this will save copying the value and therefore speed and memory space).
-  - `[?]`: A question marke prefixing the type marks if the parameter is optional or not. If optional and a value is not provided, `undefined` is passed as the parameter's value.
+  - `[?]`: A question marke prefixing the type marks if the parameter is optional or not. If optional and a value is not provided, `undef` is passed as the parameter's value.
   - `<type>`: The type of the argument.
   - `=`: marks following as default value if parameter is omitted
   - `<value>`: default value of the parameter if ommited (*Note, may only be a single token e.g. can't be '1 + 2'*)
@@ -363,7 +363,7 @@ Variables all have a type which may change. New types may be added - see `import
 | `set` | Represents a unique collection of values (no repeated values) | `Yes` | `Yes` | `{1, 2}`, `{"H", true, [1]}` |
 | `map` | Represents a collection of keys which map to a value | `Yes` | `Yes` | `{1: "a", 2: "b"}`, `{"name": "John Doe", "male": true}` |
 | `func` | Contains a function reference which may be called | `No` | `No` | `sin`, `print` |
-| `undefined` | Represents an absent value. As such, this is not really a type. | `No` | `No` | `undefined` |
+| `undef` | Represents an absent value. As such, this is not really a type. | `No` | `No` | `undef` |
 
 *\*These types are never returned from `type()`*
 

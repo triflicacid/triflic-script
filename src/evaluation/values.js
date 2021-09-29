@@ -200,11 +200,27 @@ class NumberValue extends Value {
 }
 
 class StringValue extends Value {
-  constructor(runspace, string = '') {
+  constructor(runspace, string = '', interpolations = {}) {
     super(runspace, str(string));
+    this.interpolations = interpolations; // Map position:TokenLine
   }
 
   type() { return "string"; }
+
+  /** Interpolate if necessary... */
+  async eval(evalObj) {
+    if (Object.keys(this.interpolations).length > 0) {
+      for (let pos in this.interpolations) {
+        if (this.interpolations.hasOwnProperty(pos)) {
+          try {
+            this.value = this.value.substr(0, pos-1) + (await this.interpolations[pos].eval(evalObj)).toString() + this.value.substr(pos-1);
+          } catch (e) {
+            throw new Error(`[${errors.GENERAL}] Error whilst interpolating string (index ${pos}):\n${e}`);
+          }
+        }
+      }
+    }
+  }
 
   /** len() function */
   __len__() { return this.value.length; }
@@ -907,7 +923,10 @@ NumberValue.castMap = {
 
 StringValue.castMap = {
   string: o => o,
-  char: o => new CharValue(o.rs, o.value[0]),
+  char: o => {
+    if (o.value.length === 1) return new CharValue(o.rs, o.value[0]);
+    throw new Error(`[${errors.CAST_ERROR}] Cannot safely cast string of length ${o.value.length} to type char`);
+  },
   bool: o => new BoolValue(o.rs, !!o.value),
   complex: o => new NumberValue(o.rs, +o.value),
   complex_int: o => new NumberValue(o.rs, Math.floor(+o.value)),
