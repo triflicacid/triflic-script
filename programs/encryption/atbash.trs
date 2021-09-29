@@ -17,5 +17,5 @@ if (len(argv) == 0) {
     text = input("Text: ");
     println("Encrypted: " + cipher(text));
 } else {
-    map(argv, msg -> println(cipher(msg)));
+    foreach(argv, msg -> println(cipher(msg)));
 }

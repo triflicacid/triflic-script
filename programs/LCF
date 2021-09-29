@@ -1,5 +1,3 @@
-import("<string>");
-
 a = <real>input("a = ");
 b = <real>input("b = ");
 

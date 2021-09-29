@@ -124,7 +124,6 @@ class IfStructure extends Structure {
     if (!foundTruthy && this.thenBlock) { // If no condition was truthy and there is an else block...
       value = await this.thenBlock.eval(evalObj);
     }
-    return value;
   }
 }
 
@@ -608,7 +607,7 @@ class SwitchStructure extends Structure {
           lastVal = await block.eval(obj);
           enteredCase = true;
         }
-  
+
         if (enteredCase || obj.action === 1) break;
         else if (obj.action === 2) {
           obj.action = 0;

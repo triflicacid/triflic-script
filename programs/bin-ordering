@@ -4,7 +4,7 @@ func firstfit(items: array, binmax) {
     bins = [];
     sums = [];
     foreach(items, item -> {
-        if (item > binmax) { error("Bin Error: item " + item + " is larger than the maximum bin size of " + binmax); }
+        if (item > binmax) { error("Bin Error: item {item} is larger than the maximum bin size of {binmax}"); }
         L = len(bins);
         for (i = 0; i < L; i += 1) {
             if (sums.i + item <= binmax) {
@@ -24,11 +24,11 @@ func main_firstfit() {
     println("===== FIRST FIT =====");
     items = [0.3, 2.0, 1.3, 1.6, 0.3, 1.3, 0.2, 0.1, 2.0, 0.5];
     binmax = 2;
-    println("Fit Items {" + join(items, ", ") + "} into bins of size " + binmax);
+    println("Fit Items \{" + join(items, ", ") + "} into bins of size {binmax}");
     bins = firstfit(items, binmax);
-    println("==== Fit " + len(items) + " Into " + len(bins) + " Bins ====");
+    println("==== Fit {len(items)} Into {len(bins)} Bins ====");
     for (n, bin in bins) {
-        println("Bin " + n + ": {" + join(bin, ", ") + "}   size = " + round(reduce(bin, (a,b)->a+b), 2));
+        println("Bin {n}: \{" + join(bin, ", ") + "}   size = " + round(reduce(bin, (a,b)->a+b), 2));
     }
 }
 
@@ -36,13 +36,13 @@ func main_firstfit_decreasing() {
     println("===== FIRST FIT DECREASING =====");
     items = [0.3, 2.0, 1.3, 1.6, 0.3, 1.3, 0.2, 0.1, 2.0, 0.5];
     binmax = 2;
-    println("Fit Items {" + join(items, ", ") + "} into bins of size " + binmax);
+    println("Fit Items \{" + join(items, ", ") + "} into bins of size {binmax}");
     bubble_sort_descending(items);
-    println("Sorted in descending order: {" + join(items, ", ") + "}");
+    println("Sorted in descending order: \{" + join(items, ", ") + "}");
     bins = firstfit(items, binmax);
     println("==== Fit " + len(items) + " Into " + len(bins) + " Bins ====");
     for (n, bin in bins) {
-        println("Bin " + n + ": {" + join(bin, ", ") + "}   size = " + round(reduce(bin, (a,b)->a+b), 2));
+        println("Bin {n}: \{" + join(bin, ", ") + "}   size = " + round(reduce(bin, (a,b)->a+b), 2));
     }
 }
 

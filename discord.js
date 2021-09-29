@@ -41,7 +41,8 @@ async function createRunspace(argString = '') {
       throw new Error(`Fatal Error: unable to print`);
     }
   }, 'End the discord maths session'));
-  rs.deleteVar('import'); // Remove function 'import'
+  rs.deleteVar('import');
+  rs.deleteVar('system');
   rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the host program');
   return rs;
 }

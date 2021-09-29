@@ -203,24 +203,34 @@ class StringValue extends Value {
   constructor(runspace, string = '', interpolations = {}) {
     super(runspace, str(string));
     this.interpolations = interpolations; // Map position:TokenLine
+    this.raw = this.value;
   }
 
   type() { return "string"; }
 
   /** Interpolate if necessary... */
   async eval(evalObj) {
-    if (Object.keys(this.interpolations).length > 0) {
-      for (let pos in this.interpolations) {
-        if (this.interpolations.hasOwnProperty(pos)) {
-          try {
-            this.value = this.value.substr(0, pos-1) + (await this.interpolations[pos].eval(evalObj)).toString() + this.value.substr(pos-1);
-          } catch (e) {
-            throw new Error(`[${errors.GENERAL}] Error whilst interpolating string (index ${pos}):\n${e}`);
+    this.value = this.raw;
+    let offset = 0;
+    for (let pos in this.interpolations) {
+      if (this.interpolations.hasOwnProperty(pos)) {
+        try {
+          const idata = this.interpolations[pos];
+          let value = await idata.val.eval(evalObj), insert = value.toString();
+          if (idata.eq) {
+            insert = idata.src + insert;
           }
+          let index = +pos + offset;
+          this.value = this.value.substr(0, index) + insert + this.value.substr(index);
+          offset += insert.length;
+        } catch (e) {
+          throw new Error(`[${errors.GENERAL}] Error whilst interpolating string (index ${pos}):\n${e}`);
         }
       }
     }
   }
+
+  // "=== {len(1:20)} ==="
 
   /** len() function */
   __len__() { return this.value.length; }
@@ -265,7 +275,7 @@ class StringValue extends Value {
 
   /** min() function */
   __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.min(...this.value.split('').map(chr => chr.charCodeAt(0)))); }
-  
+
   /** max() function */
   __max__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.max(...this.value.split('').map(chr => chr.charCodeAt(0)))); }
 
@@ -486,7 +496,7 @@ class ArrayValue extends Value {
 
   /** min() function */
   __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.min(...this.value.map(v => v.toPrimitive('real')))); }
-  
+
   /** max() function */
   __max__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.max(...this.value.map(v => v.toPrimitive('real')))); }
 
@@ -619,7 +629,7 @@ class SetValue extends Value {
 
   /** min() function */
   __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.min(...this.value.map(v => v.toPrimitive('real')))); }
-  
+
   /** max() function */
   __max__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.max(...this.value.map(v => v.toPrimitive('real')))); }
 
@@ -725,7 +735,7 @@ class MapValue extends Value {
     });
     return minKey;
   }
-  
+
   /** max() function */
   __max__() {
     if (this.value.size === 0) return this.rs.UNDEFINED;
@@ -784,7 +794,7 @@ class MapValue extends Value {
   }
 
   __iter__() {
-    return Array.from(this.value.entries());
+    return Array.from(this.value.entries()).map(([k, v]) => ([new StringValue(this.rs, k), v]));
   }
 
   /** operator: == */
@@ -980,6 +990,7 @@ MapValue.castMap = {
   map: o => o,
   string: o => new StringValue(o.rs, "{" + Array.from(o.value.entries()).map(pair => pair.join(':')).join(',') + "}"),
   bool: o => new BoolValue(o.rs, !!o.value),
+  array: o => new ArrayValue(o.rs, o.__iter__().map(a => new ArrayValue(o.rs, a))),
 };
 
 FunctionRefValue.castMap = {

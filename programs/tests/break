@@ -1,23 +1,23 @@
 println("** FOR **");
 for (i = 0; i < 10; i += 1) {
   if (i == 5) { break; }
-  println(i);
+  println("{i=}");
 }
 
 println();
 println("** WHILE **");
 i = 0;
 while (i < 10) {
-  i++;
+  i += 1;
   if (i == 5) { break; }
-  println("i = " + i);
+  println("{i=}");
 }
 
 println();
 println("** LOOP **");
 i = 0;
 loop {
-  i++;
+  i += 1;
   if (i == 5) { break; }
-  println("i = " + i);
+  println("{i=}");
 }

@@ -40,7 +40,7 @@ func bubble_sort_debug(arr: array) {
         sorted = 0;
       }
     }
-    println(iters + " : " + arr);
+    println("{iters} : {arr}");
     iters += 1;
   }
   return iters;

@@ -322,8 +322,8 @@ class TokenLine {
           for (let ipos in tstr.interpolations) {
             if (tstr.interpolations.hasOwnProperty(ipos)) {
               try {
-                tstr.interpolations[ipos].setBlock(this.block);
-                tstr.interpolations[ipos].prepare();
+                tstr.interpolations[ipos].val.setBlock(this.block);
+                tstr.interpolations[ipos].val.prepare();
               } catch (e) {
                 throw new Error(`[${errors.GENERAL}] Error in interpolated string at ${this.tokens[i].pos} at string index ${ipos}:\n${e}`);
               }
@@ -331,9 +331,9 @@ class TokenLine {
           }
         }
         this.tokens[i] = this.tokens[i].value; // Remove all ValueToken objects
-      } else if ((this.tokens[i] instanceof VariableToken || (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '(')) && this.tokens[i+1] instanceof OperatorToken && this.tokens[i+1].value === '-' && this.tokens[i+2] instanceof OperatorToken && this.tokens[i+2].value === '>') {
+      } else if ((this.tokens[i] instanceof VariableToken || (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '(')) && this.tokens[i + 1] instanceof OperatorToken && this.tokens[i + 1].value === '-' && this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === '>') {
         let block, j = i + 3;
-        
+
         if (this.tokens[j] instanceof BracketedTokenLines && this.tokens[j].opening === '{') {
           block = this.block.createChild(this.tokens[j].value, this.tokens[j].pos);
           j++;
@@ -347,8 +347,8 @@ class TokenLine {
               tokens.push(this.tokens[j]);
             }
           }
-          if (tokens.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected following '->', got ${this.tokens[j] ? `${this.tokens[j]} at position ${this.tokens[j].pos}` : `end of input at position ${this.tokens[j-1].pos}`}`);
-          block = this.block.createChild([new TokenLine(this.rs, undefined, tokens)], this.tokens[i+3]?.pos);
+          if (tokens.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected following '->', got ${this.tokens[j] ? `${this.tokens[j]} at position ${this.tokens[j].pos}` : `end of input at position ${this.tokens[j - 1].pos}`}`);
+          block = this.block.createChild([new TokenLine(this.rs, undefined, tokens)], this.tokens[i + 3]?.pos);
         }
 
         let args = this.tokens[i] instanceof VariableToken ? new BracketedTokenLines(this, [new TokenLine(this.rs, undefined, [this.tokens[i]])], '(', this.tokens[i].pos) : this.tokens[i];
@@ -925,16 +925,19 @@ function _tokenify(obj) {
             continue;
           }
         }
-        if (string[j] === '{') {
+        if (string[j] === '{') { // INTERPOLATION
           const pobj = createTokenStringParseObj(obj.rs, string.substr(j + 1), obj.pos + j + 1, obj.depth + 1, ['}'], false);
           _tokenify(pobj);
-
-          // Check that everything was matched
           if (pobj.terminateOn !== '}') throw throwMatchingBracketError('{', '}', obj.pos);
           if (pobj.lines.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected expression, got '}' at position ${pobj.pos}`);
-          interpolations[j] = pobj.lines[0];
-          const source = string.substr(i, (pobj.pos - (obj.pos + j)) + 1);
-          j += source.length;
+          const source = string.substr(j + 1, pobj.pos - (obj.pos + j + 1)); // Extract line source
+          let itp = { val: pobj.lines[0], src: source }, itpLast = itp.val.tokens[itp.val.tokens.length - 1];
+          if (itp.val.tokens.length > 1 && itpLast instanceof OperatorToken && itpLast.value === '=') {
+            itp.val.tokens.pop();
+            itp.eq = true;
+          }
+          interpolations[seq.length] = itp;
+          j += source.length + 2;
           continue;
         }
         if (string[j] === undefined) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected end of input in string literal at position ${j} (literal at ${i})`);
@@ -1001,7 +1004,7 @@ function _tokenify(obj) {
     }
 
     // Comment?
-    if (string[i] === '/' && string[i+1] === '/') {
+    if (string[i] === '/' && string[i + 1] === '/') {
       let comment = '';
       i += 3; // Skip '//' 
       for (; i < string.length; i++, obj.pos++) {
@@ -1016,11 +1019,11 @@ function _tokenify(obj) {
     }
 
     // Multi-line Comment?
-    if (string[i] === '/' && string[i+1] === '*') {
+    if (string[i] === '/' && string[i + 1] === '*') {
       let comment = '';
       i += 3; // SKip '/*'
       for (; i < string.length; i++, obj.pos++) {
-        if (string[i] === '*' && string[i+1] === '/') {
+        if (string[i] === '*' && string[i + 1] === '/') {
           i += 2; // Skip '*/'
           break;
         }

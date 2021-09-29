@@ -15,6 +15,5 @@ func cipher(msg: string, shift: real_int) {
 
 text = input("Text to Encrypt: ");
 shift = <real_int>input("Shift: ");
-ciphertext = cipher(text, shift);
-println("Raw: " + text);
-println("Encrypted: " + ciphertext);
+encrypted = cipher(text, shift);
+println("Encrypted: {encrypted}");

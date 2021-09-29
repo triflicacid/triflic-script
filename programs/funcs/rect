@@ -1,10 +1,12 @@
 func rect(n: real) {
   a = abs(n);
+  ans = 0;
   if (a > 0.5) {
-    0;
+    ans = 0;
   } else if (a == 0.5) {
-    0.5;
+    ans = 0.5;
   } else {
-    1;
+    ans = 1;
   }
+  ans;
 }

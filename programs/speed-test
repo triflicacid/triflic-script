@@ -5,7 +5,7 @@ for (i = 0; i < iters; i += 1) {
     sum += i;
 }
 
-println("Sum of first " + iters + " integers = " + sum);
+println("Sum of first {iters} integers = {sum}");
 
 // Speed Update Before: iters=10000, time=~170ms
 // Speed Update 1: iters=10000, time=~151ms (+12.6%)                 // TokenLine objects are parsed only once
@@ -14,3 +14,4 @@ println("Sum of first " + iters + " integers = " + sum);
 // Variable Update: iters=10000, time=~126ms (+07.1%)                // New methods to get/set variables. Use Map object.
 // Operator Update: iters=10000, time=~100ms (+26.0%)                // Implemented new operators ++ and +=
 // ID Update: iters=10000, time=~75ms (+33.3%)                       // Removed Value and Function IDs. Simplified Block IDs.
+// String Interpolation: iters=10000, time=~72ms (+04.2%)            // Added string interpolation

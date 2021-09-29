@@ -1,6 +1,6 @@
 func range(a: real, b: real) {
   arr = [];
-  for (x = a; x < b; x = x + 1) {
+  for (x = a; x < b; x += 1) {
     push(arr, x);
   }
   arr;

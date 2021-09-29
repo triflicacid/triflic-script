@@ -10,9 +10,13 @@ For more help, see `programs/` and the built-in `help` function.
 ## Important Notes
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
 - Array-unpacking `[a, b] = [1, 2]` does not work
+- `if` statements **do not** return their last value.
 
 ## TODO
 - Expandable/Collapsable argument arrays via `...`
+
+## Bugs
+- Closing-bracket unexpected error (see `programs/tests/scope`)
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -105,7 +109,7 @@ These are structures in the code which define values:
   *N.B.* Numbers may contain the seperator `_`. This cannot be at the start/end of a number.
 
 - `"..."` represents a strings.
-  - `{...}` inside the string is string interpolation. `...` is executed, converted to a string and spliced inside of the string. It is quicker than `"..." + ... + "..."`
+  - `{...}` inside the string is string interpolation.
 - `[...]` represents an array
 - `{...}` represents a set, map or a block
   - **Block** if keyword structure expects a block and `{...}` is present e.g. `do {...}`, `if (...) {...}`.
@@ -127,6 +131,20 @@ Character escaped may appear in string and character literals. Any character fol
 - `o([0-7]+)` - inserts character with octal ascii code of `[0-7]+` into literal.
 - `d([0-9]+)` - inserts character with decimal ascii code of `[0-9]+` into literal.
 - Else, simply inserts following character into literal
+
+#### String Interpolation
+Syntax: `"{<expr>}"`
+
+This is the method of inserting values into string literals.
+
+Strings may be interpolated by placing an expression inside `{}`. This may be any valid expression and is evaluated at runtime.
+
+Notable features include:
+- `{...=}` - if `=` is the last token in `<expr>`, the unevaluated `<expr>` is inserted before the evaluated `<expr>`
+  - `"{pi=}"` -> `pi=3.14159`
+  - `"{sin(1)=}"` -> `sin(1)=0.8414709848078965`
+  
+  Note that this only happens if `<expr>` contains something other then `=`.
 
 ### Variables
 Variables store values in memory. There are some predefined variables (assuming `--define-vars` is truthy).

@@ -1,16 +1,16 @@
 func SoE(limit: real_int) {
   marks = [0] * (limit + 1);
   
-  for (i = 2; i*i <= limit; i = i + 1) {
+  for (i = 2; i*i <= limit; i += 1) {
     if (!marks.i) {
-      for (j = i*i; j <= limit; j = j + i) {
+      for (j = i*i; j <= limit; j += i) {
         set(marks, j, 1);
       }
     }
   }
 
   primes = [];
-  for (i = 0; i < len(marks); i = i + 1) {
+  for (i = 0; i < len(marks); i += 1) {
     if (!marks.i) {
       push(primes, i);
     }
@@ -20,5 +20,5 @@ func SoE(limit: real_int) {
 
 limit = argv.0;
 primes = SoE(limit);
-println("There are " + len(primes) + " primes <= " + limit + ":");
+println("There are " + len(primes) + " primes <= {limit}:");
 println(primes);
