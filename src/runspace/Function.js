@@ -66,21 +66,13 @@ class RunspaceFunction {
     let expected = this.optional === 0 ? req : `${req}-${this.argCount}`;
     if (args.length < req || args.length > this.argCount) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects ${expected} argument${expected == 1 ? '' : 's'} {${Array.from(this.args.values()).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()} "${a}"`).join(', ')}}`);
   }
-  
-  defString() {
-    return `${this.name}(${Object.entries(this.rargs).map(([k, v]) => `${k}: ${v}`).join(', ')})`;
-  }
 
   about() {
     return this.desc;
   }
 
-  raw() {
-    return '[internal]';
-  }
-
   signature() {
-    return `${this.name}(${Array.from(this.args.values()).map(data => `${data.type}`).join(', ')})`;
+    return `${this.name}(${Array.from(this.args.entries()).map(([name, data]) => `${name}: ${data.pass ?? ''} ${data.type}`).join(', ')})`;
   }
 }
 
@@ -117,6 +109,11 @@ class RunspaceUserFunction extends RunspaceFunction {
           } catch (e) {
             throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${this.args[arg]} (function ${this.name}):\n ${e}`);
           }
+          try {
+            casted = casted.__copy__();
+          } catch (e) {
+            throw new Error(`[${errors.CANT_COPY}] Argument Error: Cannot copy value of type '${casted.type()}' (argument '${arg}')`);
+          }
         }
         this.rs.defineVar(arg, casted);
       } else if (data.pass === 'ref') {
@@ -126,7 +123,8 @@ class RunspaceUserFunction extends RunspaceFunction {
         if (!args[i].exists()) {
           throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: passed value must be bound`);
         }
-        this.rs.defineVar(arg, args[i].getVar());
+        let varObj = this.rs.defineVar(arg, args[i].getVar());
+        varObj.isRef = true;
       } else {
         throw new Error(`Unknown pass-by value '${data.pass}' for '${args[i]}'`);
       }

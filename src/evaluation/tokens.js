@@ -132,6 +132,9 @@ class VariableToken extends Token {
     if (v === undefined) this._throwNameError();
     return v;
   }
+  getVarNoError() {
+    return this.tstr.rs.getVar(this.value);
+  }
   toString() {
     return str(this.getVar()?.value);
   }
@@ -152,9 +155,8 @@ class VariableToken extends Token {
   /** operator: = */
   __assign__(value) {
     value = value.castTo("any");
-    const name = this.value;
-    // let varObj = this.exists() ? this.tstr.rs.setVar(name, value) : this.tstr.rs.defineVar(name, value);
-    this.tstr.rs.defineVar(name, value);
+    const name = this.value, thisVar = this.getVarNoError();
+    let varObj = thisVar && thisVar.isRef ? this.tstr.rs.setVar(name, value) : this.tstr.rs.defineVar(name, value);
     return value;
   }
 

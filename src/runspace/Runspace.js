@@ -46,14 +46,16 @@ class Runspace {
 
   get UNDEFINED() { return new UndefinedValue(this); }
 
-  /** Declare a new variable in the topmost scope */
-  defineVar(name, value, desc = undefined, constant = false) {
+  /** Declare a new variable in the topmost scope. Return variable object */
+  defineVar(name, value = undefined, desc = undefined, constant = false) {
+    if (value === undefined) value = new UndefinedValue(this);
     let obj;
     if (value instanceof Value || value instanceof RunspaceFunction) obj = new RunspaceVariable(name, value, desc, constant);
     else if (value instanceof RunspaceVariable) obj = value;
     else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
 
-    peek(this._vars).set(name, obj); // Insert into top-level scope
+    this._vars[this._vars.length-1].set(name, obj); // Insert into top-level scope
+    return obj;
   }
 
   /** Set a variable to a value. Return Vara=iable object or false. */

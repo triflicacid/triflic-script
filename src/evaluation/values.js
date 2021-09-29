@@ -453,7 +453,7 @@ class BoolValue extends Value {
 
 class ArrayValue extends Value {
   constructor(runspace, items = []) {
-    super(runspace, items);
+    super(runspace, items.map(v => v.castTo('any')));
   }
 
   type() { return "array"; }
@@ -515,7 +515,7 @@ class ArrayValue extends Value {
 
   /** copy() function */
   __copy__() {
-    const emsg = (v, i) => `[${errors.CANT_COPY}] Type Error: Error whilst copying type array: index ${i}: type ${v.type()} cannot be copied`;
+    const emsg = (v, i) => `[${errors.CANT_COPY}] Type Error: Error whilst copying type array:\n[${errors.CANT_COPY}] Index ${i}: type ${v.type()} cannot be copied`;
     return new ArrayValue(this.rs, this.value.map((v, i) => {
       let copy;
       try { copy = v.__copy__?.(); } catch (e) { throw new Error(`${emsg(v, i)}\n${e}`); }

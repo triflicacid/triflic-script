@@ -33,7 +33,7 @@ function define(rs) {
           item._throwNullRef();
         } else {
           let type = (fn instanceof RunspaceBuiltinFunction ? 'built-in' : 'user-defined') + (fn.constant ? '; constant' : '');
-          help = `Type: function [${type}]\nDesc: ${fn.about()}\nArgs: ${fn.argCount}${fn.optional !== 0 ? ` (${fn.optional} optional)` : ''}\nSignature: ${fn.defString()}`;
+          help = `Type: function [${type}]\nDesc: ${fn.about()}\nArgs: ${fn.argCount}${fn.optional !== 0 ? ` (${fn.optional} optional)` : ''}\nSignature: ${fn.signature()}`;
         }
       } else {
         help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.toPrimitive('string')}`;

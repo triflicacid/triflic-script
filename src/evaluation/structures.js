@@ -29,7 +29,7 @@ class ArrayStructure extends Structure {
 
   async eval(evalObj) {
     const values = await Promise.all(this.elements.map(el => el.eval(evalObj)));
-    return new ArrayValue(this.rs, values.map(v => v.castTo('any')));
+    return new ArrayValue(this.rs, values);
   }
 }
 

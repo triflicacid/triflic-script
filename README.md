@@ -9,6 +9,7 @@ For more help, see `programs/` and the built-in `help` function.
 
 ## Important Notes
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
+- Array-unpacking `[a, b] = [1, 2]` does not work
 
 ## TODO
 - String interpolation via `{}`
@@ -53,7 +54,7 @@ For more information on built-ins, enter `help()`.
 This functions is used to import scripts into the current runspace. `file` may be any valid file.
 
 If in format `<file>`, the full path to the imported file is resolves as follows: `currentWorkingDirectory + "imports/" + file + ".js"` where
-- `currentWorkingDirectory` is the path of the directory in which `cli.js` lies
+- `currentWorkingDirectory` is the path of the directory in which `cli.js` lies. Note that this is always static to `cli.js`, not to the current executing file.
 - `"imports/"` is a standard directory where all core JavaScript import files are kept
 - `file` is the argument to the function
 Essentially, any file in `<>` are built-in JavaScript import files
@@ -298,8 +299,8 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
   - `<arg>` - argument name
   - `:` - marks that the fllowing information is describing the argument
   - `["val"|"ref"]`: pass-by method of the argument. Is not present, default is `val`.
-    - `val`: pass-by-value. The value provided for this argument is copied into a new local variable upon calling.
-    - `ref`: pass-by-reference. The value provided for this argument must be a bound variable. Assigning to the parameter will alter the variable passed into the function.
+    - `val`: pass-by-value. The value provided for this argument is **copied** into a new local variable upon calling.
+    - `ref`: pass-by-reference. The value provided for this argument is **transfered** into a new local variable upon calling (i.e. changing argument will change variable). This is suggested when the value will not be changed inside the function (as this will save copying the value and therefore speed and memory space).
   - `[?]`: A question marke prefixing the type marks if the parameter is optional or not. If optional and a value is not provided, `undefined` is passed as the parameter's value.
   - `<type>`: The type of the argument.
   - `=`: marks following as default value if parameter is omitted
