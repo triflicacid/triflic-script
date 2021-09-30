@@ -14,7 +14,8 @@ For more help, see `programs/` and the built-in `help` function.
 
 ## TODO
 - Expandable/Collapsable argument arrays via `...`
-- member access via `[]`. `.` does not evaluate rhs.
+- ~~Member access via `[]`. `.` does not evaluate rhs.~~
+  - Update `programs/`
 - Proper importing - relative paths ...
 
 ## Bugs
@@ -188,6 +189,8 @@ Variables may be assigned to using the `=` assignment operator. Variables may be
 - Assignment using `=>`
   - Sets `symbol` to `value`. If no binding to `symbol` exists, throws an error.
 
+If `--ans` is truthy, the `ans` variable contains the value of the last executed line. e.g. `2 + 1; ans` -> `3`
+
 ### Functions
 Functions recieve arguments and return a value.
 
@@ -213,7 +216,8 @@ See `Operators.md` for detailed operator help.
 
 | Operator | Name | Precedence | Associativity | Description | Example | Method |
 | -- | -- | -- | -- | -- | -- | -- |
-| . | Member Access | 20 | ltr | Get member on RHS of LHS object | `headers."time"` => `1630433878509` | `__get__` |
+| . | Member Access | 20 | ltr | Get member on RHS of LHS object | `headers.time` => `1630433878509` | `__get__` |
+| [\<prop\>] | Computed Member Access | 20 | ltr | Evaluate `<prop> and` get member `<prop>` of LHS object | `headers["time"]` => `1630433878509` | `__get__` |
 | \<fn\>(\<args\>) | Function Call | 20 | ltr | Call function `<fn>` with arguments `<args>` | `sin(1)` => `0.84...` | `__call__` |
 | ?. | Optional Member Access | 20 | ltr | Get member on RHS of LHS object. If RHS is undef, return undef | `undef?.1` => `undef` | `__get__` |
 | deg | Degrees | 18 | rtl | Take LHS as degrees and convert to radians | `180 deg` => `3.14159265359` | `__deg__` 

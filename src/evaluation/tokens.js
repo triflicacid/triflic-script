@@ -356,14 +356,17 @@ class TokenLine {
       } else if (this.tokens[i] instanceof BracketedTokenLines) {
         let ok = true;
         if (this.tokens[i].opening === '[') { // *** ARRAY
-          let elements;
-          if (this.tokens[i].value.length === 0) elements = [];
-          else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas();
-          else throw new expectedSyntaxError(']', peek(this.tokens[i].value[0].tokens));
+          // If first item, or after an operator, this is an array
+          if (i === 0 || (this.tokens[i - 1] instanceof OperatorToken && this.tokens[i - 1].value !== '[]') || this.tokens[i - 1] instanceof BracketToken) {
+            let elements;
+            if (this.tokens[i].value.length === 0) elements = [];
+            else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas();
+            else throw new expectedSyntaxError(']', peek(this.tokens[i].value[0].tokens));
 
-          let structure = new ArrayStructure(this.rs, elements, this.tokens[i].pos);
-          structure.validate();
-          this.tokens[i] = structure;
+            let structure = new ArrayStructure(this.rs, elements, this.tokens[i].pos);
+            structure.validate();
+            this.tokens[i] = structure;
+          }
         } else if (this.tokens[i].opening === '(') { // *** CALL STRING / EXPRESSION
           // If first item, or after an operator, this is an expression group
           if (i === 0 || (this.tokens[i - 1] instanceof OperatorToken && this.tokens[i - 1].value !== '()') || this.tokens[i - 1] instanceof BracketToken) {
@@ -792,6 +795,15 @@ class TokenLine {
           }
 
           this.tokens[i] = op;
+        }
+      } else if (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '[') {
+        if (this.tokens[i].value.length === 1) {
+          let op = new OperatorToken(this, '[]', this.tokens[i].pos);
+          op.data = this.tokens[i].value[0]; // Property
+          op.data.prepare();
+          this.tokens[i] = op;
+        } else {
+          throw new Error(`[${errors.SYNTAX}] Syntax Error: expected expression, got ] at position ${this.tokens[i].pos} (computed member access)`);
         }
       }
     }

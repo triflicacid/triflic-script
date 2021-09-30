@@ -1,3 +1,4 @@
 println("PI is {pi}");
 println("DEBUG: {pi=}");
 println("2 + 2 = {2+2}");
+println("Trig: {sin(1) = }");

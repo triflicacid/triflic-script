@@ -12,7 +12,7 @@
 
 const { errors } = require("../errors");
 const { sortObjectByLongestKey } = require("../utils");
-const { UndefinedValue } = require("./values");
+const { UndefinedValue, StringValue } = require("./values");
 
 const operators = {
   ".": {
@@ -20,13 +20,29 @@ const operators = {
     precedence: 20,
     args: 2,
     fn: (obj, prop) => {
-      obj = obj.castTo('any');
-      if (!obj.__get__) throw new Error(`[${errors.BAD_PROP}] Key Error: Cannot access property ${prop} of type ${obj.type()}`);
-      return obj.castTo('any').__get__(prop.castTo('any'));
+      if (typeof prop.getVar !== 'function') throw new Error(`[${errors.TYPE_ERROR}] Property: expected symbol, got ${prop.type()}`);
+      obj = obj.castTo("any");
+      if (!obj.__get__) throw new Error(`[${errors.PROP}] Key Error: Cannot access property ${prop.value} of type ${obj.type()}`);
+      return obj.__get__(new StringValue(obj.rs, prop.value));
     },
     desc: `Access property <prop> of <obj>`,
     syntax: '<obj>.<prop>',
     assoc: 'ltr',
+  },
+  "[]": {
+    name: 'computed member access',
+    precedence: 20,
+    args: 1,
+    fn: async (obj, prop, evalObj) => {
+      obj = obj.castTo("any");
+      prop = await prop.eval(evalObj);
+      if (!obj.__get__) throw new Error(`[${errors.PROP}] Key Error: Cannot access property ${prop} of type ${obj.type()}`);
+      return obj.__get__(prop);
+    },
+    desc: `Evaluate <prop> and access property <prop> of <obj>`,
+    syntax: '<obj>[<prop>]',
+    assoc: 'ltr',
+    hidden: true,
   },
   "()": {
     name: 'call',
@@ -50,7 +66,7 @@ const operators = {
     fn: (obj, prop) => {
       obj = obj.castTo('any');
       if (obj instanceof UndefinedValue) return new UndefinedValue(obj.rs);
-      if (!obj.__get__) throw new Error(`[${errors.BAD_PROP}] Key Error: Cannot access property ${prop} of type ${obj.type()}`);
+      if (!obj.__get__) throw new Error(`[${errors.PROP}] Key Error: Cannot access property ${prop} of type ${obj.type()}`);
       return obj.castTo('any').__get__(prop.castTo('any'));
     },
     desc: `Access property <prop> of <obj>`,
