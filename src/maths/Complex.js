@@ -123,15 +123,18 @@ class Complex {
     return this.a === z.a && this.b === z.b;
   }
 
-  toString(radix = undefined) {
+  toString(radix = undefined, ncase = undefined) {
     if (Complex.isNaN(this)) return 'NaN';
     if (this.a === 0 && this.b === 0) return '0';
-    let str = '';
-    if (this.a !== 0) str += this.a.toString(radix);
+    let str = '', string;
+    if (ncase === "upper") string = z => z.toString(radix).toUpperCase();
+    else if (ncase === "lower") string = z => z.toString(radix).toLowerCase();
+    else string = z => z.toString(radix);
+    if (this.a !== 0) str += string(this.a);
     if (this.b !== 0) {
       if (this.b >= 0 && this.a !== 0) str += '+';
       if (this.b === -1) str += '-';
-      else if (this.b !== 1) str += this.b.toString(radix);
+      else if (this.b !== 1) str += string(this.b);
       str += Complex.imagLetter;
     }
     return str;
@@ -146,6 +149,20 @@ class Complex {
       if (this.b >= 0 && this.a !== 0) str += '+';
       if (this.b === -1) str += '-';
       else if (this.b !== 1) str += this.b.toLocaleString(locales, options);
+      str += Complex.imagLetter;
+    }
+    return str;
+  }
+
+  toExponential(fdigits = undefined) {
+    if (Complex.isNaN(this)) return 'NaN';
+    if (this.a === 0 && this.b === 0) return '0';
+    let str = '';
+    if (this.a !== 0) str += this.a.toExponential(fdigits);
+    if (this.b !== 0) {
+      if (this.b >= 0 && this.a !== 0) str += '+';
+      if (this.b === -1) str += '-';
+      else if (this.b !== 1) str += this.b.toExponential(fdigits);
       str += Complex.imagLetter;
     }
     return str;

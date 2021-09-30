@@ -46,6 +46,7 @@ There are some types listed that are general terms:
 | `*` | `string` | `real` | Repeat arg1 arg2 times | `"$" * 5` => `"$$$$$"` |
 | `+` | `string` | `any` | Concatenate arg1 and arg2 (as a string) | `"Hello" + "World"` => `"HelloWorld"` |
 | `:` | `string` | `string` | arg1 and arg2 must be of length 1. Return sequence using ASCII codes between the two strings. | `"a":"e"` => `["a","b","c","d"]` |
+| `%` | `string` | `any|array` | Interpolates items in arg2 into string at arg1 using formatting options | `"%s is %i years old" % ["Joe", 42]` => `"Joe is 42 years old"` |
 | `==` | `bool` | `any` | Returns true if arg2 is a bool and has same logical value | `true == true` => `true` |
 | `~` | `bool` | n/a | Returns bitwise NOT of bool (true = 1, false = 0) | `~true` => `-2` |
 | `&` | `bool` | `real-like` | ANDs arg1 and arg2 | `true & 5` => `1` |

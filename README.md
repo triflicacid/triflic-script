@@ -13,10 +13,11 @@ For more help, see `programs/` and the built-in `help` function.
 - `if` statements **do not** return their last value.
 
 ## TODO
+- String 'interpolation' via % operator
 - Expandable/Collapsable argument arrays via `...`
 
 ## Bugs
-- Closing-bracket unexpected error (see `programs/tests/scope`)
+No known bugs.
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -132,7 +133,12 @@ Character escaped may appear in string and character literals. Any character fol
 - `d([0-9]+)` - inserts character with decimal ascii code of `[0-9]+` into literal.
 - Else, simply inserts following character into literal
 
-#### String Interpolation
+### Strings
+Syntax: `"..."`
+
+Strings are sequences of characters. A character is defined by `'...'` and behaves like a `real`.
+
+#### Interpolation
 Syntax: `"{<expr>}"`
 
 This is the method of inserting values into string literals.
@@ -145,6 +151,30 @@ Notable features include:
   - `"{sin(1)=}"` -> `sin(1)=0.8414709848078965`
   
   Note that this only happens if `<expr>` contains something other then `=`.
+
+#### Formatting
+Syntax: `<string> % <values>`
+
+- `<string>` - a string `"..."`.
+- `<values>` - a single value or an array of values. These are inserted into the string at `%<opt>`
+
+- `%<opt>` - A value is inserted into the string at any `%`. Following the `%` is a format identifier, which tells the program how to format the value prior to interpolation. If not `<opts>` is given, it is treated as `%s`.
+  - `%` - One `%` is removed e.g. `"100%%"` -> `"100%"`
+  - `s` - String
+  - `n` - Number (complex)
+  - `i` | `ci` - Complex integer
+  - `ri` - Real integer
+  - `c` - Character
+  - `b` - Boolean
+  - `o` - Complex octal
+  - `d` - Complex decimal
+  - `x` - Complex hexadecimal (lowercase)
+  - `X` - Complex hexadecimal (uppercase)
+  - `e` - Complex exponential form (lowercase)
+
+If there are more `%`s than values, insert as may values as there are and preserver any other `%`s
+
+If there are less `%`s than values, append left-over values onto end of string, seperated by spaces, as if `%s` was present.
 
 ### Variables
 Variables store values in memory. There are some predefined variables (assuming `--define-vars` is truthy).
@@ -194,7 +224,7 @@ See `Operators.md` for detailed operator help.
 | ** | Exponentation | 16 | rtl | Returns LHS to the power of the RHS | `2 ** 4` => `16` | `__pow__` |
 | : | Sequence | 16 | rtl | Attempts to create sequence from LHS to RHS | `3:7` => `[3,4,5,6]`, `"a":"f"` => `["a","b","c","d","e"]` | `__seq__` |
 | / | Division | 15 | ltr | Divide LHS by RHS | `5 / 2` => `2.5` | `__div__` |
-| % | Modulo/Remainder | 15 | ltr | Return remainder of LHS divided by RHS | `5 % 2` => `1` | `__mod__` |
+| % | Modulo/Remainder/String Format | 15 | ltr | Return remainder of LHS divided by RHS, or interpolate items in RHS to string RHS | `5 % 2` => `1` | `__mod__` |
 | * | Multiplication | 15 | ltr | Multiply LHS by RHS | `5 * 2` => `10` | `__mul__` |
 | ∩ | Intersection | 15 | ltr | Find the intersection between the LHS and RHS | `{1,2} ∩ {2,3}` => `{2}` | `__intersect__` |
 | ∪ | Union | 14 | ltr | Find the union between the LHS and RHS | `{1,2} ∪ {2,3}` => `{1,2,3}` | `__union__` |

@@ -377,7 +377,9 @@ function defineFuncs(rs) {
     rs.setVarObj(a.value, b.getVar()).isRef = true;
     return a;
   }, 'Place a reference to variable b in variable a (ties both variables together)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'strformat', { str: 'string', values: 'array' }, ({ str, values }) => str.castTo('string').format(values.toPrimitive('array')), 'Return formatted string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nformat', { n: 'complex', region: '?string' }, ({ n, region }) => new StringValue(rs, n.toPrimitive('complex').toLocaleString(region ? region.toPrimitive('string') : 'en-GB')), 'Return formatted number string'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'expform', { z: 'complex', fdigits: '?real_int' }, ({ z, fdigits }) => new StringValue(rs, z.toPrimitive('complex').toExponential(fdigits ? fdigits.toPrimitive('real_int') : undefined)), 'Return complex number in exponential form, with <fdigits> fractional digits'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'zroots', { n: 'real_int', r: 'complex' }, ({ n, r }) => {
     n = n.toPrimitive("real_int");
     r = r.toPrimitive("complex");

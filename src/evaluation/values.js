@@ -313,6 +313,52 @@ class StringValue extends Value {
       return new ArrayValue(this.rs, rng.map(n => new StringValue(this.rs, String.fromCharCode(n))));
     }
   }
+
+  /** Operator: % */
+  __mod__(arg) {
+    let t = arg.type();
+    let values = t === 'array' || t === 'set' ? arg.toPrimitive('array') : [arg];
+    return this.format(values);
+  }
+
+  /** Format string with Value[] */
+  format(values) {
+    let string = '', original = this.value, vi = 0;
+    for (let i = 0; i < original.length; i++) {
+      if (original[i] === '%') {
+        let n1 = original[++i];
+        if (values[vi] === undefined) {
+          string += '%' + (n1 ?? '');
+        } else {
+          if (n1 === '%') string += '%'; // "%%" -> "%"
+          else if (n1 === 'n') string += values[vi++].toPrimitive('complex').toString(); // "%n" -> complex
+          else if (n1 === 'i') string += values[vi++].toPrimitive('complex_int').toString(); // "%i" -> complex int
+          else if (n1 === 'c' && original[i+1] === 'i') { // "%ci" -> complex int
+            i++;
+            string += values[vi++].toPrimitive('complex_int').toString();
+          }
+          else if (n1 === 'r' && original[i+1] === 'i') { // "%ri" -> real int
+            i++;
+            string += values[vi++].toPrimitive('real_int').toString();
+          }
+          else if (n1 === 'c') string += values[vi++].castTo('char').toString(); // "%c" -> character
+          else if (n1 === 'b') string += values[vi++].toPrimitive('bool').toString(); // "%b" -> boolean
+          else if (n1 === 'o') string += values[vi++].toPrimitive('complex').toString(8); // "%o" -> complex octal
+          else if (n1 === 'd') string += values[vi++].toPrimitive('complex').toString(10); // "%d" -> complex decimal
+          else if (n1 === 'x') string += values[vi++].toPrimitive('complex').toString(16, 'lower'); // "%x" -> complex hexadecimal (lowercase)
+          else if (n1 === 'X') string += values[vi++].toPrimitive('complex').toString(16, 'upper'); // "%X" -> complex hexadecimal (uppercase)
+          else if (n1 === 'e') string += values[vi++].toPrimitive('complex').toExponential(); // "%e" -> complex exponential
+          else string += values[vi++].toPrimitive("string"); // "%s" or "%" -> string
+        }
+      } else {
+        string += original[i];
+      }
+    }
+    if (vi < values.length) {
+      for (; vi < values.length; vi++) string += ' ' + values[vi].toPrimitive("string");
+    }
+    return new StringValue(this.rs, string);
+  }
 }
 
 class CharValue extends Value {
