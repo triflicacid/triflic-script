@@ -13,8 +13,9 @@ For more help, see `programs/` and the built-in `help` function.
 - `if` statements **do not** return their last value.
 
 ## TODO
-- String 'interpolation' via % operator
 - Expandable/Collapsable argument arrays via `...`
+- member access via `[]`. `.` does not evaluate rhs.
+- Proper importing - relative paths ...
 
 ## Bugs
 No known bugs.

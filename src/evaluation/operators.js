@@ -72,7 +72,7 @@ const operators = {
     args: 1,
     fn: x => x.castTo('any').__not__?.(),
     desc: `logical not unless x is of type set. Then, find complement of x (using universal set, ε)`,
-    syntax: 'x\'',
+    syntax: 'x!',
     assoc: 'rtl',
   },
   "~": {

@@ -217,9 +217,7 @@ class StringValue extends Value {
         try {
           const idata = this.interpolations[pos];
           let value = await idata.val.eval(evalObj), insert = value.toString();
-          if (idata.eq) {
-            insert = idata.src + insert;
-          }
+          if (idata.eq) insert = idata.src + insert;
           let index = +pos + offset;
           this.value = this.value.substr(0, index) + insert + this.value.substr(index);
           offset += insert.length;
@@ -229,8 +227,6 @@ class StringValue extends Value {
       }
     }
   }
-
-  // "=== {len(1:20)} ==="
 
   /** len() function */
   __len__() { return this.value.length; }
@@ -333,11 +329,11 @@ class StringValue extends Value {
           if (n1 === '%') string += '%'; // "%%" -> "%"
           else if (n1 === 'n') string += values[vi++].toPrimitive('complex').toString(); // "%n" -> complex
           else if (n1 === 'i') string += values[vi++].toPrimitive('complex_int').toString(); // "%i" -> complex int
-          else if (n1 === 'c' && original[i+1] === 'i') { // "%ci" -> complex int
+          else if (n1 === 'c' && original[i + 1] === 'i') { // "%ci" -> complex int
             i++;
             string += values[vi++].toPrimitive('complex_int').toString();
           }
-          else if (n1 === 'r' && original[i+1] === 'i') { // "%ri" -> real int
+          else if (n1 === 'r' && original[i + 1] === 'i') { // "%ri" -> real int
             i++;
             string += values[vi++].toPrimitive('real_int').toString();
           }

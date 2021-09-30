@@ -843,6 +843,7 @@ class TokenLine {
       let items = stack.map(x => x + (x.pos === undefined ? '' : ` (position ${x.pos})`));
       throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax ${items.join(', ')}. Did you miss an EOL token ${EOLToken.symbol} (${EOLToken.symbol.charCodeAt(0)}) ?\n(evaluation failed to reduce expression to single value)`);
     }
+    if (this.rs._storeAns) this.rs.setVar('ans', stack[0].castTo('any'));
     return stack[0];
   }
 
@@ -1045,7 +1046,7 @@ function _tokenify(obj) {
         const opening = string[i], closing = bracketMap[opening];
         const pobj = createTokenStringParseObj(obj.rs, string.substr(i + 1), obj.pos + 1, obj.depth + 1, [closing], true);
         _tokenify(pobj);
-        
+
         // Check that everything was matched
         const len = (pobj.pos - obj.pos) + 1;
         if (pobj.terminateOn !== closing) {

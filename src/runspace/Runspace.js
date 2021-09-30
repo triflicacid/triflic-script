@@ -54,7 +54,7 @@ class Runspace {
     else if (value instanceof RunspaceVariable) obj = value;
     else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
 
-    this._vars[this._vars.length-1].set(name, obj); // Insert into top-level scope
+    this._vars[this._vars.length - 1].set(name, obj); // Insert into top-level scope
     return obj;
   }
 
@@ -111,7 +111,11 @@ class Runspace {
   storeAns(v = undefined) {
     if (v === undefined) return this._storeAns;
     this._storeAns = !!v;
-    this.defineVar('ans', this._storeAns ? 0 : null);
+    if (this._storeAns) {
+      this.defineVar('ans', this.UNDEFINED, 'Store result of last execution');
+    } else {
+      this.deleteVar('ans');
+    }
     return this._storeAns;
   }
 
@@ -133,7 +137,7 @@ class Runspace {
   /** Execute source code */
   async execute(source, singleStatement = undefined, timingObj = {}) {
     this._blocks.clear();
-    
+
     let start = Date.now(), value;
     let lines = tokenify(this, source, singleStatement);
     this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN, undefined);
