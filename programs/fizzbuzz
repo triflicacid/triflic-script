@@ -1,0 +1,31 @@
+switch (len(argv)) {
+    case (1) {
+        n = 1;
+        end = <real_int>argv.0;
+    }
+    case (2) {
+        n = <real_int>argv.0;
+        end = <real_int>argv.1;
+    }
+    else {
+        n = 1;
+        end = inf;
+    }
+}
+
+
+loop {
+    n3 = n % 3, n5 = n % 5;
+    if (n3 == 0 && n5 == 0) {
+        println("Fizzbuzz");
+    } else if (n3 == 0) {
+        println("Fizz");
+    } else if (n5 == 0) {
+        println("Buzz");
+    } else {
+        println(n);
+    }
+    n += 1;
+    sleep(1);
+    if (n > end) { break; }
+}

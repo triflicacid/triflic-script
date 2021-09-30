@@ -978,7 +978,7 @@ function _tokenify(obj) {
       continue;
     }
 
-    // Break??
+    // Break (reached termination)
     if (obj.terminateOn.includes(string[i])) {
       obj.terminateOn = string[i];
       break;
@@ -1007,9 +1007,11 @@ function _tokenify(obj) {
     if (string[i] === '/' && string[i + 1] === '/') {
       let comment = '';
       i += 3; // Skip '//' 
+      obj.pos += 3;
       for (; i < string.length; i++, obj.pos++) {
-        if (string[i] === '\n') {
+        if (string[i] === '\n' || string[i] === '\r') {
           i++;
+          obj.pos++;
           break;
         }
         comment += string[i];
@@ -1022,9 +1024,11 @@ function _tokenify(obj) {
     if (string[i] === '/' && string[i + 1] === '*') {
       let comment = '';
       i += 3; // SKip '/*'
+      obj.pos += 3;
       for (; i < string.length; i++, obj.pos++) {
         if (string[i] === '*' && string[i + 1] === '/') {
           i += 2; // Skip '*/'
+          obj.pos += 2;
           break;
         }
         comment += string[i];
@@ -1038,20 +1042,20 @@ function _tokenify(obj) {
       if (bracketValues[string[i]] === -1) { // Should never come across a closing bracket
         throwMatchingBracketError(string[i], bracketMap[string[i]], obj.pos);
       } else {
-        const opening = string[i];
-        const closing = bracketMap[opening];
+        const opening = string[i], closing = bracketMap[opening];
         const pobj = createTokenStringParseObj(obj.rs, string.substr(i + 1), obj.pos + 1, obj.depth + 1, [closing], true);
         _tokenify(pobj);
-
+        
         // Check that everything was matched
-        if (pobj.terminateOn !== closing) throw throwMatchingBracketError(opening, closing, obj.pos);
-        const contents = pobj.lines;
-        const group = new BracketedTokenLines(currentLine, contents, opening, obj.pos);
+        const len = (pobj.pos - obj.pos) + 1;
+        if (pobj.terminateOn !== closing) {
+          throw throwMatchingBracketError(opening, closing, obj.pos);
+        }
+        const group = new BracketedTokenLines(currentLine, pobj.lines, opening, obj.pos);
         currentTokens.push(group);
 
-        const source = string.substr(i, (pobj.pos - obj.pos) + 1); // Extract block text
-        obj.pos += source.length;
-        i += source.length;
+        obj.pos += len;
+        i += len;
         continue;
       }
     }
