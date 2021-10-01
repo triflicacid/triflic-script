@@ -6,10 +6,8 @@ class RunspaceFunction {
    * @param {Runspace} rs 
    * @param {{ [param: string]: string }} args - param:type or param:{ pass: "val"|"ref", type: string, optional: boolean, default: undefined | any }
    * @param {string} desc - optional description of function
-   * @param {boolean} processArgs - process arguments in accordance to provided types, or leave as Token object?
    */
-  constructor(rs, name, args, desc = undefined, processArgs = true) {
-    if (typeof processArgs !== 'boolean') throw new Error(`Function ${name} - invalid <processArgs>: ${processArgs}`);
+  constructor(rs, name, args, desc = undefined, returnType = 'any') {
 
     this.rs = rs;
     this.rargs = args;
@@ -18,8 +16,8 @@ class RunspaceFunction {
     this.optional = 0; // Number of OPTIONAL arguments
     this.name = name;
     this.desc = desc ?? '[no information]';
-    this.processArgs = processArgs;
     this.constant = false;
+    this.returnType = returnType;
 
     let metOptn = false;
     for (let arg in args) {
@@ -72,7 +70,7 @@ class RunspaceFunction {
   }
 
   signature() {
-    return `${this.name}(${Array.from(this.args.entries()).map(([name, data]) => `${name}: ${data.pass ?? ''} ${data.optional ? '?' : ''}${data.type}`).join(', ')})`;
+    return `${this.name}(${Array.from(this.args.entries()).map(([name, data]) => `${name}: ${data.pass ? (data.pass + ' ') : ''}${data.optional ? '?' : ''}${data.type}`).join(', ')})`;
   }
 }
 
@@ -82,10 +80,9 @@ class RunspaceUserFunction extends RunspaceFunction {
    * @param {{[arg:string]:string}} args Map argument names to types
    * @param {TokenLine | BracketedTokenLines} body Body of function (basically, anything with eval() method)
    */
-  constructor(rs, name, args, body, desc = 'user-defined', constant = false) {
-    super(rs, name, args, desc);
+  constructor(rs, name, args, body, desc = 'user-defined', returnType = "any") {
+    super(rs, name, args, desc, returnType);
     this.tstr = body;
-    this.constant = constant;
   }
 
   clone() {
@@ -129,13 +126,9 @@ class RunspaceUserFunction extends RunspaceFunction {
     });
 
     let ret = await this.tstr.eval(evalObj);
-    ret = ret.castTo('any'); // Cast to resolve variables
+    ret = ret.castTo(this.returnType); // Cast to resolve variables
     this.rs.popScope();
     return ret;
-  }
-
-  raw() {
-    return this.tstr.string;
   }
 }
 
@@ -147,10 +140,9 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
    * @param {{ [param: string]: string }} args Object mapping parameter name to the type expected (param may be prefixes be '?' to show optionality) 
    * @param {Function} fn Anonymous JS function 
    * @param {string} desc Description of function. Used in help() 
-   * @param {boolean} processArgs true: calls castTo(type) on each argument (eliminates variables) 
    */
-  constructor(rs, name, args, fn, desc = '[built-in function]', processArgs = true) {
-    super(rs, name, args, desc, processArgs);
+  constructor(rs, name, args, fn, desc = '[built-in function]') {
+    super(rs, name, args, desc);
     this.fn = fn;
     this.constant = true;
   }
@@ -169,10 +161,6 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
       i++;
     });
     return await this.fn(o, evalObj);
-  }
-
-  raw() {
-    return this.fn;
   }
 }
 

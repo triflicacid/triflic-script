@@ -341,7 +341,7 @@ A keyword commonly used after loop statements.
 `<block>` is executed after the loop terminates *naturally* (i.e. will not execute if `break`/`return` is used)
 
 ### `func`
-Syntax: `func [name] (<args>) {<block>}`
+Syntax: `func [name] (<args>)[: <rettype>] {<block>}`
 
 This defines a function. `name` is optional.
 - If `name` is present, this defines a function and stores it in the current scope under a variable called `name`. No value is returned.
@@ -360,11 +360,17 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
   - `=`: marks following as default value if parameter is omitted
   - `<value>`: default value of the parameter if ommited (*Note, may only be a single token e.g. can't be '1 + 2'*)
 
+- `<rettype>` is the return type of the function
+  - Default is `any`
+  - Value returned from function is casted to `<rettype>`
+
+- `<block>` is the body of the function. This code is executed on invocation.
+
 Examples:
   - `func fn(a)` -> function `fn` takes an argument `a` of type `any`
   - `func fn(a: ?<type>)` -> function `fn` takes an optional argument `a` of type `<type>`
   - `func fn(a: ref <type>)` -> function `fn` takes a pass-by-reference argument `a` of type `<type>`
-  - `func fn(a: ref ?<type>)` -> function `fn` takes a pass-by-reference optional argument `a` of type `<type>`
+  - `func fn(a: <type>): <rtype>` -> function `fn` takes an argument `a` of type `<type>` and returns type `<rtype>`
 
 ### `break`
 Syntax: `break`

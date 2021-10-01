@@ -462,6 +462,7 @@ class FuncStructure extends Structure {
     this.name = name;
     this.args = args ?? {};
     this.body = body;
+    this.returnType = 'any';
   }
 
   validate() {
@@ -471,7 +472,7 @@ class FuncStructure extends Structure {
   }
 
   async eval(evalObj) {
-    let fn = new RunspaceUserFunction(this.rs, this.name ?? 'anonymous', this.args, this.body);
+    let fn = new RunspaceUserFunction(this.rs, this.name ?? 'anonymous', this.args, this.body, undefined, this.returnType);
     let ref = new FunctionRefValue(this.rs, fn);
     let ret;
 

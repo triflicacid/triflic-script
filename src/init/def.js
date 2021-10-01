@@ -50,13 +50,13 @@ function define(rs) {
       if (rs.opts.strict) throw new Error(`[${errors.BAD_ARG}] Argument Error: Cannot get help on given argument`);
     }
     return new StringValue(rs, help);
-  }, 'Get general help or help on a provided argument', false));
+  }, 'Get general help or help on a provided argument'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copyright', {}, () => new StringValue(rs, "Copyright (c) 2021 Ruben Saunders.\nAll Right Reserved."), 'View copyright information'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, ({ obj, key }) => {
     const v = key === undefined ? obj.__del__?.(key) : obj.castTo("any").__del__?.(key);
     if (v === undefined) throw new Error(`[${errors.DEL}] Argument Error: cannot del() object of type ${obj.type()}`);
     return v;
-  }, 'attempt to delete given object. If a key is given, attempts to delete that key from the given object.', false));
+  }, 'attempt to delete given object. If a key is given, attempts to delete that key from the given object.'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
     print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
     process.exit(0);
