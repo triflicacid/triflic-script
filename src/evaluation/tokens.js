@@ -156,7 +156,7 @@ class VariableToken extends Token {
   __assign__(value) {
     value = value.castTo("any");
     const name = this.value, thisVar = this.getVarNoError();
-    let varObj = thisVar && thisVar.isRef ? this.tstr.rs.setVar(name, value) : this.tstr.rs.defineVar(name, value);
+    let varObj = thisVar && thisVar.refFor ? this.tstr.rs.setVar(thisVar.refFor, value) : this.tstr.rs.defineVar(name, value);
     return value;
   }
 

@@ -102,12 +102,9 @@ function define(rs) {
   }, 'Return a copy of object <o>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new StringValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => new NumberValue(rs, chr.toString().charCodeAt(0)), 'return character code of <chr>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isdefined', { name: 'any' }, ({ name }) => {
-    if (name instanceof VariableToken) {
-      return new BoolValue(rs, name.exists());
-    } else {
-      throw new Error(`[${errors.BAD_ARG}] Argument Error: expected symbol, got immediate of type ${name.type()}`);
-    }
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isdefined', { name: 'string' }, ({ name }) => {
+    let value = rs.getVar(name.toString());
+    return new BoolValue(rs, value);
   }, 'returns boolean indicating if name <name> is defined and accessable'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
     let start, end, step;
@@ -374,9 +371,22 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ref', { a: 'any', b: 'any' }, ({ a, b }) => {
     if (!(a instanceof VariableToken)) throw new Error(`[${errors.BAD_ARG}] Argument Error: a: expected symbol, got ${a.type()}`);
     if (!(b instanceof VariableToken)) throw new Error(`[${errors.BAD_ARG}] Argument Error: b: expected symbol, got ${b.type()}`);
-    rs.setVarObj(a.value, b.getVar()).isRef = true;
+    a.getVar().refFor = b.value;
     return a;
-  }, 'Place a reference to variable b in variable a (ties both variables together)'));
+  }, 'Place a reference to variable b in variable a (i.e. changing a = changing b)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'unref', { a: 'any' }, ({ a }) => {
+    if (!(a instanceof VariableToken)) throw new Error(`[${errors.BAD_ARG}] Argument Error: a: expected symbol, got ${a.type()}`);
+    a.getVar().refFor = undefined;
+    return a;
+  }, 'Remove reference from <a> (<a> is no longer acting as a reference)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'getref', { name: 'string' }, ({ name }) => {
+    if (name instanceof VariableToken) {
+      let ref = name.getVar().refFor;
+      return ref ? new StringValue(rs, ref) : rs.UNDEFINED;
+    } else {
+      throw new Error(`[${errors.BAD_ARG}] Argument Error: type ${name.type()} is not a valid reference type (expected symbol)`);
+    }
+  }, 'Return symbol that <name> is a reference to (or undef)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'strformat', { str: 'string', values: 'array' }, ({ str, values }) => str.castTo('string').format(values.toPrimitive('array')), 'Return formatted string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nformat', { n: 'complex', region: '?string' }, ({ n, region }) => new StringValue(rs, n.toPrimitive('complex').toLocaleString(region ? region.toPrimitive('string') : 'en-GB')), 'Return formatted number string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'expform', { z: 'complex', fdigits: '?real_int' }, ({ z, fdigits }) => new StringValue(rs, z.toPrimitive('complex').toExponential(fdigits ? fdigits.toPrimitive('real_int') : undefined)), 'Return complex number in exponential form, with <fdigits> fractional digits'));

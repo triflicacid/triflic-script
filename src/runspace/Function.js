@@ -121,7 +121,7 @@ class RunspaceUserFunction extends RunspaceFunction {
           throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: expected variable, got ${args[i]?.type()} ${args[i]}`);
         }
         let varObj = this.rs.defineVar(arg, args[i].getVar());
-        varObj.isRef = true;
+        varObj.refFor = args[i].value;
       } else {
         throw new Error(`Unknown pass-by value '${data.pass}' for '${args[i]}'`);
       }

@@ -1,11 +1,11 @@
-func quicksort(arr: array) {
+func quicksort(arr: ref array) {
     length = len(arr);
     if (length < 2) { return arr; }
-    mid = ceil(length / 2), midVal = get(arr, mid);
+    mid = ceil(length / 2), midVal = arr[mid];
     lhs = [], rhs = [];
     for (i = 0; i < length; i += 1) {
         if (i == mid) { continue; }
-        item = get(arr, i);
+        item = arr[i];
         if (item < midVal) {
             push(lhs, item);
         } else {

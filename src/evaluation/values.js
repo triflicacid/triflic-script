@@ -9,6 +9,8 @@ class Value {
   constructor(runspace, value) {
     this.rs = runspace;
     this.value = value;
+    this.onAssign = undefined; // If populated, __assign__ and others calls this
+    this.getAssignVal = undefined; // If onAssign is defined, this is as well. Returns value that will be assigned to.
   }
 
   type() { throw new Error(`Requires Overload`); }
@@ -29,7 +31,43 @@ class Value {
   }
   toString() { return this.toPrimitive('string'); }
 
-  __assign__() { throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot assign to object ${this.type()}`); }
+  getAssignError() { return new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot assign to object ${this.type()}`); }
+
+  /** operator: = */
+  __assign__(val) {
+    if (this.onAssign === undefined) throw this.getAssignError();
+    return this.onAssign(val.castTo('any'));
+  }
+
+  /** operator: += */
+  __assignAdd__(val) {
+    if (this.onAssign === undefined) throw this.getAssignError();
+    return this.onAssign(this.getAssignVal().__add__(val.castTo('any')));
+  }
+  
+  /** operator: -= */
+  __assignSub__(val) {
+    if (this.onAssign === undefined) throw this.getAssignError();
+    return this.onAssign(this.getAssignVal().__sub__(val.castTo('any')));
+  }
+
+  /** operator: *= */
+  __assignMul__(val) {
+    if (this.onAssign === undefined) throw this.getAssignError();
+    return this.onAssign(this.getAssignVal().__mul__(val.castTo('any')));
+  }
+
+  /** operator: /= */
+  __assignDiv__(val) {
+    if (this.onAssign === undefined) throw this.getAssignError();
+    return this.onAssign(this.getAssignVal().__div__(val.castTo('any')));
+  }
+
+  /** operator: %= */
+  __assignMod__(val) {
+    if (this.onAssign === undefined) throw this.getAssignError();
+    return this.onAssign(this.getAssignVal().__mod__(val.castTo('any')));
+  }
 
   /** operator: u+ */
   __pos__() { return this.castTo('complex'); }
@@ -549,7 +587,13 @@ class ArrayValue extends Value {
   __get__(i) {
     i = i.toPrimitive('real_int');
     if (isNaN(i) || i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
-    return this.value[i];
+    const val = this.value[i];
+    val.onAssign = value => {
+      this.value[i] = value;
+      return value;
+    };
+    val.getAssignVal = () => this.value[i];
+    return val;
   }
 
   /** set() function */

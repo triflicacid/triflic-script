@@ -1,42 +1,42 @@
-func bubble_sort(arr: array) {
+func bubble_sort(arr: ref array) {
   sorted = 0, length = len(arr) - 1;
   while (!sorted) {
     sorted = 1;
     for (i = 0; i < length; i += 1) {
-      a = get(arr, i), b = get(arr, i+1);
+      a = arr[i], b = arr[i+1];
       if (a > b) {
-        set(arr, i, b);
-        set(arr, i+1, a);
+        arr[i] = b;
+        arr[i+1] = a;
         sorted = 0;
       }
     }
   }
 }
 
-func bubble_sort_descending(arr: array) {
+func bubble_sort_descending(arr: ref array) {
   sorted = 0, length = len(arr) - 1;
   while (!sorted) {
     sorted = 1;
     for (i = 0; i < length; i += 1) {
-      a = get(arr, i), b = get(arr, i+1);
+      a = arr[i], b = arr[i+1];
       if (a < b) {
-        set(arr, i, b);
-        set(arr, i+1, a);
+        arr[i] = b;
+        arr[i+1] = a;
         sorted = 0;
       }
     }
   }
 }
 
-func bubble_sort_debug(arr: array) {
+func bubble_sort_debug(arr: ref array) {
   sorted = 0, length = len(arr) - 1, iters = 0;
   while (!sorted) {
     sorted = 1;
     for (i = 0; i < length; i += 1) {
-      a = get(arr, i), b = get(arr, i+1);
+      a = arr[i], b = arr[i+1];
       if (a > b) {
-        set(arr, i, b);
-        set(arr, i+1, a);
+        arr[i] = b;
+        arr[i+1] = a;
         sorted = 0;
       }
     }

@@ -4,7 +4,7 @@ func SoE(limit: real_int) {
   for (i = 2; i*i <= limit; i += 1) {
     if (!marks[i]) {
       for (j = i*i; j <= limit; j += i) {
-        set(marks, j, 1);
+        marks[j] = 1;
       }
     }
   }

@@ -2,7 +2,7 @@ func fibseq(n: real_int) {
   seq = [0, 1];
   for (i = 0; i < n; i += 1) {
     length = len(seq);
-    next = get(seq, length - 1) + get(seq, length - 2);
+    next = seq[length - 1] + seq[length - 2];
     push(seq, next);
   }
   seq;

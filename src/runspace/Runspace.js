@@ -51,7 +51,7 @@ class Runspace {
     if (value === undefined) value = new UndefinedValue(this);
     let obj;
     if (value instanceof Value || value instanceof RunspaceFunction) obj = new RunspaceVariable(name, value, desc, constant);
-    else if (value instanceof RunspaceVariable) obj = value;
+    else if (value instanceof RunspaceVariable) obj = value.copy();
     else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
 
     this._vars[this._vars.length - 1].set(name, obj); // Insert into top-level scope
