@@ -6,12 +6,12 @@ func main() {
 
     for (i = 0; i < BOARD_CAP-2; i += 1) {
         for (j = 0; j < BOARD_CAP; j += 1) {
-            print(iif(board.j, '*', ' '));
+            print(iif(board[j], '*', ' '));
         }
         println();
-        pattern = (board.0 << 1) | board.1;
+        pattern = (board[0] << 1) | board[1];
         for (j = 1; j < BOARD_CAP-1; j += 1) {
-            pattern = ((pattern << 1) & 7) | board.(j+1);
+            pattern = ((pattern << 1) & 7) | board[j+1];
             set(board, j, (110 >> pattern) & 1);
         }
     }

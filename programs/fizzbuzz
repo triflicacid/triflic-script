@@ -1,11 +1,11 @@
 switch (len(argv)) {
     case (1) {
         n = 1;
-        end = <real_int>argv.0;
+        end = <real_int>argv[0];
     }
     case (2) {
-        n = <real_int>argv.0;
-        end = <real_int>argv.1;
+        n = <real_int>argv[0];
+        end = <real_int>argv[1];
     }
     else {
         n = 1;

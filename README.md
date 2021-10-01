@@ -14,8 +14,6 @@ For more help, see `programs/` and the built-in `help` function.
 
 ## TODO
 - Expandable/Collapsable argument arrays via `...`
-- ~~Member access via `[]`. `.` does not evaluate rhs.~~
-  - Update `programs/`
 - Proper importing - relative paths ...
 
 ## Bugs

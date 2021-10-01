@@ -7,9 +7,9 @@ func firstfit(items: array, binmax) {
         if (item > binmax) { error("Bin Error: item {item} is larger than the maximum bin size of {binmax}"); }
         L = len(bins);
         for (i = 0; i < L; i += 1) {
-            if (sums.i + item <= binmax) {
-                set(sums, i, sums.i + item);
-                push(bins.i, item);
+            if (sums[i] + item <= binmax) {
+                set(sums, i, sums[i] + item);
+                push(bins[i], item);
                 break;
             }
         } then {

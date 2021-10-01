@@ -3,7 +3,7 @@ func strToHex(str: ref string) {
 }
 
 func cipher(string: string, code: string) {
-	join(map(split(string), (_, i) -> <char>string.i ^ <char>code.i));
+	join(map(split(string), (_, i) -> <char>string[i] ^ <char>code[i]));
 }
 
 text = input("Text: ");
