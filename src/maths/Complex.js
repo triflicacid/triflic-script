@@ -124,45 +124,45 @@ class Complex {
   }
 
   toString(radix = undefined, ncase = undefined) {
-    if (Complex.isNaN(this)) return 'NaN';
+    if (Complex.isNaN(this)) return 'nan';
     if (this.a === 0 && this.b === 0) return '0';
     let str = '', string;
     if (ncase === "upper") string = z => z.toString(radix).toUpperCase();
     else if (ncase === "lower") string = z => z.toString(radix).toLowerCase();
     else string = z => z.toString(radix);
-    if (this.a !== 0) str += string(this.a);
+    if (this.a !== 0) str += isFinite(this.a) ? string(this.a) : 'inf';
     if (this.b !== 0) {
       if (this.b >= 0 && this.a !== 0) str += '+';
       if (this.b === -1) str += '-';
-      else if (this.b !== 1) str += string(this.b);
+      else if (this.b !== 1) str += isFinite(this.b) ? string(this.b) : 'inf';
       str += Complex.imagLetter;
     }
     return str;
   }
 
   toLocaleString(locales = undefined, options = undefined) {
-    if (Complex.isNaN(this)) return 'NaN';
+    if (Complex.isNaN(this)) return 'nan';
     if (this.a === 0 && this.b === 0) return '0';
     let str = '';
-    if (this.a !== 0) str += this.a.toLocaleString(locales, options);
+    if (this.a !== 0) str += isFinite(this.a) ? this.a.toLocaleString(locales, options) : 'inf';
     if (this.b !== 0) {
       if (this.b >= 0 && this.a !== 0) str += '+';
       if (this.b === -1) str += '-';
-      else if (this.b !== 1) str += this.b.toLocaleString(locales, options);
+      else if (this.b !== 1) str += isFinite(this.b) ? this.b.toLocaleString(locales, options) : 'inf';
       str += Complex.imagLetter;
     }
     return str;
   }
 
   toExponential(fdigits = undefined) {
-    if (Complex.isNaN(this)) return 'NaN';
+    if (Complex.isNaN(this)) return 'nan';
     if (this.a === 0 && this.b === 0) return '0';
     let str = '';
-    if (this.a !== 0) str += this.a.toExponential(fdigits);
+    if (this.a !== 0) str += isFinite(this.a) ? this.a.toExponential(fdigits) : 'inf';
     if (this.b !== 0) {
       if (this.b >= 0 && this.a !== 0) str += '+';
       if (this.b === -1) str += '-';
-      else if (this.b !== 1) str += this.b.toExponential(fdigits);
+      else if (this.b !== 1) str += isFinite(this.b) ? this.b.toExponential(fdigits) : 'inf';
       str += Complex.imagLetter;
     }
     return str;

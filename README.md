@@ -15,6 +15,9 @@ For more help, see `programs/` and the built-in `help` function.
 ## TODO
 - Expandable/Collapsable argument arrays via `...`
 - Proper importing - relative paths ...
+- Labelled blocks. `break` and `continue` statements may be followed by a block label.
+- Make `argv[0] = ...` work
+- Macros
 
 ## Bugs
 No known bugs.
@@ -131,7 +134,6 @@ Character escaped may appear in string and character literals. Any character fol
 - `x([0-9A-Fa-f]+)` - inserts character with hexadecimal ascii code of `[0-9A-Fa-f]+` into literal.
 - `o([0-7]+)` - inserts character with octal ascii code of `[0-7]+` into literal.
 - `d([0-9]+)` - inserts character with decimal ascii code of `[0-9]+` into literal.
-- Else, simply inserts following character into literal
 
 ### Strings
 Syntax: `"..."`

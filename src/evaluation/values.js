@@ -323,10 +323,13 @@ class StringValue extends Value {
     for (let i = 0; i < original.length; i++) {
       if (original[i] === '%') {
         let n1 = original[++i];
-        if (values[vi] === undefined) {
-          string += '%' + (n1 ?? '');
+        if (n1 === undefined) {
+          throw new Error(`[${errors.SYNTAX}] Syntax Error: incomplete formatting option at index ${i-1}`);
+        } else if (values[vi] === undefined) {
+          string += '%' + n1;
         } else {
           if (n1 === '%') string += '%'; // "%%" -> "%"
+          else if (n1 === 's') string += values[vi++].toPrimitive("string"); // "%s" or "%" -> string
           else if (n1 === 'n') string += values[vi++].toPrimitive('complex').toString(); // "%n" -> complex
           else if (n1 === 'i') string += values[vi++].toPrimitive('complex_int').toString(); // "%i" -> complex int
           else if (n1 === 'c' && original[i + 1] === 'i') { // "%ci" -> complex int
@@ -344,7 +347,7 @@ class StringValue extends Value {
           else if (n1 === 'x') string += values[vi++].toPrimitive('complex').toString(16, 'lower'); // "%x" -> complex hexadecimal (lowercase)
           else if (n1 === 'X') string += values[vi++].toPrimitive('complex').toString(16, 'upper'); // "%X" -> complex hexadecimal (uppercase)
           else if (n1 === 'e') string += values[vi++].toPrimitive('complex').toExponential(); // "%e" -> complex exponential
-          else string += values[vi++].toPrimitive("string"); // "%s" or "%" -> string
+          else throw new Error(`[${errors.SYNTAX}] Syntax Error: unknown formatting option '${n1}' (0x${n1.charCodeAt(0).toString(16)}) at index ${i-1}`);
         }
       } else {
         string += original[i];
