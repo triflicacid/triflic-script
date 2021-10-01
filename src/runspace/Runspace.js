@@ -2,7 +2,7 @@ const readline = require("readline");
 const process = require("process");
 const RunspaceVariable = require("./Variable");
 const { tokenify } = require("../evaluation/tokens");
-const { peek, createEvalObj } = require("../utils");
+const { createEvalObj } = require("../utils");
 const { primitiveToValueClass, MapValue, Value, FunctionRefValue, UndefinedValue, ArrayValue } = require("../evaluation/values");
 const path = require("path");
 const fs = require("fs");
@@ -15,6 +15,7 @@ class Runspace {
     this._vars = [new Map()]; // Arrays represents different scopes
 
     this.opts = opts;
+    opts.version = 0.879;
     opts.time = Date.now();
     if (opts.dir === undefined) opts.dir = path.join(__dirname, "../../");
     this.dir = opts.dir;

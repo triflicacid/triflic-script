@@ -4,6 +4,7 @@ const { consoleColours, printError } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
 const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
+const { errors } = require("./src/errors");
 
 // PARSE ARGV, SETUP RUNSPACE
 const opts = parseArgString(process.argv, true);
@@ -63,7 +64,7 @@ async function main() {
 
   // Print intro stuff to screen
   if (opts.intro) {
-    rs.io.output.write(`-- JS Maths CLI --\nType help(), copyright() for more information.\n`);
+    rs.io.output.write(`-- JS Maths v${rs.opts.version} --\nType help(), copyright() for more information.\n`);
     let notes = [];
     if (opts.strict) notes.push("strict mode is enabled");
     if (!opts.bidmas) notes.push("BIDMAS is being ignored");

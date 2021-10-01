@@ -72,7 +72,7 @@ class RunspaceFunction {
   }
 
   signature() {
-    return `${this.name}(${Array.from(this.args.entries()).map(([name, data]) => `${name}: ${data.pass ?? ''} ${data.type}`).join(', ')})`;
+    return `${this.name}(${Array.from(this.args.entries()).map(([name, data]) => `${name}: ${data.pass ?? ''} ${data.optional ? '?' : ''}${data.type}`).join(', ')})`;
   }
 }
 

@@ -136,18 +136,18 @@ function define(rs) {
     if (abs === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no abs()`);
     return new NumberValue(rs, abs === undefined ? NaN : abs);
   }, 'return length of argument'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'get', { arg: 'any', key: 'any' }, ({ arg, key }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'getprop', { arg: 'any', key: 'any' }, ({ arg, key }) => {
     arg = arg.castTo("any");
-    if (typeof arg.__get__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot get() type ${arg.type()}`);
+    if (typeof arg.__get__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot get property of type ${arg.type()}`);
     return arg.__get__(key);
-  }, 'get item at <i> in <arg>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'set', { arg: 'any', key: 'any', value: 'any' }, ({ arg, key, value }) => {
+  }, 'get property <key> in <arg> (same as <arg>[<key>])'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'setprop', { arg: 'any', key: 'any', value: 'any' }, ({ arg, key, value }) => {
     arg = arg.castTo("any");
     key = key.castTo('any');
     value = value.castTo('any');
-    if (typeof arg.__set__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot set() type ${arg.type()}`);
+    if (typeof arg.__set__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot set property of type ${arg.type()}`);
     return arg.__set__(key, value);
-  }, 'set item at <i> in array <arr> to <item>'));
+  }, 'set property <key> in <arr> to <item> (same as <arg>[<key>] = <value>)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }) => {
     arr = arr.castTo('any');
     item = item.castTo('any');

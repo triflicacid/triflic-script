@@ -1,4 +1,5 @@
 # NodeJS Scripting Language
+# **THIS REPO IS STILL IN HEAVY DEVELOPMENT. SOME PROGRAMS MAY NOT WORK IN NEWER VERSIONS. PROGRAM AT YOUR OWN RISK**
 Started as a single-line maths-focused interpreter, allowing for maths involving complex number
 
 Now, supports multi-line programs with basic control structures. Due to origins this program, the interpreter has some quirks.
@@ -8,6 +9,7 @@ If I has known how this would progress, I would've written this in Java or C++ f
 For more help, see `programs/` and the built-in `help` function.
 
 ## Important Notes
+
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
 - Array-unpacking `[a, b] = [1, 2]` does not work
 - `if` statements **do not** return their last value.
@@ -16,7 +18,6 @@ For more help, see `programs/` and the built-in `help` function.
 - Expandable/Collapsable argument arrays via `...`
 - Proper importing - relative paths ...
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
-- Make `argv[0] = ...` work
 - Macros
 
 ## Bugs

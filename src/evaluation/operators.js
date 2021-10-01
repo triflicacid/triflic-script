@@ -20,7 +20,7 @@ const operators = {
     precedence: 20,
     args: 2,
     fn: (obj, prop) => {
-      if (typeof prop.getVar !== 'function') throw new Error(`[${errors.TYPE_ERROR}] Property: expected symbol, got ${prop.type()}`);
+      if (typeof prop.getVar !== 'function') throw new Error(`[${errors.PROP}] Key Error: type ${prop.type()} is not a valid key`);
       obj = obj.castTo("any");
       if (!obj.__get__) throw new Error(`[${errors.PROP}] Key Error: Cannot access property ${prop.value} of type ${obj.type()}`);
       return obj.__get__(new StringValue(obj.rs, prop.value));

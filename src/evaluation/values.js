@@ -44,7 +44,7 @@ class Value {
     if (this.onAssign === undefined) throw this.getAssignError();
     return this.onAssign(this.getAssignVal().__add__(val.castTo('any')));
   }
-  
+
   /** operator: -= */
   __assignSub__(val) {
     if (this.onAssign === undefined) throw this.getAssignError();
@@ -274,22 +274,17 @@ class StringValue extends Value {
     i = i.toPrimitive('real_int');
     if (i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
     const val = new StringValue(this.rs, this.value[i]);
-    val.onAssign = value => {
-      let str = value.toString();
-      this.value = this.value.substr(0, i) + str + this.value.substr(i + 1);
-      val.value = str;
-      return value;
-    };
+    val.onAssign = value => this.__set__(i, value);
     val.getAssignVal = () => val;
     return val;
   }
 
   /** set() function */
   __set__(i, value) {
-    i = i.toPrimitive('real_int');
+    i = typeof i === 'number' ? i : i.toPrimitive('real_int');
     if (i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
-    value = value.toPrimitive('string');
-    this.value = this.value.substring(0, i) + value + this.value.substr(i + value.length);
+    value = value.castTo('char').toString();
+    this.value = this.value.substring(0, i) + value + this.value.substr(i + 1);
     return this;
   }
 
@@ -370,7 +365,7 @@ class StringValue extends Value {
       if (original[i] === '%') {
         let n1 = original[++i];
         if (n1 === undefined) {
-          throw new Error(`[${errors.SYNTAX}] Syntax Error: incomplete formatting option at index ${i-1}`);
+          throw new Error(`[${errors.SYNTAX}] Syntax Error: incomplete formatting option at index ${i - 1}`);
         } else if (values[vi] === undefined) {
           string += '%' + n1;
         } else {
@@ -393,7 +388,7 @@ class StringValue extends Value {
           else if (n1 === 'x') string += values[vi++].toPrimitive('complex').toString(16, 'lower'); // "%x" -> complex hexadecimal (lowercase)
           else if (n1 === 'X') string += values[vi++].toPrimitive('complex').toString(16, 'upper'); // "%X" -> complex hexadecimal (uppercase)
           else if (n1 === 'e') string += values[vi++].toPrimitive('complex').toExponential(); // "%e" -> complex exponential
-          else throw new Error(`[${errors.SYNTAX}] Syntax Error: unknown formatting option '${n1}' (0x${n1.charCodeAt(0).toString(16)}) at index ${i-1}`);
+          else throw new Error(`[${errors.SYNTAX}] Syntax Error: unknown formatting option '${n1}' (0x${n1.charCodeAt(0).toString(16)}) at index ${i - 1}`);
         }
       } else {
         string += original[i];
@@ -594,19 +589,17 @@ class ArrayValue extends Value {
   /** get() function */
   __get__(i) {
     i = i.toPrimitive('real_int');
-    if (isNaN(i) || i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
-    const val = this.value[i];
-    val.onAssign = value => {
-      this.value[i] = value;
-      return value;
-    };
+    if (i < 0) i = this.value.length + i; // Advance from end of array
+    const val = (isNaN(i) || i < 0 || i >= this.value.length) ? new UndefinedValue(this.rs) : this.value[i];
+    val.onAssign = value => this.__set__(i, value);
     val.getAssignVal = () => this.value[i];
     return val;
   }
 
   /** set() function */
   __set__(i, value) {
-    i = i.toPrimitive('real_int');
+    i = typeof i === 'number' ? i : i.toPrimitive('real_int');
+    if (i < 0) i = this.value.length + i;
     if (isNaN(i) || i < 0) return new UndefinedValue(this.rs);
     if (i >= this.value.length) {
       for (let j = this.value.length; j < i; j++) {
@@ -849,12 +842,8 @@ class MapValue extends Value {
   /** get() function */
   __get__(key) {
     key = key.toString();
-    if (!this.value.has(key)) return new UndefinedValue(this.rs); // throw new Error(`Key Error: key "${key}" does not exist in map`);
-    const val = this.value.get(key);
-    val.onAssign = value => {
-      this.value.set(key, value);
-      return value;
-    };
+    const val = this.value.has(key) ? this.value.get(key) : new UndefinedValue(this.rs), map = this.value;
+    val.onAssign = value => this.__set__(key, value);
     val.getAssignVal = () => this.value.get(key);
     return val;
   }
