@@ -46,6 +46,7 @@ There are some types listed that are general terms:
 | `*` | `string` | `real` | Repeat arg1 arg2 times | `"$" * 5` => `"$$$$$"` |
 | `+` | `string` | `any` | Concatenate arg1 and arg2 (as a string) | `"Hello" + "World"` => `"HelloWorld"` |
 | `:` | `string` | `string` | arg1 and arg2 must be of length 1. Return sequence using ASCII codes between the two strings. | `"a":"e"` => `["a","b","c","d"]` |
+| `[]` | `string` | `any` | arg2 is inside `[]`. Evaluate arg2 and get character (as a string) at index arg2 in array arg1. Note that assigning to this value will alter the original string. | `str = "Hello"; str[0]; str[1] = "__"; str;` => `"h", "H__llo"` |
 | `%` | `string` | `any|array` | Interpolates items in arg2 into string at arg1 using formatting options | `"%s is %i years old" % ["Joe", 42]` => `"Joe is 42 years old"` |
 | `==` | `bool` | `any` | Returns true if arg2 is a bool and has same logical value | `true == true` => `true` |
 | `~` | `bool` | n/a | Returns bitwise NOT of bool (true = 1, false = 0) | `~true` => `-2` |
@@ -53,6 +54,7 @@ There are some types listed that are general terms:
 | `\|` | `bool` | `real-like` | ORs arg1 and arg2 | `true | 5` => `5` |
 | `^` | `bool` | `real-like` | XORs arg1 and arg2 | `true ^ 5` => `4` |
 | `+` | `bool` | `numeric` | Adds arg1 and arg2 | `true + 1` => `2` |
+| `[]` | `array` | `any` | arg2 is inside `[]`. Evaluate arg2 and get item at index arg2 in array arg1  | `argv[0]` => `"--intro"` |
 | `=` | `array` | `array` | If arrays are equal length, assign each item in arg1 to the corresponding item in arg2 | `[a,b] = [1,2]` => `a=1, b=2` |
 | `==` | `array` | `any` | Return true is arg2 is array, they are of equal length and each item in arg1 equals each item in arg2 | `[1,2] == [1,2]` => `true` |
 | `*` | `array` | `real` | Repeats contents of arg1 arg2 times | `[1] * 4` => `[1,1,1,1]` |
@@ -73,6 +75,8 @@ There are some types listed that are general terms:
 | `+` | `set` | `any` | Add arg2 to arg1 | `{0,1,2} + 3` => `{0,1,2,3}` |
 | `-` | `set` | `set` | Removes all items in arg2 from arg1 | `{1,2,3} - {0,2}` => `{1,3}` |
 | `==` | `map` | `map` | Return true if same size and all keys are equivalent and values are equivalent | `{"name":"Joe"} == {"name":"Joe"}` => `true` |
+| `.` | `map` | `symbol` | Access property arg2 of arg1. May be assigned to. | `headers.time` => `1633102709555` |
+| `[]` | `map` | `any` | Evaluate arg2 and access property arg2 of arg1. May be assigned to. | `headers["time"]` => `1633102709555` |
 | `()` | `func` | argument string | Calls arg1 with arguments arg2 | `sin(1)` => `0.8414709848078965` |
 | `==` | `func` | `func` | Return true if function names match | `sin == sin` => `true` |
 | `=` | `symbol` | `any` | Creates new binding for symbol arg1 and sets to arg2 | `a = 10, a` => `10` |

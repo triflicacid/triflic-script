@@ -273,7 +273,15 @@ class StringValue extends Value {
   __get__(i) {
     i = i.toPrimitive('real_int');
     if (i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
-    return new StringValue(this.rs, this.value[i]);
+    const val = new StringValue(this.rs, this.value[i]);
+    val.onAssign = value => {
+      let str = value.toString();
+      this.value = this.value.substr(0, i) + str + this.value.substr(i + 1);
+      val.value = str;
+      return value;
+    };
+    val.getAssignVal = () => val;
+    return val;
   }
 
   /** set() function */
@@ -842,7 +850,13 @@ class MapValue extends Value {
   __get__(key) {
     key = key.toString();
     if (!this.value.has(key)) return new UndefinedValue(this.rs); // throw new Error(`Key Error: key "${key}" does not exist in map`);
-    return this.value.get(key);
+    const val = this.value.get(key);
+    val.onAssign = value => {
+      this.value.set(key, value);
+      return value;
+    };
+    val.getAssignVal = () => this.value.get(key);
+    return val;
   }
 
   /** set() function */
