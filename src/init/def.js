@@ -2,7 +2,7 @@ const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli } = require("../maths/functions");
-const { print, sort, findIndex, system } = require("../utils");
+const { print, sort, findIndex, system, numberTypes, toBinary, fromBinary } = require("../utils");
 const { typeOf, types, isNumericType } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
@@ -263,6 +263,22 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'substr', { str: 'string', index: 'real_int', length: '?real_int' }, ({ str, index, length }) => new StringValue(rs, str.toString().substr(index.toPrimitive('real_int'), length === undefined ? undefined : length.toPrimitive('real_int'))), 'String: return section of string starting at <index> and extending <length> chars'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'split', { str: 'string', splitter: '?string' }, ({ str, splitter }) => new ArrayValue(rs, str.toString().split(splitter === undefined ? '' : splitter.toString()).map(x => new StringValue(rs, x))), 'String: split string by <splitter> to form an array'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'join', { arr: 'array', seperator: '?string' }, ({ arr, seperator }) => new StringValue(rs, arr.toPrimitive('array').map(v => v.toString()).join(seperator ?? '')), 'String: Join elements in an array by <seperator> to form a string'));
+
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'numbertypes', {}, () => new ArrayValue(rs, numberTypes.map(t => new StringValue(rs, t))), 'Return array of all numerical types'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'tobinary', { n: 'real', t: '?string' }, ({ n, t }) => {
+    t = t ? t.toPrimitive('string') : 'float64';
+    if (!numberTypes.includes(t)) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid numeric type '${t}'`);
+    n = n.toPrimitive('real');
+    let bin = toBinary(n, t);
+    return new StringValue(rs, bin);
+  }, 'Given a number, return binary representation as type <t> (default: float64. See numbertypes() for list of numerical types)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'frombinary', { bin: 'string', t: '?string' }, ({ bin, t }) => {
+    t = t ? t.toPrimitive('string') : 'float64';
+    if (!numberTypes.includes(t)) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid numeric type '${t}'`);
+    bin = bin.toPrimitive("string");
+    let n = fromBinary(bin, t);
+    return new NumberValue(rs, n);
+  }, 'Given binary, return number representation as type <t> (default: float64. See numbertypes() for list of numerical types)'));
 
   return rs;
 }

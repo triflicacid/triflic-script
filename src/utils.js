@@ -276,6 +276,34 @@ async function system(command) {
   });
 }
 
+const numberTypes = ["uint8", "int8", "uint16", "int16", "uint32", "int32", "uint64", "int64", "float32", "float64"];
+const numberTypeGetMethods = ["getUint8", "getInt8", "getUint16", "getInt16", "getUint32", "getInt32", "getBigUint64", "getBigInt64", "getFloat32", "getFloat64"];
+const numberTypeSetMethods = ["setUint8", "setInt8", "setUint16", "setInt16", "setUint32", "setInt32", "setBigUint64", "setBigInt64", "setFloat32", "setFloat64"];
+function toBinary(n, type = 'float64') {
+  let i = numberTypes.indexOf(type);
+  let dv = new DataView(new ArrayBuffer(8));
+  dv[numberTypeSetMethods[i]](0, n, true);
+  let bin = '';
+  for (let j = dv.byteLength - 1; j >= 0; j--) {
+    let u8 = dv.getUint8(j).toString(2);
+    bin += u8.toString(2).padStart(8, '0');
+  }
+  while (bin.substr(0, 8) === '00000000') bin = bin.substr(8);
+  return bin;
+}
+function fromBinary(bin, type = 'float64') {
+  bin = bin.padStart(64, '0');
+
+  let i = numberTypes.indexOf(type);
+  let dv = new DataView(new ArrayBuffer(8));
+  for (let j = 0, k = 7; k >= 0; j += 8, k--) {
+    let byte = bin.substr(j, 8);
+    dv.setUint8(k, parseInt(byte, 2));
+  }
+  return dv[numberTypeGetMethods[i]](0, true);
+}
+
 module.exports = {
   system, input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence,
+  toBinary, fromBinary, numberTypes,
 };
