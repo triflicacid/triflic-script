@@ -1,4 +1,4 @@
-const { UndefinedValue } = require("./values");
+const { UndefinedValue, StringValue } = require("./values");
 const { createEvalObj } = require("../utils");
 
 var currBlockID = 0;
@@ -30,7 +30,6 @@ class Block {
   }
 
   async eval(evalObj, start = 0) {
-    // console.log("Evaluate block %s", this.id)
     let lastVal;
     for (let l = start; l < this.tokenLines.length; l++) {
       let obj = createEvalObj(this.id, l);

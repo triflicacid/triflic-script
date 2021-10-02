@@ -359,6 +359,24 @@ const operators = {
     syntax: 'a ?? b',
     assoc: 'ltr',
   },
+  "?:": {
+    name: 'conditional',
+    precedence: 4,
+    args: 0,
+    fn: async ([cond, if1, if0], evalObj) => {
+      let bool = await cond.eval(evalObj);
+      bool = bool.castTo('bool');
+      if (bool.value) {
+        return await if1.eval(evalObj);
+      } else {
+        return if0 ? await if0.eval(evalObj) : bool;
+      }
+    },
+    desc: `Returns <b> if <a> is truthy, else <c> (or false)`,
+    syntax: '(<a>) ? (<b>) [: <c>]',
+    assoc: 'rtl',
+    hidden: true
+  },
   "=": {
     name: 'assignment',
     precedence: 3,

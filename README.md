@@ -251,6 +251,7 @@ See `Operators.md` for detailed operator help.
 | && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` | `__and__` |
 | \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` | `__or__` |
 | ?? | Nullish Coalescing | 5 | ltr | Returns LHS unless LHS is undef, in which case return RHS | `undef ?? 2` => `2` | n/a |
+| ?: | Conditional | 4 | rtl | syntax `(<cond>) ? (<ifTrue>) [: <ifFalse>]`. If `<cond>` is truthy, return `<ifTrue>` else return `<ifFalse>` or `false` | `(0) ? ("Yes") : ("No")` => `"No"` | n/a |
 | = | Assignment | 3 | rtl | Assigns the RHS to the LHS (creates new symbol binding) | `name = "john"` => `"john"` | `__assign__` |
 | => | Nonlocal Assignment | 3 | rtl | Assigns the RHS to the LHS (uses existing symbol binding) | `name => "john"` => `"john"` | `__nonlocalAssign__` |
 | += | Addition Assignment | 3 | rtl | Assigns RHS to RHS + LHS | `a = 10, a += 2, a` => `12` | `__assignAdd__` |
@@ -272,9 +273,7 @@ Syntax: `if (<condition>) {<block>} [else if (<condition> <block>), [...]] [else
 
 If the `<condition>` is truthy, the `<block>` is executed and the rest of the structure is skipped. If no `if` or `else if` blocks is executed, the `else` block will execute.
 
-The last statement in the `{<block>}` that is run will be returned from the `if` statement e.g. `a = if (1) { "Yes" }; print(a);` --> `"Yes"`
-
-This means that ternary operators kind-of exist: `<var> = if (<cond>) { <truthy> } else { <falsy> }`
+The conditional operator is a one-line alternative to IF. See the `Operators` table above. See `programs/tests/conditional-op`
 
 ### `do`
 Defined the following as a block, meaning the block does not need to follow a control-flow statement such as `if`.

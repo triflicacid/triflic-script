@@ -1,0 +1,3 @@
+println((1) ? ("Yes")); // Expected: "Yes"
+println((0) ? ("Yes")); // Expected: undef
+println((0) ? ("Yes") : ("No")); // Expected: "No"
