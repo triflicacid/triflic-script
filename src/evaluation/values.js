@@ -272,6 +272,7 @@ class StringValue extends Value {
   /** get() function */
   __get__(i) {
     i = i.toPrimitive('real_int');
+    if (i < 0) i = this.value.length + i;
     if (i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
     const val = new StringValue(this.rs, this.value[i]);
     val.onAssign = value => this.__set__(i, value);
@@ -282,6 +283,7 @@ class StringValue extends Value {
   /** set() function */
   __set__(i, value) {
     i = typeof i === 'number' ? i : i.toPrimitive('real_int');
+    if (i < 0) i = this.value.length + i;
     if (i < 0 || i >= this.value.length) return new UndefinedValue(this.rs); // throw new Error(`Index Error: index ${i} is out of range`);
     value = value.castTo('char').toString();
     this.value = this.value.substring(0, i) + value + this.value.substr(i + 1);

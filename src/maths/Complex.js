@@ -388,6 +388,7 @@ Complex.NaN = () => new Complex(NaN, NaN);
 Complex.assert = function (z) {
   if (z instanceof Complex) return z;
   if (typeof z === 'number' || typeof z === 'boolean') return new Complex(z, 0);
+  if (typeof z === 'bigint') return new Complex(Number(z), 0);
   if (typeof z === 'string') {
     let parts = z.split(/(?=[\-\+])/).map(x => x.trim()).filter(x => x.length > 0);
     let complex;

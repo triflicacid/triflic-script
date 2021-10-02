@@ -282,6 +282,7 @@ const numberTypeSetMethods = ["setUint8", "setInt8", "setUint16", "setInt16", "s
 function toBinary(n, type = 'float64') {
   let i = numberTypes.indexOf(type);
   let dv = new DataView(new ArrayBuffer(8));
+  if (type === 'uint64' || type === 'int64') n = BigInt(n);
   dv[numberTypeSetMethods[i]](0, n, true);
   let bin = '';
   for (let j = dv.byteLength - 1; j >= 0; j--) {
