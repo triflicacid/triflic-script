@@ -348,9 +348,14 @@ This defines a function. `name` is optional.
 
 i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };` achieve the same result.
 
-- `<args>` is a comma-seperated list of identifiers. Syntax: `<arg>[: ["val"|"ref"] [?]<type>][= <value>]`.
+- `<args>` is a comma-seperated list of identifiers. Syntax: `[...]<arg>[: ["val"|"ref"] [?]<type>][= <value>]`.
   - `<arg>` - argument name
-  - `:` - marks that the fllowing information is describing the argument
+  - `[...]` - marks parameter as compact.
+    - This must be the last parameter
+    - Paramater must not be optional
+    - Parameter must be pass-by-value
+    - When calles, this parameter takes any arguments and combines them into an array.
+  - `[:]` - marks that the following information is describing the argument
   - `["val"|"ref"]`: pass-by method of the argument. Is not present, default is `val`.
     - `val`: pass-by-value. The value provided for this argument is **copied** into a new local variable upon calling.
     - `ref`: pass-by-reference. The value provided for this argument is **transfered** into a new local variable upon calling (i.e. changing argument will change variable). This is suggested when the value will not be changed inside the function (as this will save copying the value and therefore speed and memory space).

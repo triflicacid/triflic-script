@@ -1,0 +1,7 @@
+func print_array(name, ...items: char) {
+  println("{name}[{len(items)}] = \{" + join(items, ", ") + "}");
+}
+
+arr = [1, 2, 3, 4, 5, 6];
+println("{arr=}");
+print_array("arr", 1:10);

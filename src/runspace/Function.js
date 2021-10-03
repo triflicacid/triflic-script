@@ -14,6 +14,7 @@ class RunspaceFunction {
     this.args = new Map(); // { [arg: string]: { pass: "val"|"ref", type: string } }
     this.argCount = 0; // Number of arguments
     this.optional = 0; // Number of OPTIONAL arguments
+    this.hasEllipse = false; // Has ellipse argument?
     this.name = name;
     this.desc = desc ?? '[no information]';
     this.constant = false;
@@ -42,6 +43,8 @@ class RunspaceFunction {
             data.optional = true;
             data.type = data.type.substr(1);
           }
+          data.ellipse = !!args[arg].ellipse;
+          this.hasEllipse = data.ellipse;
         }
 
         if (!(data.type in types)) throw new Error(`[${errors.TYPE_ERROR}] Type Error: argument '${arg}: ${data.type}': invalid type '${data.type}' (function: ${name})`);
@@ -60,9 +63,11 @@ class RunspaceFunction {
 
   /** Check arg count */
   checkArgCount(args) {
-    let req = this.argCount - this.optional;
-    let expected = this.optional === 0 ? req : `${req}-${this.argCount}`;
-    if (args.length < req || args.length > this.argCount) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects ${expected} argument${expected == 1 ? '' : 's'} {${Array.from(this.args.values()).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()} "${a}"`).join(', ')}}`);
+    if (!this.hasEllipse) {
+      let req = this.argCount - this.optional;
+      let expected = this.optional === 0 ? req : `${req}-${this.argCount}`;
+      if (args.length < req || args.length > this.argCount) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects ${expected} argument${expected == 1 ? '' : 's'} {${Array.from(this.args.values()).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()} "${a}"`).join(', ')}}`);
+    }
   }
 
   about() {
@@ -98,23 +103,42 @@ class RunspaceUserFunction extends RunspaceFunction {
     this.args.forEach((data, arg) => {
       if (data.pass === undefined || data.pass === 'val') {
         let casted;
-        if (data.optional && args[i] === undefined) {
-          casted = data.default ?? this.rs.UNDEFINED;
-        } else {
-          try {
-            casted = args[i].castTo(data.type);
-          } catch (e) {
-            throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${this.args[arg]} (function ${this.name}):\n ${e}`);
+        if (data.ellipse) { // '...' parameter
+          let values = [];
+          for (; i < args.length; i++) {
+            let value = args[i];
+            try {
+              value = value.castTo(data.type);
+            } catch (e) {
+              throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting '...' argument ${arg} from type ${value.type()} to ${data.type} (function ${this.name}):\n${e}`);
+            }
+            try {
+              value = value.__copy__();
+            } catch (e) {
+              throw new Error(`[${errors.CANT_COPY}] Argument Error: Cannot copy value of type '${value.type()}' ('...' argument '${arg}')`);
+            }
+            values.push(value);
           }
-          try {
-            casted = casted.__copy__();
-          } catch (e) {
-            throw new Error(`[${errors.CANT_COPY}] Argument Error: Cannot copy value of type '${casted.type()}' (argument '${arg}')`);
+          casted = this.rs.generateArray(values);
+        } else {
+          if (data.optional && args[i] === undefined) {
+            casted = data.default ?? this.rs.UNDEFINED;
+          } else {
+            try {
+              casted = args[i].castTo(data.type);
+            } catch (e) {
+              throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${data.type} (function ${this.name}):\n${e}`);
+            }
+            try {
+              casted = casted.__copy__();
+            } catch (e) {
+              throw new Error(`[${errors.CANT_COPY}] Argument Error: Cannot copy value of type '${casted.type()}' (argument '${arg}')`);
+            }
           }
         }
         this.rs.defineVar(arg, casted);
       } else if (data.pass === 'ref') {
-        if (args[i].constructor.name !== 'VariableToken') {
+        if (typeof args[i].getVar !== 'function') {
           throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: expected variable, got ${args[i]?.type()} ${args[i]}`);
         }
         let varObj = this.rs.defineVar(arg, args[i].getVar());

@@ -15,7 +15,7 @@ class Runspace {
     this._vars = [new Map()]; // Arrays represents different scopes
 
     this.opts = opts;
-    opts.version = 0.884;
+    opts.version = 0.886;
     opts.time = Date.now();
     if (opts.dir === undefined) opts.dir = path.join(__dirname, "../../");
     this.dir = opts.dir;
@@ -46,6 +46,11 @@ class Runspace {
   }
 
   get UNDEFINED() { return new UndefinedValue(this); }
+
+  /** Create ArrayValue */
+  generateArray(items) {
+    return new ArrayValue(this, items);
+  }
 
   /** Declare a new variable in the topmost scope. Return variable object */
   defineVar(name, value = undefined, desc = undefined, constant = false) {

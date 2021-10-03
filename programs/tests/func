@@ -59,3 +59,15 @@ f = x -> x * 2, pow = (a, b = 2) -> a ** b;
 println(f(10));
 println(pow(3));
 println(pow(3, 4));
+
+// '...' arguments: compact to array
+func print_array(...items) {
+  println("[{len(items)}] \{{join(items, ',')}}");
+}
+print_array(65, 66, 67, 68, 69);
+
+// ... with a type
+func print_array(...items: char) {
+  println("[{len(items)}] \{{join(items, ',')}}");
+}
+print_array(65, 66, 67, 68, 69);

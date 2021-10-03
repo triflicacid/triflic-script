@@ -645,66 +645,79 @@ class TokenLine {
 
                 // Extract argGroup
                 // Syntax: "arg[: [ref|val] [?]type [= ...]]"
-                let argObj = {}, lastOptional = null; // Last encountered optional argument
+                let argObj = {}, lastOptional = null, foundEllipse = false; // Last encountered optional argument, found ellipse '...' ?
                 if (argLine.value.length === 1) {
                   let args = argLine.value[0].splitByCommas(false); // DO NOT do extra parsing - not required for function arguments
                   for (let arg of args) {
-                    if (arg.tokens[0] === undefined || !(arg.tokens[0] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected parameter name, got ${arg.tokens[0]} at position ${arg.tokens[0]?.pos}`);
-                    if (arg.tokens.length === 1) { // "<arg>"
-                      argObj[arg.tokens[0].value] = 'any';
-                    } else if (arg.tokens.length > 2) { // "<arg>" ":" ...
-                      let data = {}, ok = true, i = 1;
+                    let data = {}, ok = true, i = 0, param;
 
-                      // Type information?
-                      if (arg.tokens[1] instanceof OperatorToken && arg.tokens[1].value === ':') {
-                        i++;
+                    // Collapse multiple arguments into array?
+                    if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === '.' && arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '.' && arg.tokens[i + 2] instanceof OperatorToken && arg.tokens[i + 2].value === '.') {
+                      data.ellipse = true;
+                      i += 3;
+                    }
 
-                        if (arg.tokens[i] instanceof VariableToken && (arg.tokens[i + 1] instanceof VariableToken || arg.tokens[i + 1] instanceof KeywordToken || (arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '?'))) {
-                          if (arg.tokens[i].value === 'val' || arg.tokens[i].value === 'ref') {
-                            data.pass = arg.tokens[i].value;
-                            i++;
-                          } else ok = false;
-                        }
-                        if (ok && arg.tokens[i] instanceof OperatorToken) {
-                          if (arg.tokens[i].value === '?') {
-                            if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': pass-by-reference parameter '${arg.tokens[0].value}' cannot be optional`);
-                            data.optional = true;
-                            lastOptional = arg.tokens[0].value;
-                            i++;
-                          } else {
-                            ok = false;
-                          }
-                        }
-                        if (ok) {
-                          if (arg.tokens[i] instanceof VariableToken || arg.tokens[i] instanceof KeywordToken) {
-                            data.type = arg.tokens[i].value;
-                            i++;
-                          } else ok = false;
-                        }
-                      }
+                    // Parameter name
+                    if (arg.tokens[i] === undefined || !(arg.tokens[i] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected parameter name, got ${arg.tokens[i]} at position ${arg.tokens[i]?.pos}`);
+                    else {
+                      param = arg.tokens[i];
+                      if (param.value in argObj) throw new Error(`[${errors.NAME}] Name Error: Duplicate parameter name '${param.value}' at position ${param.pos}`);
+                      i++;
+                    }
+                    if (foundEllipse) throw new Error(`[${errors.SYNTAX}] Syntax Error: '...' must be last parameter (encountered parameter '${param.value}' after '...' at position ${param.pos})`);
 
-                      // Default value?
-                      if (ok && arg.tokens[i]) {
-                        if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === '=') {
+                    // Type information?
+                    if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === ':') {
+                      i++;
+
+                      if (arg.tokens[i] instanceof VariableToken && (arg.tokens[i + 1] instanceof VariableToken || arg.tokens[i + 1] instanceof KeywordToken || (arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '?'))) {
+                        if (arg.tokens[i].value === 'val' || arg.tokens[i].value === 'ref') {
+                          data.pass = arg.tokens[i].value;
                           i++;
-                          if (arg.tokens[i] instanceof Token) {
-                            if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '=' at position ${arg.tokens[i].pos}: ${data.pass} parameter '${arg.tokens[0].value}' cannot have a default value`);
-                            data.optional = true;
-                            data.default = arg.tokens[i];
-                            if (data.default instanceof ValueToken) data.default = data.default.value;
-                            i++;
-                          } else ok = false;
                         } else ok = false;
                       }
-
-                      // Set parameter info
-                      if (ok && arg.tokens[i] !== undefined) ok = false;
-                      if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter '${arg.tokens[0].value}' at position ${arg.tokens[1].pos}`);
-                      if (lastOptional && !data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${arg.tokens[0].value}' cannot precede optional argument '${lastOptional}' (position ${arg.tokens[0].pos})`);
-                      argObj[arg.tokens[0].value] = data;
-                    } else {
-                      throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: expected ':' or '=' after parameter name '${arg.tokens[0].value}', got '${arg.tokens[1]}' at position ${arg.tokens[1].pos}`);
+                      if (ok && arg.tokens[i] instanceof OperatorToken) {
+                        if (arg.tokens[i].value === '?') {
+                          if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': pass-by-reference parameter '${param}' cannot be optional`);
+                          data.optional = true;
+                          lastOptional = arg.tokens[0].value;
+                          i++;
+                        } else {
+                          ok = false;
+                        }
+                      }
+                      if (ok) {
+                        if (arg.tokens[i] instanceof VariableToken || arg.tokens[i] instanceof KeywordToken) {
+                          data.type = arg.tokens[i].value;
+                          i++;
+                        } else ok = false;
+                      }
                     }
+
+                    // Default value?
+                    if (ok && arg.tokens[i]) {
+                      if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === '=') {
+                        i++;
+                        if (arg.tokens[i] instanceof Token) {
+                          if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '=' at position ${arg.tokens[i].pos}: ${data.pass} parameter '${param.value}' cannot have a default value`);
+                          data.optional = true;
+                          data.default = arg.tokens[i];
+                          if (data.default instanceof ValueToken) data.default = data.default.value;
+                          i++;
+                        } else ok = false;
+                      } else ok = false;
+                    }
+
+                    // Set parameter info
+                    if (ok && arg.tokens[i] !== undefined) ok = false;
+                    if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter '${param.value}' at position ${param.pos}`);
+                    if (lastOptional && !data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${param.value}' cannot precede optional argument '${lastOptional}' (position ${param.pos})`);
+                    if (data.ellipse) {
+                      foundEllipse = true;
+                      if (data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: '...' parameter '${param.value}' at ${param.pos} may not be optional`);
+                      if (!(data.pass === undefined || data.pass === 'val')) throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid pass-by type for '...' parameter '${param.value}' at ${param.pos}: ${data.pass}`);
+                    }
+                    argObj[param.value] = data;
                   }
                 }
                 structure.args = argObj;
