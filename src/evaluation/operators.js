@@ -51,8 +51,23 @@ const operators = {
     fn: async (fn, args, evalObj) => {
       fn = fn.castTo("any");
       if (!fn.__call__) throw new Error(`[${errors.NOT_CALLABLE}] Type Error: Type ${fn.type()} is not callable (${fn} is not a function)`);
-      args = await Promise.all(args.map(t => t.eval(evalObj))); // EValuate arguments
-      return await fn.__call__(evalObj, args);
+      let newArgs = [];
+      for (let i = 0; i < args.length; i++) {
+        let ellipse = false;
+        if (args[i].tokens[0]?.value === '...') { // '...' ?
+          ellipse = args[i].tokens[0];
+          args[i].tokens.splice(0, 1);
+        }
+        let newArg = await args[i].eval(evalObj);
+        if (ellipse) { // Expand array-like
+          let arr;
+          try { arr = newArg.toPrimitive('array'); } catch { throw new Error(`[${errors.TYPE_ERROR}] Type Error: '...': cannot expand type ${newArg.type()} at position ${ellipse.pos + 4}`); }
+          newArgs.push(...arr);
+        } else {
+          newArgs.push(newArg);
+        }
+      }
+      return await fn.__call__(evalObj, newArgs);
     },
     desc: `calls function with given arguments`,
     syntax: '<func>(<args>)',

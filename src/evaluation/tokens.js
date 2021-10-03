@@ -108,6 +108,15 @@ class EOLToken extends Token {
 
 EOLToken.symbol = ';';
 
+/** Token '...' [ellipse] */
+class EllipseToken extends Token {
+  constructor(tline, pos) {
+    super(tline, '...', pos);
+  }
+
+  toString() { return '...'; }
+}
+
 /** For symbols e.g. 'hello' */
 class VariableToken extends Token {
   constructor(tstring, vname, pos) {
@@ -357,7 +366,7 @@ class TokenLine {
         let ok = true;
         if (this.tokens[i].opening === '[') { // *** ARRAY
           // If first item, or after an operator, this is an array
-          if (i === 0 || (this.tokens[i - 1] instanceof OperatorToken && this.tokens[i - 1].value !== '[]') || this.tokens[i - 1] instanceof BracketToken) {
+          if (i === 0 || this.tokens[i - 1] instanceof EllipseToken || (this.tokens[i - 1] instanceof OperatorToken && this.tokens[i - 1].value !== '[]') || this.tokens[i - 1] instanceof BracketToken) {
             let elements;
             if (this.tokens[i].value.length === 0) elements = [];
             else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas();
@@ -386,7 +395,7 @@ class TokenLine {
           }
 
           // If first item, or after an operator, this is an expression group
-          else if (i === 0 || (this.tokens[i - 1] instanceof OperatorToken && this.tokens[i - 1].value !== '()') || this.tokens[i - 1] instanceof BracketToken) {
+          else if (i === 0 || this.tokens[i - 1] instanceof EllipseToken || (this.tokens[i - 1] instanceof OperatorToken && this.tokens[i - 1].value !== '()') || this.tokens[i - 1] instanceof BracketToken) {
             if (this.tokens[i].value.length == 0) {
               this.tokens.splice(i, 1); // Simply ignore as empty
             } else {
@@ -397,7 +406,7 @@ class TokenLine {
             }
           }
         } else if (this.tokens[i].opening === '{') { // *** SET OR MAP OR CODE BLOCK
-          if (i === 0 || this.tokens[i - 1] instanceof OperatorToken) { // Set/Map if (1) first token (2) preceeded by operator
+          if (i === 0 || this.tokens[i - 1] instanceof EllipseToken || this.tokens[i - 1] instanceof OperatorToken) { // Set/Map if (1) first token (2) preceeded by operator
             let elements;
             if (this.tokens[i].value.length === 0) elements = [];
             else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas(false);
@@ -652,9 +661,9 @@ class TokenLine {
                     let data = {}, ok = true, i = 0, param;
 
                     // Collapse multiple arguments into array?
-                    if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === '.' && arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '.' && arg.tokens[i + 2] instanceof OperatorToken && arg.tokens[i + 2].value === '.') {
+                    if (arg.tokens[i].value === '...') {
                       data.ellipse = true;
-                      i += 3;
+                      i++;
                     }
 
                     // Parameter name
@@ -919,7 +928,7 @@ class TokenLine {
   _toRPN(tokens, bidmas = true) {
     const stack = [], output = [];
     for (let i = 0; i < tokens.length; i++) {
-      if (tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof TokenLine || tokens[i] instanceof BracketedTokenLines || tokens[i] instanceof KeywordToken || tokens[i] instanceof Structure || tokens[i] instanceof Block) {
+      if (tokens[i] instanceof Value || tokens[i] instanceof VariableToken || tokens[i] instanceof TokenLine || tokens[i] instanceof BracketedTokenLines || tokens[i] instanceof KeywordToken || tokens[i] instanceof Structure || tokens[i] instanceof Block || tokens[i] instanceof EllipseToken) {
         output.push(tokens[i]);
       } else if (tokens[i].is?.(BracketToken, '(')) {
         stack.push(tokens[i]);
@@ -1118,6 +1127,14 @@ function _tokenify(obj) {
         i += len;
         continue;
       }
+    }
+
+    // '...'
+    if (string.substr(i, 3) === '...') {
+      currentTokens.push(new EllipseToken(currentLine, obj.pos));
+      i += 3;
+      obj.pos += 3;
+      continue;
     }
 
     // Operator?

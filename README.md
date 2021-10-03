@@ -97,7 +97,7 @@ A program may be interpreted and executed via `Runspace#execute`
 - `Runspace#parse` takes source code and returns an array of `TokenLine` objects
 - `Runspace#interpret` takes `TokenLine[]` and evaluates them
 
-### Syntax
+## Syntax
 
 ### Literals
 These are structures in the code which define values:
@@ -211,6 +211,18 @@ Syntax: `<args> -> <body>`
 *NB This syntax is syntactic sugar for a `func` keyword. As such, while error positions may match, error messages may not*
 
 `f = x -> x * 2` is equivalent to `f = func(x) { x * 2 }`
+
+### Ellipse `...`
+The ellipse is part of syntax rather than an operator. Its behaviour depends on the context:
+
+- In function definition e.g. `sum = (...nums) -> reduce(sums, (a,b)->a+b);`
+  - Must be last parameter
+  - Collapses arguments into an array
+
+  `sum(1, 2, 3)` -> `6`
+- In call operator: `sum(...<thing>)`
+  - Expands `<thing>` into multiple arguments and passes to function
+  - **Note** this is done be casting `<thing>` to an array, so e.g. `fn(...1)` will result in an error
 
 ### Operators
 See `Operators.md` for detailed operator help.
