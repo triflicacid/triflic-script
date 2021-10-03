@@ -8,6 +8,7 @@ const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue,
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
 const { errors, errorDesc } = require("../errors");
+const fs = require("fs");
 
 /** Core definitions !REQUIRED! */
 function define(rs) {
@@ -21,10 +22,10 @@ function define(rs) {
 
   /****************** CORE FUNCTIONS */
 
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'help', { item: '?any' }, ({ item }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'help', { item: '?any' }, async ({ item }) => {
     let help = '';
     if (item === undefined) {
-      help = `help(?s) \t Get help on an argument\ncopyright() \t View copyright information\nerror_code(code) \t Return brief help on a given error code\nvars() \t Return arry of all variables\noperators() \t Return array of all operators\ntypes() \t Return array of all available types \nnew(type) \t Instantiates a new value of type <type> \nkeywords() \t Return array of all keywords \nimport() \t Import a script relative to import_dir()\nexit() \t Terminate the program`;
+      help = `help(?s) \t Get help on an argument - use help("general") for help doc, help("operators") for help on operators\ncopyright() \t View copyright information\nerror_code(code) \t Return brief help on a given error code\nvars() \t Return arry of all variables\noperators() \t Return array of all operators\ntypes() \t Return array of all available types \nnew(type) \t Instantiates a new value of type <type> \nkeywords() \t Return array of all keywords \nimport() \t Import a script relative to import_dir()\nexit() \t Terminate the program`;
     } else if (item instanceof VariableToken) {
       let v = item.getVar();
       if (v.value instanceof FunctionRefValue) {
@@ -42,8 +43,20 @@ function define(rs) {
       const info = operators[item.value];
       const argStr = Array.isArray(info.args) ? `${info.args.join(' or ')} (${info.args.length} overloads)` : info.args;
       help = `Type: string (operator)\nName: ${info.name}\nDesc: ${info.desc}\nArgs: ${argStr}\nPrecedence: ${info.precedence}\nUnary Overload: ${info.unary ? `yes (${info.unary})` : 'no'}\nSyntax: ${info.syntax}\nAssociativity: ${info.assoc}`;
-    } else if (item instanceof StringValue && KeywordToken.keywords.includes(item.value)) { // Keyword
+    } else if (item instanceof StringValue && KeywordToken.keywords.includes(item.value)) { // KEYWORDS
       help = `Type: string (keyword)\nValue: ${item.value}`;
+    } else if (item instanceof StringValue && item.value === 'general') {
+      return new Promise(res => {
+        fs.readFile('README.md', { encoding: 'utf-8' }, (err, data) => {
+          res(new StringValue(rs, data.toString('utf-8')));
+        });
+      });
+    } else if (item instanceof StringValue && item.value === 'operators') {
+      return new Promise(res => {
+        fs.readFile('Operators.md', { encoding: 'utf-8' }, (err, data) => {
+          res(new StringValue(rs, data.toString('utf-8')));
+        });
+      });
     } else if (item instanceof Value) {
       help = `Type: ${item.type()}\nValue: ${item.toString()}`;
     } else {
@@ -116,11 +129,19 @@ function define(rs) {
     for (let n = start; n < end; n += step) range.push(new NumberValue(rs, n));
     return new ArrayValue(rs, range);
   }, 'Return array populated with numbers between <a>-<b> step <c>. 1 arg=range(0,<a>,1); 2 args=range(<a>,<b>,1); 3 args=range(<a>,<b>,<c>)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'len', { o: 'any' }, ({ o }) => {
-    const length = o.castTo("any").__len__?.();
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'len', { o: 'any', len: '?real_int' }, ({ o, len }) => {
+    o = o.castTo("any");
+    let length;
+    if (len) {
+      const rlen = len.toPrimitive('real_int');
+      if (rlen < 0 || isNaN(rlen) || !isFinite(rlen)) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid length ${len}`);
+      length = o.__len__?.(rlen);
+    } else {
+      length = o.__len__?.();
+    }
     if (length === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no len()`);
     return new NumberValue(rs, length === undefined ? NaN : length);
-  }, 'return length of argument'));
+  }, 'return length of argument or set new length'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'max', { o: 'any' }, ({ o }) => {
     const max = o.castTo("any").__max__?.();
     if (max === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no max()`);
@@ -403,7 +424,7 @@ function defineFuncs(rs) {
       throw new Error(`[${errors.BAD_ARG}] Argument Error: type ${name.type()} is not a valid reference type (expected symbol)`);
     }
   }, 'Return symbol that <name> is a reference to (or undef)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'strformat', { str: 'string', values: 'array' }, ({ str, values }) => str.castTo('string').format(values.toPrimitive('array')), 'Return formatted string'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'strformat', { str: 'string', values: { ellipse: 1 } }, ({ str, values }) => str.castTo('string').format(values.toPrimitive('array')), 'Return formatted string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nformat', { n: 'complex', region: '?string' }, ({ n, region }) => new StringValue(rs, n.toPrimitive('complex').toLocaleString(region ? region.toPrimitive('string') : 'en-GB')), 'Return formatted number string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'expform', { z: 'complex', fdigits: '?real_int' }, ({ z, fdigits }) => new StringValue(rs, z.toPrimitive('complex').toExponential(fdigits ? fdigits.toPrimitive('real_int') : undefined)), 'Return complex number in exponential form, with <fdigits> fractional digits'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'zroots', { n: 'real_int', r: 'complex' }, ({ n, r }) => {

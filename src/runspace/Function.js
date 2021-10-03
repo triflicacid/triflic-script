@@ -75,7 +75,7 @@ class RunspaceFunction {
   }
 
   signature() {
-    return `${this.name}(${Array.from(this.args.entries()).map(([name, data]) => `${name}: ${data.pass ? (data.pass + ' ') : ''}${data.optional ? '?' : ''}${data.type}`).join(', ')})`;
+    return `${this.name}(${Array.from(this.args.entries()).map(([name, data]) => `${data.ellipse ? '...' : ''}${name}: ${data.pass ? (data.pass + ' ') : ''}${data.optional ? '?' : ''}${data.type}`).join(', ')})`;
   }
 }
 
@@ -181,8 +181,13 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
     // Assign 'param: value' in o
     let i = 0;
     this.args.forEach((data, arg) => {
-      o[arg] = args[i];
-      i++;
+      if (data.ellipse) {
+        o[arg] = this.rs.generateArray(args.slice(i));
+        i += o[arg].length;
+      } else {
+        o[arg] = args[i];
+        i++;
+      }
     });
     return await this.fn(o, evalObj);
   }

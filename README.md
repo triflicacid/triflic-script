@@ -82,7 +82,7 @@ Some functions call a method of the argument. As such, implementation may be cha
 
 - `del(a, b)` calls `a.__del__(b)`
 - `copy(a)` calls `a.__copy__()`
-- `len(a)` calls `a.__len__()`
+- `len(a, ?b)` calls `a.__len__(b)` (`b` is used to set length of object)
 - `abs(a)` calls `a.__abs__()`
 - `get(a, b)` calls `a.__get__(b)`
 - `set(a, b, c)` calls `a.__set__(b, c)`

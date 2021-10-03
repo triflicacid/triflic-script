@@ -267,7 +267,13 @@ class StringValue extends Value {
   }
 
   /** len() function */
-  __len__() { return this.value.length; }
+  __len__(newLength) {
+    if (newLength !== undefined) {
+      if (newLength > this.value.length) this.value += String.fromCharCode(0).repeat(newLength - this.value.length);
+      else this.value = this.value.substr(0, newLength);
+    }
+    return this.value.length;
+  }
 
   /** get() function */
   __get__(i) {
@@ -577,7 +583,13 @@ class ArrayValue extends Value {
   }
 
   /** len() function */
-  __len__() { return this.value.length; }
+  __len__(newLength) {
+    if (newLength !== undefined) {
+      if (newLength > this.value.length) while (newLength > this.value.length) this.value.push(this.rs.UNDEFINED);
+      else this.value.splice(this.value.length - newLength);
+    }
+    return this.value.length;
+  }
 
   /** abs() function */
   __abs__() { return this.value.length; }
@@ -714,7 +726,13 @@ class SetValue extends Value {
   type() { return "set"; }
 
   /** len() function */
-  __len__() { return this.value.length; }
+  __len__(newLength) {
+    if (newLength !== undefined) {
+      if (newLength > this.value.length) throw new Error(`[${errors.TYPE_ERROR}] Type Error: cannot set len() of type ${this.type()}`);
+      else this.value.splice(this.value.length - newLength);
+    }
+    return this.value.length;
+  }
 
   /** abs() function */
   __abs__() { return this.value.length; }
@@ -810,7 +828,13 @@ class MapValue extends Value {
   type() { return "map"; }
 
   /** len() function */
-  __len__() { return this.value.size; }
+  __len__(newLength) {
+    if (newLength !== undefined) {
+      if (newLength !== 0) throw new Error(`[${errors.TYPE_ERROR}] Type Error: cannot set non-zero len() of type ${this.type()}`)
+      this.value.clear();
+    }
+    return this.value.size;
+  }
 
   /** abs() function */
   __abs__() { return this.value.size; }
