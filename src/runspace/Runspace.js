@@ -21,7 +21,8 @@ class Runspace {
     this.root = path.join(__dirname, '../../');
     opts.rootDir = this.root;
 
-    this.importStack = [this.root];
+    this.importStack = [this.root]; // Stack of import directories
+    this.importFiles = []; // Stack of imported files - stops circular imports
 
     if (opts.revealHeaders) {
       const map = new MapValue(this);
@@ -149,37 +150,51 @@ class Runspace {
   /** Execute source code */
   async execute(source, singleStatement = undefined, timingObj = {}) {
     this._blocks.clear();
+    let file = this.importFiles[this.importFiles.length - 1];
 
-    let start = Date.now(), value;
-    let lines = tokenify(this, source, singleStatement);
-    this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN, undefined);
-    this.block.prepare();
-    timingObj.parse = Date.now() - start;
+    try {
+      let start = Date.now(), value;
+      let lines = tokenify(this, source, singleStatement);
+      this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN, undefined);
+      this.block.prepare();
+      timingObj.parse = Date.now() - start;
 
-    let obj = createEvalObj(null, null);
-    start = Date.now();
-    value = await this.block.eval(obj);
-    timingObj.exec = Date.now() - start;
+      let obj = createEvalObj(null, null);
+      start = Date.now();
+      value = await this.block.eval(obj);
+      timingObj.exec = Date.now() - start;
 
-    this._blocks.clear();
+      this._blocks.clear();
+      value = value.castTo('any');
+    } catch (e) {
+      throw new Error(`In file '${file}':\n${e}`);
+    }
     return value;
   }
 
   /** Attempt to import a file. Throws error of returns Value instance. */
   async import(file) {
     let fpath;
-    let _isMain = this.getVar('_isMain').castTo('bool');
-    this.setVar('_isMain', this.FALSE);
-    const restore = () => {
-      this.setVar('_isMain', _isMain);
-      this.importStack.pop();
-    };
     if (file[0] === '<' && file[file.length - 1] === '>') {
       fpath = path.join(this.root, "imports/", file.substring(1, file.length - 1) + '.js');
     } else {
       fpath = path.join(this.importStack[this.importStack.length - 1], file.toString());
     }
+    if (this.importFiles.includes(fpath)) { // Circular import?
+      throw new Error(`[${errors.BAD_IMPORT}] Import Error: circular import '${fpath}'`);
+    }
+
+    // Setup history
+    let _isMain = this.getVar('_isMain').castTo('bool');
+    this.setVar('_isMain', this.FALSE);
+    const restore = () => {
+      this.setVar('_isMain', _isMain);
+      this.importStack.pop();
+      this.importFiles.pop();
+    };
+
     this.importStack.push(path.dirname(fpath));
+    this.importFiles.push(fpath);
     let stats;
     try {
       stats = fs.lstatSync(fpath);
@@ -223,7 +238,6 @@ class Runspace {
         try {
           ret = await this.execute(text);
         } catch (e) {
-          throw e;
           restore();
           throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}):\n${e}`);
         }

@@ -15,6 +15,7 @@ const rs = new Runspace(opts);
 define(rs);
 if (opts.defineVars) defineVars(rs);
 if (opts.defineFuncs) defineFuncs(rs);
+rs.importFiles.push('<interpreter>');
 
 rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
 

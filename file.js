@@ -33,6 +33,7 @@ async function main() {
     define(rs);
     if (opts.defineVars) defineVars(rs);
     if (opts.defineFuncs) defineFuncs(rs);
+    rs.importFiles.push(file);
     await rs.import("<io>");
 
     rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
