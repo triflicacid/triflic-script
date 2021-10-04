@@ -1,4 +1,4 @@
-import("programs/funcs/bubble-sort");
+import("./funcs/bubble-sort");
 
 array = [25, 22, 30, 18, 29, 21, 27, 21];
 println(array);

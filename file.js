@@ -16,19 +16,19 @@ async function main() {
     return 0;
   } else {
     // Find file
-    const argv = yargs(hideBin(process.argv)).argv, file = argv._[0];
+    let argv = yargs(hideBin(process.argv)).argv, file = argv._[0];
 
     // Does file exist?
     if (!fs.existsSync(file)) {
       console.log("File %s does not exist", file);
       return 1;
     }
-    const source = fs.readFileSync(file, { encoding: argv.encoding ?? 'utf8' });
+    const source = fs.readFileSync(file, 'utf8');
 
     const opts = parseArgString(process.argv, true);
     if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter;
-    opts.app = 'Interpreter';
-    opts.file = path.basename(file);
+    opts.app = 'FILE';
+    opts.file = file;
     const rs = new Runspace(opts);
     define(rs);
     if (opts.defineVars) defineVars(rs);
@@ -39,8 +39,10 @@ async function main() {
 
     let start = Date.now(), ret, error, time, timeObj = {};
     try {
+      rs.importStack.push(path.dirname(file));
       ret = await rs.execute(source, undefined, timeObj);
       time = Date.now() - start;
+      rs.importStack.pop();
     } catch (e) {
       error = e;
     }

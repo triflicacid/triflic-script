@@ -254,10 +254,7 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.execute(str.toString()), 'evaluate an input'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'iif', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'Inline IF: If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => rs.import(file.toString()), 'Import <file> - see README.md for more details'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import_dir', { dir: '?string' }, ({ dir }) => {
-    if (dir) rs.dir = dir.toPrimitive("string");
-    return new StringValue(rs, rs.dir);
-  }, 'Gets/Sets directory import() is relative to'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import_stack', {}, () => rs.generateArray(rs.importStack.map(f => new StringValue(rs, f))), 'Return import stack'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'error_code', { code: 'string' }, ({ code }) => {
     code = code.toPrimitive("string");
     if (code in errorDesc) {

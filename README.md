@@ -15,8 +15,6 @@ For more help, see `programs/` and the built-in `help` function.
 - `if` statements **do not** return their last value.
 
 ## TODO
-- Expandable/Collapsable argument arrays via `...`
-- Proper importing - relative paths ...
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
 - Macros
 
@@ -52,22 +50,25 @@ Not every argument does used in every execution method.
 - `reveal-headers` : `boolean`. Reveal CLI options and other information to Runspace as `headers` map?
 - `multiline` : `boolean`. Does the CLI allow multiline input?
 - `time` : `boolean`. CLI times each line of execution and displays it.
-- `dir` : `string`. Sets import directory.
 
 ## Built-Ins
 Base definitions to a `Runspace` instance are present in `src/def.js`
 For more information on built-ins, enter `help()`.
 
+### Variables
+- `ans` : `any`. Present if `--ans` is truthy. Contains value of last executed expression.
+- `_isMain` : `bool`. Boolean indicating if script was run or is imported.
+
 ### `import(file: string)`
 This functions is used to import scripts into the current runspace. `file` may be any valid file.
 
-If in format `<file>`, the full path to the imported file is resolves as follows: `currentWorkingDirectory + "imports/" + file + ".js"` where
+If in format `<file>`, the full path to the imported file is resolves as follows: `root + "imports/" + file + ".js"` where
 - `currentWorkingDirectory` is the path of the directory in which `cli.js` lies. Note that this is always static to `cli.js`, not to the current executing file.
 - `"imports/"` is a standard directory where all core JavaScript import files are kept
 - `file` is the argument to the function
 Essentially, any file in `<>` are built-in JavaScript import files
 
-Else, `file` acts as the path from the `cli.js` file.
+Else, `file` loads and executes the file. Path is relative to the current file. (see import stack in `import_stack()`)
 
 If the file is a `.js` (JavaScript) file:
 - `module.exports` must be set to a single function

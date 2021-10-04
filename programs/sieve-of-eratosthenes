@@ -18,7 +18,9 @@ func SoE(limit: real_int) {
   primes;
 }
 
-limit = argv[0];
-primes = SoE(limit);
-println("There are " + len(primes) + " primes <= {limit}:");
-println(primes);
+if (_isMain) {
+  limit = argv[0];
+  primes = SoE(limit);
+  println("There are " + len(primes) + " primes <= {limit}:");
+  println(primes);
+}

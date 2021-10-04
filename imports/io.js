@@ -17,7 +17,7 @@ function main(rs) {
     return new UndefinedValue(rs);
   }, 'prints object to the screen followed by a newline'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'printr', { o: 'any' }, ({ o }) => {
-    console.log(o);
+    console.log(o.castTo('any'));
     return new UndefinedValue(rs);
   }, 'prints object as represented internally to the screen'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'input', { prompt: '?string' }, async ({ prompt }) => {

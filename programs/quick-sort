@@ -1,21 +1,6 @@
-func quicksort(arr: ref array) {
-    length = len(arr);
-    if (length < 2) { return arr; }
-    mid = ceil(length / 2), midVal = arr[mid];
-    lhs = [], rhs = [];
-    for (i = 0; i < length; i += 1) {
-        if (i == mid) { continue; }
-        item = arr[i];
-        if (item < midVal) {
-            push(lhs, item);
-        } else {
-            push(rhs, item);
-        }
-    }
-    return quicksort(lhs) + midVal + quicksort(rhs);
-}
+import("funcs/quick-sort");
 
 arr = [41, 28, 42, 31, 36, 32, 29];
 println(arr);
-x = quicksort(arr);
+x = quick_sort(arr);
 println(x);
