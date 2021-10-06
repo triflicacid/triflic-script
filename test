@@ -1,2 +1,0 @@
-println("{_isMain=}");
-import("test1");

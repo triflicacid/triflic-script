@@ -15,7 +15,7 @@ class Runspace {
     this._vars = [new Map()]; // Arrays represents different scopes
 
     this.opts = opts;
-    opts.version = 0.889;
+    opts.version = 0.892;
     opts.time = Date.now();
     this.storeAns(!!opts.ans);
     this.root = path.join(__dirname, '../../');
@@ -166,10 +166,10 @@ class Runspace {
 
       this._blocks.clear();
       value = value.castTo('any');
+      return value;
     } catch (e) {
       throw new Error(`In file '${file}':\n${e}`);
     }
-    return value;
   }
 
   /** Attempt to import a file. Throws error of returns Value instance. */
