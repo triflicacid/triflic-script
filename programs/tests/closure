@@ -1,0 +1,14 @@
+func counter() {
+    n = 0; // This variable is saved in the function
+    {
+        "inc": () -> n += 1,
+        "dec": () -> n -= 1,
+        "get": () -> n
+    }
+}
+
+c = counter();
+println(c.get());
+println(c.inc());
+println(c.dec());
+println(c.dec());

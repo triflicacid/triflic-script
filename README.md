@@ -1,5 +1,4 @@
 # NodeJS Scripting Language
-# **THIS REPO IS STILL IN HEAVY DEVELOPMENT. SOME PROGRAMS MAY NOT WORK IN NEWER VERSIONS. PROGRAM AT YOUR OWN RISK**
 Started as a single-line maths-focused interpreter, allowing for maths involving complex number
 
 Now, supports multi-line programs with basic control structures. Due to origins this program, the interpreter has some quirks.
@@ -12,11 +11,9 @@ For more help, see `programs/` and the built-in `help` function.
 
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
 - Array-unpacking `[a, b] = [1, 2]` does not work
-- `if` statements **do not** return their last value.
 
 ## TODO
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
-- Macros
 
 ## Bugs
 No known bugs.
@@ -460,13 +457,4 @@ The assignation operator `=>` assigns a value to a symbol **which is not in the 
 
 See the programs in `programs/tests/scope` and compare the two functions.
 
-The scope model is odd, as things like this will not work as `x` is not in the scope stack.
-```
-func counter() {
-  x = 0;
-  func() {
-    x += 1;
-    x;
-  };
-}
-```
+When functions are defined, they store the current scope stack. When called, it loads this stack as well, meaning things like closures are possible (see `programs/tests/closures` for an example).

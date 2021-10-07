@@ -1039,7 +1039,7 @@ function _tokenify(obj) {
         seq += string[j];
         j++;
       }
-      if (seq.length > 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: multi-character string literal. Did you mean to use double quotes: "${string.substring(i + 1, j)}" ?`);
+      if (seq.length > 1) throw new Error(`[${errors.SYNTAX}] Syntax Error: multi-character character literal at position ${i}. Did you mean to use double quotes: "${string.substring(i + 1, j)}" ?`);
       currentTokens.push(new ValueToken(currentLine, new CharValue(obj.rs, seq), i));
       const d = (j - i) + 1;
       i += d;

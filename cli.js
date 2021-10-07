@@ -102,7 +102,7 @@ async function main() {
 
   rs.io.on('close', async () => {
     rs.io.output.write('^C\n');
-    await rs.execute('exit()'); // Simulate call to exit()
+    await evaluate("exit()");
     process.exit(); // As a fallback
   });
 

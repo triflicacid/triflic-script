@@ -88,6 +88,7 @@ class RunspaceUserFunction extends RunspaceFunction {
   constructor(rs, name, args, body, desc = 'user-defined', returnType = "any") {
     super(rs, name, args, desc, returnType);
     this.tstr = body;
+    this.cachedVars = rs._vars.slice(2).map(m => new Map(m));
   }
 
   clone() {
@@ -97,7 +98,9 @@ class RunspaceUserFunction extends RunspaceFunction {
   /** Evaluation object & array of Token arguments */
   async call(evalObj, args) {
     this.checkArgCount(args);
-    this.rs.pushScope();
+    // this.rs.pushScope();
+    this.rs._vars.push(...this.cachedVars.map(m => new Map(m)));
+    // this.rs._vars[this.rs._vars.length - 1] = new Map([...this.varHashmap, ...this.rs._vars[this.rs._vars.length - 1]]);
     // Set arguments to variables matching definition symbols
     let i = 0;
     this.args.forEach((data, arg) => {
@@ -151,7 +154,7 @@ class RunspaceUserFunction extends RunspaceFunction {
 
     let ret = await this.tstr.eval(evalObj);
     ret = ret.castTo(this.returnType); // Cast to resolve variables
-    this.rs.popScope();
+    for (let i = 0; i < this.cachedVars.length; i++) this.rs.popScope();
     return ret;
   }
 }
