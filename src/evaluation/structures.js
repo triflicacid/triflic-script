@@ -627,6 +627,41 @@ class SwitchStructure extends Structure {
   }
 }
 
+class LabelStructure extends Structure {
+  /** label -> string */
+  constructor(pos, rs, label) {
+    super("LABEL", pos);
+    this.rs = rs;
+    this.label = label;
+  }
+
+  validate() { }
+
+  /** Define label in pre-evaluation */
+  preeval(evalObj) {
+    const instance = this.rs.getCurrentInstance();
+    instance.labels.set(this.label, [evalObj.blockID, evalObj.lineID]);
+  }
+
+  eval(evalObj) { }
+}
+
+class GotoStructure extends Structure {
+  /** label -> string */
+  constructor(pos, rs, label) {
+    super("GOTO", pos);
+    this.rs = rs;
+    this.label = label;
+  }
+
+  validate() { }
+
+  eval(evalObj) {
+    evalObj.action = 4;
+    evalObj.actionValue = this.label;
+  }
+}
+
 module.exports = {
   Structure,
   ArrayStructure, SetStructure, MapStructure,
@@ -635,4 +670,5 @@ module.exports = {
   ForStructure, ForInStructure,
   FuncStructure,
   BreakStructure, ContinueStructure, ReturnStructure,
+  LabelStructure, GotoStructure,
 };

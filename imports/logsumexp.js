@@ -6,6 +6,7 @@ const { sum } = require("../src/utils");
 module.exports = rs => {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'logsumexp', { arr: 'array', w: '?any' }, ({ arr, w }) => {
     arr = arr.toPrimitive('array');
+    w = w.castTo("any");
     let weights;
     if (w instanceof ArrayValue) {
       weights = w.toPrimitive('array').map(x => x.toPrimitive('complex'));

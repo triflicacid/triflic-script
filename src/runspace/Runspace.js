@@ -15,7 +15,7 @@ class Runspace {
     this._vars = [new Map()]; // Arrays represents different scopes
 
     this.opts = opts;
-    opts.version = 0.892;
+    opts.version = 0.894;
     opts.time = Date.now();
     this.storeAns(!!opts.ans);
     this.root = path.join(__dirname, '../../');
@@ -36,8 +36,7 @@ class Runspace {
       input: this.stdin,
       output: this.stdout,
     });
-    this.block = undefined; // Top-most Block object
-    this._blocks = new Map(); // Map all blockIDs to the block
+    this._instances = [];
 
     this.onLineHandler = undefined;
     this.onDataHandler = undefined;
@@ -132,6 +131,30 @@ class Runspace {
     return this._storeAns;
   }
 
+  /** Push new execution instance */
+  pushInstance() {
+    const obj = {
+      global: undefined, // GLOBAL block
+      blocks: new Map(), // Other blocks
+      labels: new Map() // Map of all labels: "label" => [block_id, line_no]
+    };
+    this._instances.push(obj);
+    return obj;
+  }
+
+  /** Pop instance */
+  popInstance() {
+    this._instances.pop();
+  }
+
+  /** Push a new block to current instance */
+  pushInstanceBlock(block) {
+    this._instances[this._instances.length - 1].blocks.set(block.id, block);
+  }
+
+  /** Get current instance */
+  getCurrentInstance() { return this._instances[this._instances.length - 1]; }
+
   /** Push new variable scope */
   pushScope() {
     this._vars.push(new Map());
@@ -149,26 +172,39 @@ class Runspace {
 
   /** Execute source code */
   async execute(source, singleStatement = undefined, timingObj = {}) {
-    this._blocks.clear();
-    let file = this.importFiles[this.importFiles.length - 1];
+    const lvl = this._instances.length;
+    const instance = this.pushInstance();
 
     try {
       let start = Date.now(), value;
       let lines = tokenify(this, source, singleStatement);
-      this.block = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN, undefined);
-      this.block.prepare();
+      instance.global = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN, undefined);
+      instance.global.prepare();
       timingObj.parse = Date.now() - start;
 
       let obj = createEvalObj(null, null);
       start = Date.now();
-      value = await this.block.eval(obj);
+      await instance.global.preeval(obj);
+      value = await instance.global.eval(obj);
+      while (true) {
+        if (obj.action === 4) {
+          if (!instance.labels.has(obj.actionValue)) throw new Error(`[${errors.NAME}] Name Error: unbound label '${obj.actionValue}'`);
+          const [blockID, lineID] = instance.labels.get(obj.actionValue);
+          const block = instance.blocks.get(blockID);
+          if (!block) throw new Error(`FATAL: block with ID ${blockID} does not exist (label '${obj.actionValue}')`);
+          obj = createEvalObj(null, null);
+          await block.preeval(obj);
+          value = await block.eval(obj, lineID + 1);
+        }
+        else break;
+      }
       timingObj.exec = Date.now() - start;
 
-      this._blocks.clear();
+      this.popInstance();
       value = value.castTo('any');
       return value;
     } catch (e) {
-      throw new Error(`In file '${file}':\n${e}`);
+      throw new Error(`In file '${this.importFiles[lvl]}':\n${e}`);
     }
   }
 

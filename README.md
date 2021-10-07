@@ -14,6 +14,7 @@ For more help, see `programs/` and the built-in `help` function.
 
 ## TODO
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
+- More elegent `exit` method - exit script execution, not entire process!
 
 ## Bugs
 No known bugs.

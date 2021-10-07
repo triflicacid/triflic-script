@@ -820,9 +820,9 @@ class SetValue extends Value {
 }
 
 class MapValue extends Value {
-  constructor(runspace) {
+  constructor(runspace, map = undefined) {
     super(runspace, null);
-    this.value = new Map();
+    this.value = map === undefined ? new Map() : map;
   }
 
   type() { return "map"; }
@@ -945,7 +945,7 @@ class FunctionRefValue extends Value {
   }
 
   toString() {
-    return `<function ${this.value.name}>`;
+    return `<func ${this.value.name}>`;
   }
 
   /** When this is called. Takes array of Value classes as arguments */

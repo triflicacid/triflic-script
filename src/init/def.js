@@ -81,6 +81,7 @@ function define(rs) {
     });
     return new ArrayValue(rs, vars);
   }, 'list all defined variables in the current scope'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'labels', {}, () => new ArrayValue(rs, Array.from(rs.getCurrentInstance().labels.keys()).map(l => new StringValue(rs, l))), 'list all labels in the current script'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_push', {}, () => {
     rs.pushScope();
     return new NumberValue(rs, rs._vars.length);
