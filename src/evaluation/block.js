@@ -55,9 +55,14 @@ class Block {
       lastVal = await this.tokenLines[l].eval(obj);
 
       if (obj.action === 0) continue;
+      else if (obj.action === -1) { // Call to exit
+        // console.log("-1: EXIT");
+        propagateEvalObj(obj, evalObj);
+        break;
+      }
       else if (obj.action === -2) { // Stop execution silently (intentional, used internally)
         // console.log("-2: STOP EXECUTION [INTERNAL]");
-        evalObj.action = obj.action;
+        propagateEvalObj(obj, evalObj);
         break;
       } else if (obj.action === 1) {
         // console.log("Break line %d in block %s", l, this.id)

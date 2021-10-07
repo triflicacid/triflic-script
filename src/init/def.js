@@ -70,9 +70,13 @@ function define(rs) {
     if (v === undefined) throw new Error(`[${errors.DEL}] Argument Error: cannot del() object of type ${obj.type()}`);
     return v;
   }, 'attempt to delete given object. If a key is given, attempts to delete that key from the given object.'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
-    print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
-    process.exit(0);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }, evalObj) => {
+    // print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
+    // process.exit(0);
+    if (c === undefined) c = new NumberValue(rs, 0);
+    evalObj.action = -1;
+    evalObj.actionValue = c.toString();
+    return c;
   }, 'exit application with given code'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'locals', {}, () => {
     const vars = [];

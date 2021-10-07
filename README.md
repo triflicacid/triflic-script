@@ -13,7 +13,6 @@ For more help, see `programs/` and the built-in `help` function.
 
 ## TODO
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
-- More elegent `exit` method - exit script execution, not entire process!
 
 ## Bugs
 - Negative numbers after block is a syntax error e.g. `func() { if (0) {...} -1; }`
@@ -57,7 +56,16 @@ For more information on built-ins, enter `help()`.
 - `ans` : `any`. Present if `--ans` is truthy. Contains value of last executed expression.
 - `_isMain` : `bool`. Boolean indicating if script was run or is imported.
 
+### `exit(code: ?real_int)`
+**NB no longer unceremoniously calls `process.exit()`
+
+Exits the current script execution (sets eval flag to `-1`) with a current code.
+
+After everything is cleared up, calls `#<Runspace>.onExitHandler(code)`
+
 ### `import(file: string)`
+Internal: calls `#<Runspace>.import()`
+
 This functions is used to import scripts into the current runspace. `file` may be any valid file.
 
 If in format `<file>`, the full path to the imported file is resolves as follows: `root + "imports/" + file + ".js"` where

@@ -40,6 +40,7 @@ class Runspace {
 
     this.onLineHandler = undefined;
     this.onDataHandler = undefined;
+    this.onExitHandler = undefined; // When an exit event occurs internally
 
     this.io.on('line', line => this.onLineHandler?.(this.io, line));
     this.stdin.on('data', async key => {
@@ -183,12 +184,11 @@ class Runspace {
 
       let obj = createEvalObj(null, null);
       start = Date.now();
-      // await instance.global.preeval(obj);
-      for (let [blockID, block] of instance.blocks) {
-        await block.preeval(obj);
-      }
-      value = await instance.global.eval(obj);
+      for (let [blockID, block] of instance.blocks) await block.preeval(obj); // Pre-evaluation
+      value = await instance.global.eval(obj); // Evaluate program
       timingObj.exec = Date.now() - start;
+
+      if (obj.action === -1) this.onExitHandler?.(obj.actionValue);
 
       this.popInstance();
       value = value.castTo('any');

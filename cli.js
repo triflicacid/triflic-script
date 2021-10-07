@@ -100,11 +100,12 @@ async function main() {
     };
   }
 
-  rs.io.on('close', async () => {
-    rs.io.output.write('^C\n');
-    await evaluate("exit()");
-    process.exit(); // As a fallback
-  });
+  rs.onExitHandler = code => {
+    rs.io.close();
+    rs.io.removeAllListeners();
+    // rs.io.write(`Exiting with code ${code}`);
+    rs.io.input.destroy();
+  };
 
   // Initialialise prompt
   rs.io.prompt();
