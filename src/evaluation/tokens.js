@@ -269,7 +269,7 @@ class TokenLine {
   /** Set Block object - also assign to every token object in line */
   setBlock(block) {
     this.block = block;
-    this.tokens.forEach(t => t.setBlock(block));
+    this.tokens.forEach(t => t.setBlock?.(block));
   }
 
   /** Update token array and process them so they're ready for exection. */
@@ -841,7 +841,7 @@ class TokenLine {
             break;
           }
           case "label": {
-            if (this.tokens[i + 1] instanceof VariableToken) {
+            if (this.tokens[i + 1] instanceof VariableToken || this.tokens[i + 1] instanceof KeywordToken) {
               const structure = new LabelStructure(this.tokens[i].pos, this.rs, this.tokens[i + 1].value);
               structure.validate();
               this.tokens.splice(i, 2, structure);
@@ -851,7 +851,7 @@ class TokenLine {
             break;
           }
           case "goto": {
-            if (this.tokens[i + 1] instanceof VariableToken) {
+            if (this.tokens[i + 1] instanceof VariableToken || this.tokens[i + 1] instanceof KeywordToken) {
               const structure = new GotoStructure(this.tokens[i].pos, this.rs, this.tokens[i + 1].value);
               structure.validate();
               this.tokens.splice(i, 2, structure);

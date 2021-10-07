@@ -633,14 +633,18 @@ class LabelStructure extends Structure {
     super("LABEL", pos);
     this.rs = rs;
     this.label = label;
+    this.bound = false;
   }
 
   validate() { }
 
   /** Define label in pre-evaluation */
   preeval(evalObj) {
-    const instance = this.rs.getCurrentInstance();
-    instance.labels.set(this.label, [evalObj.blockID, evalObj.lineID]);
+    if (!this.bound) {
+      evalObj.action = 4;
+      evalObj.actionValue = this.label;
+      this.bound = true;
+    }
   }
 
   eval(evalObj) { }
@@ -657,7 +661,7 @@ class GotoStructure extends Structure {
   validate() { }
 
   eval(evalObj) {
-    evalObj.action = 4;
+    evalObj.action = 5;
     evalObj.actionValue = this.label;
   }
 }

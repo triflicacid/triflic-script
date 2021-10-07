@@ -136,7 +136,6 @@ class Runspace {
     const obj = {
       global: undefined, // GLOBAL block
       blocks: new Map(), // Other blocks
-      labels: new Map() // Map of all labels: "label" => [block_id, line_no]
     };
     this._instances.push(obj);
     return obj;
@@ -184,20 +183,11 @@ class Runspace {
 
       let obj = createEvalObj(null, null);
       start = Date.now();
-      await instance.global.preeval(obj);
-      value = await instance.global.eval(obj);
-      while (true) {
-        if (obj.action === 4) {
-          if (!instance.labels.has(obj.actionValue)) throw new Error(`[${errors.NAME}] Name Error: unbound label '${obj.actionValue}'`);
-          const [blockID, lineID] = instance.labels.get(obj.actionValue);
-          const block = instance.blocks.get(blockID);
-          if (!block) throw new Error(`FATAL: block with ID ${blockID} does not exist (label '${obj.actionValue}')`);
-          obj = createEvalObj(null, null);
-          await block.preeval(obj);
-          value = await block.eval(obj, lineID + 1);
-        }
-        else break;
+      // await instance.global.preeval(obj);
+      for (let [blockID, block] of instance.blocks) {
+        await block.preeval(obj);
       }
+      value = await instance.global.eval(obj);
       timingObj.exec = Date.now() - start;
 
       this.popInstance();

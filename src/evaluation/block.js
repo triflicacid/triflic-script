@@ -1,5 +1,6 @@
 const { UndefinedValue, StringValue } = require("./values");
 const { createEvalObj, propagateEvalObj } = require("../utils");
+const { errors } = require("../errors");
 
 var currBlockID = 0;
 
@@ -16,6 +17,7 @@ class Block {
     this.tokenLines = tokenLines;
     this.pos = pos;
     this.parent = parent;
+    this.labels = new Map(); // Label lookup map
 
     this.breakable = (this.parent?.breakable) ? 1 : 0;
     this.returnable = (this.parent?.returnable) ? 1 : 0;
@@ -31,11 +33,17 @@ class Block {
 
   async preeval(evalObj) {
     for (let l = 0; l < this.tokenLines.length; l++) {
-      const obj = this.createEvalObj(l);
+      let obj = this.createEvalObj(l);
       await this.tokenLines[l].preeval(obj);
       if (obj.action !== 0) {
-        propagateEvalObj(obj, evalObj);
-        break;
+        if (obj.action === 4) {
+          // console.log("Bind label '%s' to block %d", obj.actionValue, this.id)
+          this.bindLabel(obj.actionValue, this.id, l);
+          obj = this.createEvalObj(l);
+        } else {
+          propagateEvalObj(obj, evalObj);
+          break;
+        }
       }
     }
   }
@@ -43,11 +51,15 @@ class Block {
   async eval(evalObj, start = 0) {
     let lastVal;
     for (let l = start; l < this.tokenLines.length; l++) {
-      const obj = this.createEvalObj(l);
+      let obj = this.createEvalObj(l);
       lastVal = await this.tokenLines[l].eval(obj);
 
       if (obj.action === 0) continue;
-      else if (obj.action === 1) {
+      else if (obj.action === -2) { // Stop execution silently (intentional, used internally)
+        // console.log("-2: STOP EXECUTION [INTERNAL]");
+        evalObj.action = obj.action;
+        break;
+      } else if (obj.action === 1) {
         // console.log("Break line %d in block %s", l, this.id)
         if (this.breakable === 1) evalObj.action = 1; // Propagate
         break; // break action
@@ -61,10 +73,17 @@ class Block {
         evalObj.actionValue = obj.actionValue;
         lastVal = obj.actionValue;
         break;
-      } else if (obj.action === 4) {
-        // console.log("Set label '%s'", obj.actionValue);
-        evalObj.action = obj.action;
-        evalObj.actionValue = obj.actionValue;
+      } else if (obj.action === 5) {
+        // console.log("GOTO label '%s'", obj.actionValue);
+        const labelInfo = this.seekLabel(obj.actionValue);
+        if (labelInfo === undefined) throw new Error(`[${errors.NAME}] Name Error: unbound label '${obj.actionValue}'`);
+        const [blockID, lineID] = labelInfo;
+        const block = this.rs.getCurrentInstance().blocks.get(blockID);
+        if (!block) throw new Error(`FATAL: block with ID ${blockID} does not exist (label '${obj.actionValue}')`);
+        obj = this.createEvalObj(l);
+        await block.preeval(obj);
+        lastVal = await block.eval(obj, lineID + 1);
+        evalObj.action = -2;
         break;
       }
       else throw new Error(`FATAL: Unknown action '${obj.action}' in block ${obj.blockID}, line ${obj.lineID}`);
@@ -80,6 +99,27 @@ class Block {
   /** Create child block */
   createChild(tokenLines, pos) {
     return new Block(this.rs, tokenLines, pos, this);
+  }
+
+  /** Bind a label */
+  bindLabel(label, blockID, lineID) {
+    this.labels.set(label, [blockID, lineID]);
+    if (this.parent) this.parent.bindLabel(label, blockID, lineID);
+  }
+
+  /** Seek a label */
+  seekLabel(label) {
+    if (this.labels.has(label)) return this.labels.get(label);
+    if (this.parent) return this.parent.seekLabel(label);
+    return undefined;
+  }
+
+  /** Return map of all labels */
+  getAllLabels(m = undefined) {
+    if (m === undefined) m = new Map(this.labels);
+    else m = new Map([...this.labels, ...m]);
+    if (this.parent) this.parent.getAllLabels(m);
+    return m;
   }
 }
 

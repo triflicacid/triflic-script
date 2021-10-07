@@ -74,14 +74,23 @@ function define(rs) {
     print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
     process.exit(0);
   }, 'exit application with given code'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', {}, () => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'locals', {}, () => {
     const vars = [];
     rs._vars[rs._vars.length - 1].forEach((variable, name) => {
       vars.push(new StringValue(rs, name));
     });
     return new ArrayValue(rs, vars);
-  }, 'list all defined variables in the current scope'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'labels', {}, () => new ArrayValue(rs, Array.from(rs.getCurrentInstance().labels.keys()).map(l => new StringValue(rs, l))), 'list all labels in the current script'));
+  }, 'list all variables in the current scope (local variables)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', {}, () => {
+    const vars = new Set();
+    for (let i = rs._vars.length - 1; i >= 0; i--) {
+      rs._vars[i].forEach((variable, name) => {
+        if (!vars.has(variable)) vars.add(name);
+      });
+    }
+    return new ArrayValue(rs, Array.from(vars).map(v => new StringValue(rs, v)));
+  }, 'list all defined variables in the program'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'labels', {}, (_, evalObj) => new ArrayValue(rs, Array.from(rs.getCurrentInstance().blocks.get(evalObj.blockID).getAllLabels().keys()).map(l => new StringValue(rs, l))), 'list all addressable labels'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_push', {}, () => {
     rs.pushScope();
     return new NumberValue(rs, rs._vars.length);

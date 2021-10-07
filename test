@@ -1,8 +1,0 @@
-println("Before");
-goto a;
-label b;
-println("Middle!");
-exit();
-label a;
-println("After");
-goto b;
