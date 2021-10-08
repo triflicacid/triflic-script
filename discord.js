@@ -25,9 +25,8 @@ async function createRunspace(argString = '') {
   if (opts.defineFuncs) defineFuncs(rs);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
     if (rs.discordLatestMsg) {
-      if (c === undefined) c = new NumberValue(rs, 0);
       sessionEnd(rs.discordLatestMsg); // Declay session ending message
-      return c;
+      return c ?? new NumberValue(rs, 0);
     } else {
       throw new Error(`Fatal Error: could not end session. Please type '!close'.`);
     }

@@ -84,6 +84,19 @@ Any other extension:
 - The file is read
 - The file contents are passed into `Runspace#execute`
 
+## `evalObj`
+This is an object passed to built-in functions. The property `action` may be changed to alter control flow, and the corresponding `actionValue` provides a value for `action`. Possible values:
+- `0` -> nothing
+- `1` -> break out of current block. Triggered by `break`.
+- `2` -> continue current block. Triggered by `continue`.
+- `3` -> return from current block. Triggered by `return <x>` where `actionValue` = `<x>`.
+- `4` -> creates binding for a label. Triggered by `label`. (NOTE this is only in pre-evaluation)
+- `5` -> `goto <label>` where `actionValue` = `<label>`. Changes control flow.
+
+Any other halts execution.
+- `-1` is used for exit via `exit(c)`. `actionValue` = `<c>` which corresponds to the exit code.
+- `-2` is used for program halting after a `goto` call.
+
 ## Magic Methods
 Some functions call a method of the argument. As such, implementation may be changed by external code.
 

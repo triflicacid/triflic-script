@@ -21,10 +21,10 @@ rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitive
 
 // Evaluate some input
 async function evaluate(input) {
-  let output, err, time, timeObj = {};
+  let output, err, time, execObj = {};
   try {
     let start = Date.now();
-    output = await rs.execute(input, undefined, timeObj);
+    output = await rs.execute(input, undefined, execObj);
     time = Date.now() - start;
     if (output !== undefined) output = output.toString();
   } catch (e) {
@@ -42,10 +42,10 @@ async function evaluate(input) {
       rs.io.output.write(output + '\n');
     }
     if (opts.timeExecution) {
-      rs.io.output.write(`** Took ${time} ms (${timeObj.parse} ms parsing, ${timeObj.exec} ms execution)\n`);
+      rs.io.output.write(`** Took ${time} ms (${execObj.parse} ms parsing, ${execObj.exec} ms execution)\n`);
     }
   }
-  return output;
+  return execObj.status;
 }
 
 async function main() {
@@ -81,31 +81,31 @@ async function main() {
   if (opts.multiline) {
     const lines = []; // Line buffer
     rs.onLineHandler = async (io, line) => {
+      let status;
       if (line.length === 0) {
         const input = lines.join('\n');
         lines.length = 0;
-        await evaluate(input);
+        status = await evaluate(input);
         io.setPrompt(opts.prompt);
       } else {
         lines.push(line);
         io.setPrompt('.'.repeat(opts.prompt.length - 1) + ' ');
       }
 
-      rs.io.prompt();
+      if (status < 0) {
+        rs.io.removeAllListeners();
+        rs.io.close();
+      } else rs.io.prompt();
     };
   } else {
     rs.onLineHandler = async (io, line) => {
-      await evaluate(line);
-      io.prompt();
+      let status = await evaluate(line);
+      if (status < 0) {
+        rs.io.removeAllListeners();
+        rs.io.close();
+      } else rs.io.prompt();
     };
   }
-
-  rs.onExitHandler = code => {
-    rs.io.close();
-    rs.io.removeAllListeners();
-    // rs.io.write(`Exiting with code ${code}`);
-    rs.io.input.destroy();
-  };
 
   // Initialialise prompt
   rs.io.prompt();

@@ -31,7 +31,6 @@ async function main() {
     opts.app = 'FILE';
     opts.file = file;
     const rs = new Runspace(opts);
-    rs.onExitHandler = code => exitCode = code.toString();
     define(rs);
     if (opts.defineVars) defineVars(rs);
     if (opts.defineFuncs) defineFuncs(rs);
@@ -40,10 +39,11 @@ async function main() {
 
     rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
 
-    let start = Date.now(), ret, error, time, timeObj = {};
+    let start = Date.now(), ret, error, time, evalObj = {};
     try {
       rs.importStack.push(path.dirname(file));
-      ret = await rs.execute(source, undefined, timeObj);
+      ret = await rs.execute(source, undefined, evalObj);
+      exitCode = evalObj.statusValue?.toString() ?? 0;
       time = Date.now() - start;
       rs.importStack.pop();
     } catch (e) {
@@ -51,7 +51,7 @@ async function main() {
     }
 
     rs.io.output.write(`${'-'.repeat(25)}\nExecution terminated with code ${exitCode} in ${time} ms\n`);
-    if (opts.timeExecution) rs.io.output.write(`Timings: Took ${time} ms (${timeObj.parse} ms parsing, ${timeObj.exec} ms execution)\n`);
+    if (opts.timeExecution) rs.io.output.write(`Timings: Took ${time} ms (${evalObj.parse} ms parsing, ${evalObj.exec} ms execution)\n`);
     if (error) {
       if (opts.niceErrors) {
         printError(error, x => rs.io.output.write(x));

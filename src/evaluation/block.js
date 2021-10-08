@@ -55,16 +55,7 @@ class Block {
       lastVal = await this.tokenLines[l].eval(obj);
 
       if (obj.action === 0) continue;
-      else if (obj.action === -1) { // Call to exit
-        // console.log("-1: EXIT");
-        propagateEvalObj(obj, evalObj);
-        break;
-      }
-      else if (obj.action === -2) { // Stop execution silently (intentional, used internally)
-        // console.log("-2: STOP EXECUTION [INTERNAL]");
-        propagateEvalObj(obj, evalObj);
-        break;
-      } else if (obj.action === 1) {
+      else if (obj.action === 1) {
         // console.log("Break line %d in block %s", l, this.id)
         if (this.breakable === 1) evalObj.action = 1; // Propagate
         break; // break action
@@ -90,8 +81,11 @@ class Block {
         lastVal = await block.eval(obj, lineID + 1);
         evalObj.action = -2;
         break;
+      } else { // Any other exit code: break and propagate
+        // throw new Error(`FATAL: Unknown action '${obj.action}' in block ${obj.blockID}, line ${obj.lineID}`);
+        propagateEvalObj(obj, evalObj);
+        break;
       }
-      else throw new Error(`FATAL: Unknown action '${obj.action}' in block ${obj.blockID}, line ${obj.lineID}`);
     }
     return lastVal ?? new UndefinedValue(this.rs);
   }
