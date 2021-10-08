@@ -1,0 +1,3 @@
+println("HELLO!");
+exit(12);
+println("Hahaha");

@@ -8,7 +8,6 @@ If I has known how this would progress, I would've written this in Java or C++ f
 For more help, see `programs/` and the built-in `help` function.
 
 ## Important Notes
-
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
 - Array-unpacking `[a, b] = [1, 2]` does not work
 
@@ -16,7 +15,8 @@ For more help, see `programs/` and the built-in `help` function.
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
 
 ## Bugs
-No known bugs.
+- Negative numbers after block is a syntax error e.g. `func() { if (0) {...} -1; }`
+  - As there is something before `-`, it isn't parsed as a unary operator
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments.
@@ -56,7 +56,16 @@ For more information on built-ins, enter `help()`.
 - `ans` : `any`. Present if `--ans` is truthy. Contains value of last executed expression.
 - `_isMain` : `bool`. Boolean indicating if script was run or is imported.
 
+### `exit(code: ?real_int)`
+**NB no longer unceremoniously calls `process.exit()`
+
+Exits the current script execution (sets eval flag to `-1`) with a current code.
+
+After everything is cleared up, calls `#<Runspace>.onExitHandler(code)`
+
 ### `import(file: string)`
+Internal: calls `#<Runspace>.import()`
+
 This functions is used to import scripts into the current runspace. `file` may be any valid file.
 
 If in format `<file>`, the full path to the imported file is resolves as follows: `root + "imports/" + file + ".js"` where
@@ -414,6 +423,30 @@ switch (<match>) {
 ```
 
 Tests the value `<match>` against each case `<value>`. If a case `<block>` is enetered, the rest of `case`s are skipped. `else` is executed if no `case` is matched.
+
+### `label`
+Syntax: `label <label>`
+
+Defines a label at the current position.
+- `<label>` is any valid symbol
+
+`label` statements are executed before the rest of the program. As such, they prior to the `label` statement e.g. `goto here; ...; label here`
+
+Labels are defined from the current scope upwards. Multiple labels may exit in different scopes, but in higher scopes the latter will be referenced when the label is used.
+
+Labels may be references no matter the scope - whether it is in a higher or lower scope, or if the block the `label` lies in has been executed yet.
+
+### `goto`
+Syntax: `goto <label>`
+
+Jumps to label `<label>` and continues execution from that point.
+- `<label>` is a label created by the `label` statement.
+
+A `goto` statement may reference a label before is is defined via `label`. This is due to the `label` statement being evaluated before the progam.
+
+This keyword is dangerous and behaviour is undefined when used to jump across scopes. No scope managment or the like is carried out.
+
+It is **not** recommended to jump across scopes i.e. jumping into a function
 
 ## Types
 Variables all have a type which may change. New types may be added - see `imports/matrix.js` for an example.

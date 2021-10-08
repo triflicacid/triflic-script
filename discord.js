@@ -5,7 +5,7 @@ const Runspace = require("./src/runspace/Runspace");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 const { parseArgString } = require("./src/init/args");
 const Complex = require("./src/maths/Complex");
-const { UndefinedValue, ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
+const { UndefinedValue, ArrayValue, primitiveToValueClass, NumberValue } = require("./src/evaluation/values");
 
 // CHECK FOR REQUIRED ENV VARIABLES
 if (!process.env.BOT_TOKEN) throw new Error(`Setup Error: missing BOT_TOKEN environment variable`);
@@ -25,9 +25,8 @@ async function createRunspace(argString = '') {
   if (opts.defineFuncs) defineFuncs(rs);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
     if (rs.discordLatestMsg) {
-      if (c === undefined) c = 0;
-      rs.discordLatestMsg.reply(`Terminating with exit code ${c}`);
-      setTimeout(() => sessionEnd(rs.discordLatestMsg), 2); // Declay session ending message
+      if (c === undefined) c = new NumberValue(rs, 0);
+      sessionEnd(rs.discordLatestMsg); // Declay session ending message
       return c;
     } else {
       throw new Error(`Fatal Error: could not end session. Please type '!close'.`);

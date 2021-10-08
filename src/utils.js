@@ -112,7 +112,7 @@ const createTokenStringParseObj = (rs, str, pos, depth, terminateOn = [], allowM
 });
 
 const createEvalObj = (blockID, lineID) => ({
-  action: 0, // 0 -> nothing; 1 -> break; 2 -> continue; 3 -> return; 4 -> goto;
+  action: 0, // 0 -> nothing; 1 -> break; 2 -> continue; 3 -> return; 5 -> goto; -1 -> exit; -2 -> stop execution (internal, silent)
   actionValue: undefined,
   blockID, // ID of current block we are in
   lineID, // Current line number

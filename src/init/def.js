@@ -70,17 +70,31 @@ function define(rs) {
     if (v === undefined) throw new Error(`[${errors.DEL}] Argument Error: cannot del() object of type ${obj.type()}`);
     return v;
   }, 'attempt to delete given object. If a key is given, attempts to delete that key from the given object.'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
-    print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
-    process.exit(0);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }, evalObj) => {
+    // print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
+    // process.exit(0);
+    if (c === undefined) c = new NumberValue(rs, 0);
+    evalObj.action = -1;
+    evalObj.actionValue = c.toString();
+    return c;
   }, 'exit application with given code'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', {}, () => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'locals', {}, () => {
     const vars = [];
     rs._vars[rs._vars.length - 1].forEach((variable, name) => {
       vars.push(new StringValue(rs, name));
     });
     return new ArrayValue(rs, vars);
-  }, 'list all defined variables in the current scope'));
+  }, 'list all variables in the current scope (local variables)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', {}, () => {
+    const vars = new Set();
+    for (let i = rs._vars.length - 1; i >= 0; i--) {
+      rs._vars[i].forEach((variable, name) => {
+        if (!vars.has(variable)) vars.add(name);
+      });
+    }
+    return new ArrayValue(rs, Array.from(vars).map(v => new StringValue(rs, v)));
+  }, 'list all defined variables in the program'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'labels', {}, (_, evalObj) => new ArrayValue(rs, Array.from(rs.getCurrentInstance().blocks.get(evalObj.blockID).getAllLabels().keys()).map(l => new StringValue(rs, l))), 'list all addressable labels'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_push', {}, () => {
     rs.pushScope();
     return new NumberValue(rs, rs._vars.length);

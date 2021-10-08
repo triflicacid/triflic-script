@@ -13,10 +13,11 @@ const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values")
 async function main() {
   if (process.argv.includes("--help")) {
     console.log(`Syntax: 'node file.js <file> [args]'`);
-    return 0;
+    return 1;
   } else {
     // Find file
     let argv = yargs(hideBin(process.argv)).argv, file = argv._[0];
+    let exitCode = 0;
 
     // Does file exist?
     if (!fs.existsSync(file)) {
@@ -30,6 +31,7 @@ async function main() {
     opts.app = 'FILE';
     opts.file = file;
     const rs = new Runspace(opts);
+    rs.onExitHandler = code => exitCode = code.toString();
     define(rs);
     if (opts.defineVars) defineVars(rs);
     if (opts.defineFuncs) defineFuncs(rs);
@@ -48,7 +50,7 @@ async function main() {
       error = e;
     }
 
-    rs.io.output.write(`${'-'.repeat(25)}\nExecution terminated with code ${error ? 1 : 0} in ${time} ms\n`);
+    rs.io.output.write(`${'-'.repeat(25)}\nExecution terminated with code ${exitCode} in ${time} ms\n`);
     if (opts.timeExecution) rs.io.output.write(`Timings: Took ${time} ms (${timeObj.parse} ms parsing, ${timeObj.exec} ms execution)\n`);
     if (error) {
       if (opts.niceErrors) {
@@ -61,6 +63,9 @@ async function main() {
     }
 
     rs.io.close(); // Close IO stream
+    rs.io.removeAllListeners();
+
+    return exitCode;
   }
 
   return 0;
