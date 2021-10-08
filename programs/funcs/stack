@@ -1,0 +1,11 @@
+func create_stack() {
+    array = [];
+    {
+        "push": item -> { array += item; undef; },
+        "pop": () -> { pop(array); undef; },
+        "peek": () -> { array[-1]; },
+        "size": () -> { len(array); },
+        "empty": () -> { array = []; },
+        "str": () -> { join(array, ','); }
+    }
+}
