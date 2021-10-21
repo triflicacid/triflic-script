@@ -143,6 +143,15 @@ function define(rs) {
     let value = rs.getVar(name.toString());
     return new BoolValue(rs, value);
   }, 'returns boolean indicating if name <name> is defined and accessable'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'define', { name: 'string', value: '?any' }, ({ name, value }) => {
+    name = name.toString();
+    value = value.castTo('any');
+    rs.defineVar(name, value);
+    return value;
+  }, 'defines local variable with name <name>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'getvar', { name: 'string' }, ({ name }) => {
+    return rs.getVar(name.toString()) ?? rs.UNDEFINED;
+  }, 'get variable with name <name> (or undef)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
     let start, end, step;
     if (b === undefined) { start = 0; end = a.toPrimitive('real'); step = 1; }

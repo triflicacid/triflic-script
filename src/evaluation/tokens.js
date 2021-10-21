@@ -3,7 +3,7 @@ const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = r
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
 const operators = require("./operators");
 const { errors } = require("../errors");
-const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure, SwitchStructure, LabelStructure, GotoStructure } = require("./structures");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure, SwitchStructure, LabelStructure, GotoStructure, VarStructure } = require("./structures");
 const { Block } = require("./block");
 const { isNumericType } = require("./types");
 const { Structures } = require("discord.js");
@@ -41,7 +41,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "return", "then", "switch", "case", "label", "goto"];
+KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "return", "then", "switch", "case", "label", "goto", "var"];
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
@@ -316,8 +316,8 @@ class TokenLine {
     try {
       return this._parse();
     } catch (e) {
-      throw e;
-      // throw new Error(`${this.source}: \n${e} `);
+      // throw e;
+      throw new Error(`${this.source}: \n${e} `);
     }
   }
 
@@ -840,6 +840,16 @@ class TokenLine {
             }
             break;
           }
+          case "var": {
+            if (this.tokens[i + 1] instanceof VariableToken) {
+              const structure = new VarStructure(this.tokens[i].pos, this.rs, this.tokens[i + 1]);
+              structure.validate();
+              this.tokens.splice(i, 2, structure);
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: expected symbol, got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos} in 'var' expression`);
+            }
+            break;
+          }
           case "label": {
             if (this.tokens[i + 1] instanceof VariableToken || this.tokens[i + 1] instanceof KeywordToken) {
               const structure = new LabelStructure(this.tokens[i].pos, this.rs, this.tokens[i + 1].value);
@@ -891,8 +901,8 @@ class TokenLine {
     try {
       return await this._eval(evalObj);
     } catch (e) {
-      throw e;
-      // throw new Error(`${this.source}: \n${e} `);
+      // throw e;
+      throw new Error(`${this.source}: \n${e} `);
     }
   }
 

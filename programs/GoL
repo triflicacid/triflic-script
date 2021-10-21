@@ -2,11 +2,11 @@
 // 0 -> dead
 // 1 -> alive
 func create_grid(cols: real_int, rows: real_int) {
-  newgrid = array(cols);
+  var grid = array(cols);
   for (i in 0:cols) {
       newgrid[i] = array(rows, 0);
   }
-  newgrid;
+  grid;
 }
 
 func step(grid: ref array, cols: real_int, rows: real_int) {

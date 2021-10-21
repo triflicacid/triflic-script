@@ -666,6 +666,22 @@ class GotoStructure extends Structure {
   }
 }
 
+class VarStructure extends Structure {
+  /** symbol -> VariableToken */
+  constructor(pos, rs, symbol) {
+    super("VAR", pos);
+    this.rs = rs;
+    this.symbol = symbol;
+  }
+
+  validate() { }
+
+  async eval(evalObj) {
+    this.rs.defineVar(this.symbol.value);
+    return this.symbol;
+  }
+}
+
 module.exports = {
   Structure,
   ArrayStructure, SetStructure, MapStructure,
@@ -675,4 +691,5 @@ module.exports = {
   FuncStructure,
   BreakStructure, ContinueStructure, ReturnStructure,
   LabelStructure, GotoStructure,
+  VarStructure,
 };
