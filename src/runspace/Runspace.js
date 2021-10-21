@@ -24,11 +24,7 @@ class Runspace {
     this.importStack = [this.root]; // Stack of import directories
     this.importFiles = []; // Stack of imported files - stops circular imports
 
-    if (opts.revealHeaders) {
-      const map = new MapValue(this);
-      Object.entries(this.opts).forEach(([k, v]) => map.value.set(k, primitiveToValueClass(this, v)));
-      this.defineVar('headers', map, 'Config headers of current runspace [readonly]', true);
-    }
+    if (opts.revealHeaders) this.defineHeaderVar();
 
     this.stdin = process.stdin;
     this.stdout = process.stdout;
@@ -68,6 +64,13 @@ class Runspace {
 
     this._vars[this._vars.length - 1].set(name, obj); // Insert into top-level scope
     return obj;
+  }
+
+  /** Define variable 'headers' from this.opts */
+  defineHeaderVar() {
+    const map = new MapValue(this);
+    Object.entries(this.opts).forEach(([k, v]) => map.value.set(k, primitiveToValueClass(this, v)));
+    return this.defineVar('headers', map, 'Config headers of current runspace [readonly]', true);
   }
 
   /** Set a variable to a value. Return Vara=iable object or false. */

@@ -1088,7 +1088,7 @@ ArrayValue.castMap = {
   array: o => o,
   set: o => new SetValue(o.rs, o.value),
   string: o => new StringValue(o.rs, "[" + o.value.map(t => t.toString()).join(',') + "]"),
-  bool: o => new BoolValue(o.rs, !!this.value),
+  bool: o => new BoolValue(o.rs, o.value.length !== 0),
   map: o => {
     const map = new MapValue(o.rs);
     o.value.forEach((v, i) => map.value.set(i, v));
@@ -1100,7 +1100,7 @@ SetValue.castMap = {
   set: o => o,
   array: o => new ArrayValue(o.rs, o.value),
   string: o => new StringValue(o.rs, "{" + o.value.map(t => t.toString()).join(',') + "}"),
-  bool: o => new BoolValue(o.rs, !!this.value),
+  bool: o => new BoolValue(o.rs, o.value.length !== 0),
   map: o => o.__len__() === 0 ? new MapValue(o.rs) : undefined, // Convert empty sets to map, nothing else
 };
 

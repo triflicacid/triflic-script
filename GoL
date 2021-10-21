@@ -1,0 +1,73 @@
+// GENERATE 2D GRID
+// 0 -> dead
+// 1 -> alive
+func create_grid(cols: real_int, rows: real_int) {
+  newgrid = array(cols);
+  for (i in 0:cols) {
+      newgrid[i] = array(rows, 0);
+  }
+  newgrid;
+}
+
+func step(grid: ref array, cols: real_int, rows: real_int) {
+  // next = create_grid(cols, rows); // Create grid for next generation
+  next = array2d(cols, rows, 0);
+  for (i in 0:cols) {
+    for (j in 0:rows) {
+      state = grid[i][j]; // Get state at current cell
+      neighbors = count_neighbors(grid, cols, rows, i, j); // Count neighbors
+      // println("(%i, %i) is %i and has %i neighbors" % [i, j, state, neighbors]);
+
+      // If DEAD and ALIVE == 3 -> ALIVE
+      if (state == 0 && neighbors == 3) {
+        next[i][j] = 1;
+      }
+
+      // If ALIVE and surrounded by ALIVE < 2 OR ALIVE > 3, DIE
+      else if (state == 1 && (neighbors < 2 || neighbors > 3)) {
+        next[i][j] = 0;
+      }
+      
+      // Preserve state
+      else {
+        next[i][j] = grid[i][j];
+      }
+    }
+  }
+
+  grid = next;
+}
+
+func count_neighbors(grid: ref array, cols: real_int, rows: real_int, x: real_int, y: real_int) {
+  sum = -grid[x][y];
+  for (i in -1:2) {
+    for (j in -1:2) {
+      col = (x + i + cols) % cols;
+      row = (y + j + rows) % rows;
+      sum += grid[col][row];
+    }
+  }
+  sum;
+}
+
+func print_grid(grid: ref array, cols: real_int, rows: real_int) {
+  top = "+" + ("-" * rows) + "+";
+  println(top);
+  foreach(grid, row -> println("|" + join(map(row, s -> " *"[s])) + "|"));
+  println(top);
+}
+
+func main() {
+  cols = argv[0] ?? 30;
+  rows = argv[1] ?? 50;
+  grid = array2d(cols, rows, () -> <real_int>random(2));
+  loop {
+    clear();
+    print_grid(grid, cols, rows);
+    println("\n{rows=}\n{cols=}");
+    grid = step(grid, cols, rows);
+    // sleep(0.1);
+  }
+}
+
+main();

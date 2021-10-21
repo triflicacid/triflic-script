@@ -1,3 +1,13 @@
-println("HELLO!");
-exit(12);
-println("Hahaha");
+func gen() {
+  n = 10;
+  println("gen: {n=}");
+}
+
+func fn (n: ref any) {
+  println("fn: {n=}");
+  gen();
+  println("fn: {n=}");
+}
+
+n = 17;
+fn(n);

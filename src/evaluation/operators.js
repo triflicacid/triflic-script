@@ -82,7 +82,7 @@ const operators = {
       obj = obj.castTo('any');
       if (obj instanceof UndefinedValue) return new UndefinedValue(obj.rs);
       if (!obj.__get__) throw new Error(`[${errors.PROP}] Key Error: Cannot access property ${prop} of type ${obj.type()}`);
-      return obj.castTo('any').__get__(prop.castTo('any'));
+      return obj.__get__(prop.castTo('any'));
     },
     desc: `Access property <prop> of <obj>`,
     syntax: '<obj>.<prop>',

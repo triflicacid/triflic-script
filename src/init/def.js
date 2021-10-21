@@ -122,6 +122,16 @@ function define(rs) {
     val = val.castTo('any');
     return new ArrayValue(rs, Array.from({ length: len.toPrimitive('real_int') }).fill(val));
   }, 'create and return a new array of length <len=1>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'array2d', { cols: 'real_int', rows: 'real_int', val: '?any' }, async ({ cols, rows, val }, evalObj) => {
+    val = val ? val.castTo('any') : rs.UNDEFINED;
+    cols = cols.toPrimitive('real_int');
+    rows = rows.toPrimitive('real_int');
+    if (val.type() === 'func') {
+      return new ArrayValue(rs, await Promise.all(Array.from({ length: cols }, async () => new ArrayValue(rs, await Promise.all(Array.from({ length: rows }, () => val.value.call(evalObj, [])))))));
+    } else {
+      return new ArrayValue(rs, Array.from({ length: cols }, () => new ArrayValue(rs, Array.from({ length: rows }).fill(val))));
+    }
+  }, 'create and return a 2D new array of length <len=1>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copy', { o: 'any' }, ({ o }) => {
     const copy = o.castTo("any").__copy__?.();
     if (copy === undefined) throw new Error(`[${errors.CANT_COPY}] Type Error: Type ${o.type()} cannot be copied`);
@@ -258,6 +268,21 @@ function define(rs) {
     if (ret === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot search type ${o.type()}`);
     return ret;
   }, 'Find <item> in <o>. Collections: return index of <item> or -1. Map: return key of item with value <item> or undefined.'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fill', { array: 'array', item: 'any' }, async ({ array, item }, evalObj) => {
+    if (!(array instanceof VariableToken && array.type() === 'array')) throw new Error(`[${errors.BAD_ARG}] Argument Error: expected variable of type array for <array>`);
+    item = item.castTo("any");
+    let list = array.getVar().value, length = list.value.length;
+    if (item.type() === 'func') {
+      let fn = item.value;
+      if (fn.argCount === 0) for (let i = 0; i < length; i++) list.value[i] = await fn.call(evalObj, []);
+      else if (fn.argCount === 1) for (let i = 0; i < length; i++) list.value[i] = await fn.call(evalObj, [new NumberValue(rs, i)]);
+      else if (fn.argCount === 2) for (let i = 0; i < length; i++) list.value[i] = await fn.call(evalObj, [new NumberValue(rs, i), list]);
+      else throw new Error(`[${errors.BAD_ARG}] Argument Error: func <item> has invalid argument count. Expected 0-2, got ${fn.argCount}`);
+    } else {
+      for (let i = 0; i < length; i++) list.value[i] = item;
+    }
+    return array;
+  }, 'Fills referenced array <array> with static <item> or, if <item> is a func, calls <item>(?index, ?array) for each item'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'base', { arg: 'string', from: 'real_int', to: 'real_int' }, ({ arg, from, to }) => {
     from = from.toPrimitive('real_int');
     to = to.toPrimitive('real_int');

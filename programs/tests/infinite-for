@@ -1,3 +1,4 @@
 for (;;) {
-    println("Hello");
+    println("Infinite for loop");
+    break;
 }

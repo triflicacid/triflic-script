@@ -502,5 +502,3 @@ The assignation operator `=` assigns a value to a symbol **is the current scope*
 The assignation operator `=>` assigns a value to a symbol **which is not in the current scope**. It assigns the value to the next available binding to that symbol and, if non is found, an error is thrown.
 
 See the programs in `programs/tests/scope` and compare the two functions.
-
-When functions are defined, they store the current scope stack. When called, it loads this stack as well, meaning things like closures are possible (see `programs/tests/closures` for an example).
