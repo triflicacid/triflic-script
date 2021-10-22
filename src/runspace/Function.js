@@ -88,6 +88,7 @@ class RunspaceUserFunction extends RunspaceFunction {
   constructor(rs, name, args, body, desc = 'user-defined', returnType = "any") {
     super(rs, name, args, desc, returnType);
     this.tstr = body;
+    this.meVar = rs.createMeVar();
   }
 
   clone() {
@@ -98,6 +99,7 @@ class RunspaceUserFunction extends RunspaceFunction {
   async call(evalObj, args) {
     this.checkArgCount(args);
     this.rs.pushScope();
+    this.rs.defineVar('me', this.meVar);
     // Set arguments to variables matching definition symbols
     let i = 0;
     this.args.forEach((data, arg) => {

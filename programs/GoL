@@ -1,17 +1,5 @@
-// GENERATE 2D GRID
-// 0 -> dead
-// 1 -> alive
-func create_grid(cols: real_int, rows: real_int) {
-  var grid = array(cols);
-  for (i in 0:cols) {
-      newgrid[i] = array(rows, 0);
-  }
-  grid;
-}
-
 func step(grid: ref array, cols: real_int, rows: real_int) {
-  // next = create_grid(cols, rows); // Create grid for next generation
-  next = array2d(cols, rows, 0);
+  next = array2d(cols, rows, 0); // Create grid for next generation
   for (i in 0:cols) {
     for (j in 0:rows) {
       state = grid[i][j]; // Get state at current cell

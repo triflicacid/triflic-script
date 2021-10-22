@@ -461,12 +461,12 @@ This keyword is dangerous and behaviour is undefined when used to jump across sc
 
 It is **not** recommended to jump across scopes i.e. jumping into a function
 
-### `var`
-Syntax: `var <symbol>`
+### `let`
+Syntax: `let <symbol>`
 
 Defines variable `<symbol>` in the local scope
 
-Used to ensure that `<symbol>` is a local variable. See `tests/var` for examples.
+Used to ensure that `<symbol>` is a local variable. See `tests/let` for examples.
 
 ## Types
 Variables all have a type which may change. New types may be added - see `imports/matrix.js` for an example.

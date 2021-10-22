@@ -3,10 +3,8 @@ const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = r
 const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
 const operators = require("./operators");
 const { errors } = require("../errors");
-const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure, SwitchStructure, LabelStructure, GotoStructure, VarStructure } = require("./structures");
+const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure, SwitchStructure, LabelStructure, GotoStructure, LetStructure } = require("./structures");
 const { Block } = require("./block");
-const { isNumericType } = require("./types");
-const { Structures } = require("discord.js");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -41,7 +39,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "return", "then", "switch", "case", "label", "goto", "var"];
+KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "return", "then", "switch", "case", "label", "goto", "let"];
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
@@ -845,9 +843,9 @@ class TokenLine {
             }
             break;
           }
-          case "var": {
+          case "let": {
             if (this.tokens[i + 1] instanceof VariableToken) {
-              const structure = new VarStructure(this.tokens[i].pos, this.rs, this.tokens[i + 1]);
+              const structure = new LetStructure(this.tokens[i].pos, this.rs, this.tokens[i + 1]);
               structure.validate();
               this.tokens.splice(i, 2, structure);
             } else {

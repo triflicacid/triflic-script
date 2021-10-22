@@ -1,9 +1,9 @@
 func gen() {
-  var n = 10;
+  let n = 10;
   println("gen: {n=}");
 }
 
-func fn (n: ref any) {
+func fn(n: ref any) {
   println("fn: {n=}");
   gen();
   println("fn: {n=}");

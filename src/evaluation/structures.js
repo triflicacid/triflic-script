@@ -666,10 +666,10 @@ class GotoStructure extends Structure {
   }
 }
 
-class VarStructure extends Structure {
+class LetStructure extends Structure {
   /** symbol -> VariableToken */
   constructor(pos, rs, symbol) {
-    super("VAR", pos);
+    super("LET", pos);
     this.rs = rs;
     this.symbol = symbol;
   }
@@ -691,5 +691,5 @@ module.exports = {
   FuncStructure,
   BreakStructure, ContinueStructure, ReturnStructure,
   LabelStructure, GotoStructure,
-  VarStructure,
+  LetStructure,
 };

@@ -136,6 +136,11 @@ class Runspace {
     return this._storeAns;
   }
 
+  /** Create 'me' varianle */
+  createMeVar() {
+    return new RunspaceVariable('me', new MapValue(this), 'Object stored in current block', true)
+  }
+
   /** Push new execution instance */
   pushInstance() {
     const obj = {

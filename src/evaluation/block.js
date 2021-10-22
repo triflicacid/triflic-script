@@ -1,4 +1,4 @@
-const { UndefinedValue, StringValue } = require("./values");
+const { UndefinedValue } = require("./values");
 const { createEvalObj, propagateEvalObj } = require("../utils");
 const { errors } = require("../errors");
 
