@@ -10,7 +10,9 @@ func fn (n: ref any) {
 }
 
 n = 17;
+println("global: {n=}");
 fn(n);
+println("global: {n=}");
 
 // Without "var", assigning to `n` in `gen` would overwrite the global `n` as it is passed by reference to `fn`, so when `n` is referenced in `gen`, it acts as a reference to the global `n`
 // With "var", a local `n` is created, which is references instead of the global `n` reference

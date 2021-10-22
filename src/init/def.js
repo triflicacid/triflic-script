@@ -454,7 +454,7 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ref', { a: 'any', b: 'any' }, ({ a, b }) => {
     if (!(a instanceof VariableToken)) throw new Error(`[${errors.BAD_ARG}] Argument Error: a: expected symbol, got ${a.type()}`);
     if (!(b instanceof VariableToken)) throw new Error(`[${errors.BAD_ARG}] Argument Error: b: expected symbol, got ${b.type()}`);
-    a.getVar().refFor = b.value;
+    a.getVar().refFor = b.getVar();
     return a;
   }, 'Place a reference to variable b in variable a (i.e. changing a = changing b)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'unref', { a: 'any' }, ({ a }) => {
@@ -465,7 +465,7 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'getref', { name: 'string' }, ({ name }) => {
     if (name instanceof VariableToken) {
       let ref = name.getVar().refFor;
-      return ref ? new StringValue(rs, ref) : rs.UNDEFINED;
+      return ref ? new StringValue(rs, ref.name) : rs.UNDEFINED;
     } else {
       throw new Error(`[${errors.BAD_ARG}] Argument Error: type ${name.type()} is not a valid reference type (expected symbol)`);
     }

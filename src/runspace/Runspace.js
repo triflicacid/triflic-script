@@ -74,8 +74,9 @@ class Runspace {
   }
 
   /** Set a variable to a value. Return Vara=iable object or false. */
-  setVar(name, value) {
-    for (let i = this._vars.length - 1; i >= 0; i--) {
+  setVar(name, value, startingScope = undefined) {
+    if (startingScope === undefined) startingScope = this._vars.length - 1;
+    for (let i = startingScope; i >= 0; i--) {
       if (this._vars[i].has(name)) {
         const vo = this._vars[i].get(name);
         vo.value = value;
@@ -86,8 +87,9 @@ class Runspace {
   }
 
   /** Set a variable equivalent to another variable. Return Variable object or false. */
-  setVarObj(name, variable) {
-    for (let i = this._vars.length - 1; i >= 0; i--) {
+  setVarObj(name, variable, startingScope = undefined) {
+    if (startingScope === undefined) startingScope = this._vars.length - 1;
+    for (let i = startingScope; i >= 0; i--) {
       if (this._vars[i].has(name)) {
         this._vars[i].set(name, variable);
         return variable;
