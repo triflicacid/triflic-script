@@ -493,6 +493,11 @@ function defineFuncs(rs) {
     const solutions = angles.map(angle => Complex.add(Complex.cos(angle).mult(newR), Complex.sin(angle).mult(newR).mult(imag))); // Transform from angle to full complex number (r*e**(i*theta) to a+bi)
     return new ArrayValue(rs, solutions.map(n => new NumberValue(rs, n)));
   }, 'Returns array of roots for z**n = r'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'pascal', { r: 'real_int' }, ({ r }) => {
+    r = parseInt(r.toPrimitive('real'));
+    let row = Array.from({ length: r - 1 }).map((_, i, a) => factorialReal(a.length) / (factorialReal(i) * factorialReal(a.length - i))).map(n => isFinite(n) ? n : 1).concat([1])
+    return new ArrayValue(rs, row.map(n => new NumberValue(rs, Math.round(n))));
+  }), 'Return array of Pascal coefficients for <r>th for of Pascal\'s Triangle');
 }
 
 module.exports = { define, defineVars, defineFuncs };

@@ -1,0 +1,32 @@
+func iter(arr: array) {
+  let row = [1];
+  let lim = len(arr) - 1;
+  if (lim > 0) {
+    let i;
+    for (i in 0:lim) {
+      row += arr[i] + arr[i + 1];
+    }
+  }
+  row + 1;
+}
+
+func printTriangle(grid: ref array) {
+  let maxl = len(grid[-1]);
+  foreach(grid, row -> {
+    let pstart = (maxl - len(row)) / 2;
+    let pline = "";
+    for (i in 0:(pstart * 2)) { pline += " "; }
+    foreach(row, n -> { pline += nformat(n) + " "; });
+    println(pline);
+  });
+}
+
+let row = [1];
+let triangle = [];
+let lim = +argv[0];
+for (i in 0:lim) {
+  push(triangle, row);
+  row = iter(row);
+}
+printTriangle(triangle);
+
