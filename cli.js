@@ -59,6 +59,7 @@ async function main() {
 
   // Import standard IO library
   await rs.import("<io>");
+  await rs.import("<matrix>");
 
   // Set prompt
   rs.io.setPrompt(opts.prompt);
