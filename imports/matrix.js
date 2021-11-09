@@ -138,10 +138,12 @@ module.exports = rs => {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mcheckerboard', { m: 'matrix', startSign: '?real_int' }, ({ m, startSign }) => new MatrixValue(rs, m.toPrimitive("matrix").checkerboard(startSign ? startSign.toPrimitive('real_int') : undefined)), 'Matrix: get checkerboard matrix (multiply by +, -, +, - ... throughout)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mcofac', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive('matrix').cofactors()), 'Matrix: calculate matrix of cofactors'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'minv', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive('matrix').inverse()), 'Matrix: calculate inverse matrix'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mref', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, Matrix.toRowEchelonForm(m.toPrimitive('matrix').toPrimitiveNumbers()).toComplexNumbers()), 'Matrix: transform to Row Echelon Form'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrref', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, Matrix.toReducedRowEchelonForm(m.toPrimitive('matrix').toPrimitiveNumbers()).toComplexNumbers()), 'Matrix: transform to Reduced Row Echelon Form'));
 
   rs.defineVar('id2', new MatrixValue(rs, Matrix.identity(2)), '2 by 2 identity matrix', true);
   rs.defineVar('m1', new MatrixValue(rs, Matrix.fromString('6 1; 4 -2;')));
-  rs.defineVar('m2', new MatrixValue(rs, Matrix.fromString('1 2; 3 4;')));
+  rs.defineVar('m2', new MatrixValue(rs, Matrix.fromString("9 3 4; 4 3 4; 1 1 1;")));
   rs.defineVar('m3', new MatrixValue(rs, Matrix.fromString(`${1 / 8} ${1 / 16}; ${1 / 4} ${-3 / 8}`)));
   rs.defineVar('m4', new MatrixValue(rs, Matrix.fromString(`${1 / 32} ${-1 / 64}; ${-1 / 16} ${5 / 32}`)));
 };
