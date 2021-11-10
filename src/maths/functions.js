@@ -101,6 +101,12 @@ function generatePrimes(limit) {
   return primes;
 }
 
+function random(a = undefined, b = undefined) {
+  if (a === undefined && b === undefined) return Math.random();
+  if (b === undefined) return Math.random() * a;
+  return a + Math.random() * (b - a);
+}
+
 const mean = arr => sum(arr) / arr.length;
 const PMCC = (x, y) => {
   if (x.length !== y.length) throw new Error(`Argument Error: input arrays must be same size`);
@@ -196,4 +202,4 @@ function range(a, b, step = 1) {
   return range;
 }
 
-module.exports = { bernoulli, lambertw, zeta, factorialReal, LCF, primeFactors, isPrime, generatePrimes, mean, PMCC, variance, gamma, factorial, stirling, nextNearest, wrightomega, range };
+module.exports = { bernoulli, lambertw, zeta, factorialReal, LCF, primeFactors, isPrime, generatePrimes, random, mean, PMCC, variance, gamma, factorial, stirling, nextNearest, wrightomega, range };

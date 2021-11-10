@@ -1,7 +1,7 @@
 const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
-const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli } = require("../maths/functions");
+const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli, random } = require("../maths/functions");
 const { print, sort, findIndex, system, numberTypes, toBinary, fromBinary } = require("../utils");
 const { typeOf, types, isNumericType } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue } = require("../evaluation/values");
@@ -413,11 +413,7 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'random', { a: '?real', b: '?real' }, ({ a, b }) => {
     if (a !== undefined) a = a.toPrimitive('real');
     if (b !== undefined) b = b.toPrimitive('real');
-    let n;
-    if (a !== undefined && b === undefined) n = Math.random() * a; // random(max)
-    else if (a !== undefined && b !== undefined) n = (Math.random() * (b - a)) + a; // random(min, max)
-    else n = Math.random();
-    return new NumberValue(rs, n);
+    return new NumberValue(rs, random(a, b));
   }, 'return a pseudo-random decimal number. Range: 0 arguments: 0-1. 1 argument: 0-a. 2 arguments: a-b'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nPr', { n: 'real_int', r: 'real_int' }, ({ n, r }) => {
     n = n.toPrimitive('real');

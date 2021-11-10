@@ -164,6 +164,30 @@ class Matrix {
     return inter.scalarMult(Complex.div(1, inter.determinant()));
   }
 
+  /** Count rows which do not contain the given complex number */
+  countNotRows(n = 0) {
+    n = Complex.assert(n);
+    let i = 0;
+    for (let r = 0; r < this.matrix.length; ++r) {
+      let all0 = true;
+      for (let c = 0; c < this.matrix[r].length; ++c) {
+        if (!this.matrix[r][c].equals(n)) {
+          all0 = false;
+          break;
+        }
+      }
+      if (!all0) ++i;
+    }
+    return i;
+  }
+
+  /** Return matrix rank */
+  rank() {
+    // Number of non-zero rows in a matrix in reduced-row echelon form
+    const rref = Matrix.toReducedRowEchelonForm(this.copy().toPrimitiveNumbers()).toComplexNumbers();
+    return rref.countNotRows(0);
+  }
+
   /** Return string representation as a flat string e.g "0 0 0; 0 0 0;" */
   toString() {
     return this.matrix.map(a => a.join(' ')).join('; ') + ';';
@@ -276,6 +300,21 @@ Matrix.mult = (a, b) => {
     return result;
   } else {
     throw new Error(`Matrix: unable to multiply (a.cols != b.rows)`);
+  }
+};
+
+/** Calculate dot product of two matrices */
+Matrix.dot = (a, b) => {
+  if (a.rows === b.rows && b.cols === a.cols) {
+    const sum = new Complex(0);
+    for (let r = 0; r < a.rows; ++r) {
+      for (let c = 0; c < a.cols; ++c) {
+        sum.add(Complex.mult(a.get(r, c), b.get(r, c)));
+      }
+    }
+    return sum;
+  } else {
+    throw E_SAMESIZE;
   }
 };
 
