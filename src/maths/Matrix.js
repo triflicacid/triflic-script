@@ -161,7 +161,7 @@ class Matrix {
   /** calculare inverse matrix */
   inverse() {
     let inter = this.getMinors().checkerboard().transpose();
-    return inter.scalarMult(Complex.div(1, inter.determinant()));
+    return inter.scalarMult(Complex.div(1, this.determinant()));
   }
 
   /** Count rows which do not contain the given complex number */

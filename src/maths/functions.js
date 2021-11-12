@@ -46,12 +46,15 @@ function factorialReal(n) {
 
 /** Return LCF of the two numbers */
 function LCF(n1, n2) {
+  let i = 0;
   while (n1 !== n2) {
     if (n1 > n2) {
       n1 = n1 - n2;
     } else {
       n2 = n2 - n1;
     }
+    ++i;
+    if (i > 1e7) return 1;
   }
   return n1;
 }

@@ -1,6 +1,5 @@
-const Matrix = require("./src/maths/Matrix");
+const {Fraction, Fractions} = require("./src/maths/Fraction");
+const { LCF } = require("./src/maths/functions");
 
-const a = Matrix.fromString("1 2 3");
-const b = Matrix.fromString("2 4 6");
-const result = Matrix.dot(a, b);
-console.log(result.toString());
+// console.log(Fractions.ToFraction(0.33333333333));
+console.log(LCF(33333333333, 100000000000));

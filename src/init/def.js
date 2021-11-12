@@ -8,6 +8,7 @@ const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue,
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
 const { errors, errorDesc } = require("../errors");
+const { Fraction } = require("../maths/Fraction");
 const fs = require("fs");
 
 /** Core definitions !REQUIRED! */
@@ -469,6 +470,8 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'strformat', { str: 'string', values: { ellipse: 1 } }, ({ str, values }) => str.castTo('string').format(values.toPrimitive('array')), 'Return formatted string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nformat', { n: 'complex', region: '?string' }, ({ n, region }) => new StringValue(rs, n.toPrimitive('complex').toLocaleString(region ? region.toPrimitive('string') : 'en-GB')), 'Return formatted number string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'expform', { z: 'complex', fdigits: '?real_int' }, ({ z, fdigits }) => new StringValue(rs, z.toPrimitive('complex').toExponential(fdigits ? fdigits.toPrimitive('real_int') : undefined)), 'Return complex number in exponential form, with <fdigits> fractional digits'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'tofrac', { num: 'real', improper: '?bool' }, ({ num, improper }) => new StringValue(rs, new Fraction(num.toPrimitive("real")).toString(improper ? improper.toPrimitive('bool') : true)), 'Convert a real number to a fraction (string)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fromfrac', { frac: 'string' }, ({ frac }) => new NumberValue(rs, new Fraction(frac.toPrimitive("string")).toNumber()), 'Convert fraction string to a number'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'zroots', { n: 'real_int', r: 'complex' }, ({ n, r }) => {
     n = n.toPrimitive("real_int");
     r = r.toPrimitive("complex");
