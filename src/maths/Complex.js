@@ -102,9 +102,20 @@ class Complex {
     // (a + bi) ^ (c + di)
     z = Complex.assert(z);
     let a, b;
-    if (this.equals(0) && z.equals(0)) { // Edge case
+    if (z.equals(0)) { // n^0
       a = 1;
       b = 0;
+    } else if (z.equals(1)) { // n^1
+      a = this.a;
+      b = this.b;
+    } else if (this.equals(0) && z.b === 0 && z.a > 0) { // 0^n where n > 0 if 0 else NaN
+      if (z.b === 0 && z.a > 0) {
+        a = 0;
+        b = 0;
+      } else {
+        a = NaN;
+        b = NaN;
+      }
     } else {
       const r = this.mag(), θ = this.arg();
       let common = Math.pow(r, z.a) * Math.exp(-z.b * θ); // Commong multiplier of both
