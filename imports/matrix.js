@@ -175,6 +175,4 @@ module.exports = rs => {
   }, 'Matrix: Go through each row/col of matrix and set to <complex>fn(row, col, currentValue)'));
 
   rs.defineVar('id2', new MatrixValue(rs, Matrix.identity(2)), '2 by 2 identity matrix', true);
-  rs.defineVar('m1', new MatrixValue(rs, Matrix.fromString('6 1; 4 -2;')));
-  rs.defineVar('m2', new MatrixValue(rs, Matrix.fromString("9 3; 4 3; 1 1;")));
 };

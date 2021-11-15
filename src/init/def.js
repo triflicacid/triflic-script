@@ -472,6 +472,14 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'expform', { z: 'complex', fdigits: '?real_int' }, ({ z, fdigits }) => new StringValue(rs, z.toPrimitive('complex').toExponential(fdigits ? fdigits.toPrimitive('real_int') : undefined)), 'Return complex number in exponential form, with <fdigits> fractional digits'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'tofrac', { num: 'real', improper: '?bool' }, ({ num, improper }) => new StringValue(rs, new Fraction(num.toPrimitive("real")).toString(improper ? improper.toPrimitive('bool') : true)), 'Convert a real number to a fraction (string)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fromfrac', { frac: 'string' }, ({ frac }) => new NumberValue(rs, new Fraction(frac.toPrimitive("string")).toNumber()), 'Convert fraction string to a number'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'quadratic', { a: 'complex', b: 'complex', c: 'complex' }, ({ a, b, c }) => {
+    a = a.toPrimitive("complex");
+    b = b.toPrimitive("complex");
+    c = c.toPrimitive("complex");
+    let sqrt = Complex.sqrt(Complex.pow(b, 2).sub(Complex.mult(4, a).mult(c)));
+    let mb = Complex.mult(b, -1), ta = Complex.mult(a, 2);
+    return new ArrayValue(rs, [new NumberValue(rs, Complex.add(mb, sqrt).div(ta)), new NumberValue(rs, Complex.sub(mb, sqrt).div(ta))]);
+  }, 'SOlve quadratic in form ax^2 + bx + c'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'zroots', { n: 'real_int', r: 'complex' }, ({ n, r }) => {
     n = n.toPrimitive("real_int");
     r = r.toPrimitive("complex");
