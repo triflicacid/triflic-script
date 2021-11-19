@@ -15,7 +15,7 @@ class Runspace {
     this._vars = [new Map()]; // Arrays represents different scopes
 
     this.opts = opts;
-    opts.version = 0.900;
+    opts.version = 0.904;
     opts.time = Date.now();
     this.storeAns(!!opts.ans);
     this.root = path.join(__dirname, '../../');

@@ -468,6 +468,15 @@ Defines variable `<symbol>` in the local scope
 
 Used to ensure that `<symbol>` is a local variable. See `tests/let` for examples.
 
+### `begin`, `end`
+Use to open/close blocks. They are equivalent to using `{` and `}`.
+
+`func f(x) begin x + 1 end`
+
+is equivalent to
+
+`func f(x) { x + 1 }`
+
 ## Types
 Variables all have a type which may change. New types may be added - see `imports/matrix.js` for an example.
 

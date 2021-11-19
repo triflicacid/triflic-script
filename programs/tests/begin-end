@@ -1,0 +1,9 @@
+func f() begin
+    println("Hello!");
+end
+
+f();
+
+for (n in 0:10) begin
+    println("n = " + n);
+end
