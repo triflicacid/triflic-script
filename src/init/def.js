@@ -479,7 +479,7 @@ function defineFuncs(rs) {
     let sqrt = Complex.sqrt(Complex.pow(b, 2).sub(Complex.mult(4, a).mult(c)));
     let mb = Complex.mult(b, -1), ta = Complex.mult(a, 2);
     return new ArrayValue(rs, [new NumberValue(rs, Complex.add(mb, sqrt).div(ta)), new NumberValue(rs, Complex.sub(mb, sqrt).div(ta))]);
-  }, 'SOlve quadratic in form ax^2 + bx + c'));
+  }, 'Solve quadratic in form ax^2 + bx + c'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'zroots', { n: 'real_int', r: 'complex' }, ({ n, r }) => {
     n = n.toPrimitive("real_int");
     r = r.toPrimitive("complex");

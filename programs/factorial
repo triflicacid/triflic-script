@@ -1,0 +1,7 @@
+func factorial(n: real_int) {
+    let i;
+    for (i = n - 1; i > 1; i -= 1) { n *= i; }
+    n;
+}
+
+println(factorial(1000));
