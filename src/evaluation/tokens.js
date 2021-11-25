@@ -1,10 +1,11 @@
 const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracketError, expectedSyntaxError, isDigit, decodeEscapeSequence } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
-const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue } = require("./values");
+const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue, BoolValue } = require("./values");
 const operators = require("./operators");
 const { errors } = require("../errors");
 const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure, SwitchStructure, LabelStructure, GotoStructure, LetStructure } = require("./structures");
 const { Block } = require("./block");
+const Complex = require("../maths/Complex");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -39,7 +40,7 @@ class KeywordToken extends Token {
   }
 }
 
-KeywordToken.keywords = ["if", "else", "do", "while", "until", "for", "loop", "break", "continue", "func", "return", "then", "switch", "case", "label", "goto", "let"];
+KeywordToken.keywords = ["break", "case", "continue", "do", "else", "false", "for", "func", "goto", "if", "label", "let", "loop", "return", "switch", "then", "true", "until", "while"];
 
 /** For operators e.g. '+' */
 class OperatorToken extends Token {
@@ -849,7 +850,7 @@ class TokenLine {
               structure.validate();
               this.tokens.splice(i, 2, structure);
             } else {
-              throw new Error(`[${errors.SYNTAX}] Syntax Error: expected symbol, got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos} in 'var' expression`);
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: expected symbol, got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos} in 'let' expression`);
             }
             break;
           }
@@ -873,6 +874,12 @@ class TokenLine {
             }
             break;
           }
+          case "false":
+            this.tokens.splice(i, 1, new BoolValue(this.rs, false));
+            break;
+          case "true":
+            this.tokens.splice(i, 1, new BoolValue(this.rs, true));
+            break;
         }
       } else if (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '(') {
         if (this.tokens[i].value.length < 2) { // (call) operator. One or zero value[]
@@ -1201,13 +1208,13 @@ function _tokenify(obj) {
     // Number?
     let numObj;
     try {
-      numObj = parseNumber(string.substr(i));
+      numObj = parseNumber(string.substr(i), true, '_', Complex.imagLetter);
     } catch (e) {
       throw new Error(`[${errors.SYNTAX}] Syntax Error: ${e.message} (literal at position ${obj.pos})`); // Error whilst parsing number literal
     }
     if (numObj.str.length > 0) {
       checkLastToken(numObj.str, obj.pos);
-      const t = new ValueToken(currentLine, new NumberValue(obj.rs, numObj.num), obj.pos);
+      const t = new ValueToken(currentLine, new NumberValue(obj.rs, numObj.imag ? new Complex(0, numObj.num) : numObj.num), obj.pos);
       currentTokens.push(t);
       i += numObj.pos;
       obj.pos += numObj.pos;

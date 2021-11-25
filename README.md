@@ -131,6 +131,7 @@ These are structures in the code which define values:
   - A decimal point `.`
   - More digits in the decimal point
   - An exponent `e`, followed by another valid number (note, this number may not contain `e`)
+  - Numbers may end with the imaginary letter which by default is `i` to make it imaginary
   *N.B.* Numbers may contain the seperator `_`. This cannot be at the start/end of a number.
 
 - `"..."` represents a strings.
@@ -467,6 +468,16 @@ Syntax: `let <symbol>`
 Defines variable `<symbol>` in the local scope
 
 Used to ensure that `<symbol>` is a local variable. See `tests/let` for examples.
+
+### `true`
+Syntax: `true`
+
+Represent the truthy boolean value
+
+### `false`
+Syntax: `false`
+
+Represent the falsey boolean value
 
 ## Types
 Variables all have a type which may change. New types may be added - see `imports/matrix.js` for an example.

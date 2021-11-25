@@ -50,9 +50,9 @@ const radicesRegex = { 16: /[0-9A-Fa-f]/, 10: /[0-9]/, 2: /[01]/, 8: /[0-7]/ };
  * @param {string} seperator permitted seperator between digits. Must be of length = 1
  * @returns {object} Return information about extracted number, such as string, sign, exponent, radix...
  */
-function parseNumber(string, allowExponent = true, seperator = '_') {
+function parseNumber(string, allowExponent = true, seperator = '_', imag = 'i') {
   let pos = 0, sign = 1, strBeforeDot = '', strAfterDot = '', radix = 10, exp = null;
-  let metSign = false, metDigitBeforeDecimal = false, metDot = false, metDigitAfterDecimal = false, metE = false, metSeperator = false, metRadix = false;
+  let metSign = false, metDigitBeforeDecimal = false, metDot = false, metDigitAfterDecimal = false, metE = false, metSeperator = false, metRadix = false, metImag = false;
 
   for (pos = 0; pos < string.length; pos++) {
     if (!metSign && (string[pos] === '-' || string[pos] === '+')) { // Sign
@@ -83,7 +83,7 @@ function parseNumber(string, allowExponent = true, seperator = '_') {
       if (metSeperator) throw new Error("Invalid syntax: expected digit in number literal");
       metSeperator = false;
       if (allowExponent) {
-        const obj = parseNumber(string.substr(pos + 1), false, seperator);
+        const obj = parseNumber(string.substr(pos + 1), false, seperator, false);
         if (obj.str === '') break;
         pos += 1 + obj.pos;
         exp = obj;
@@ -104,6 +104,11 @@ function parseNumber(string, allowExponent = true, seperator = '_') {
     }
   }
 
+  if (imag && string[pos] === imag) {
+    pos++;
+    metImag = true;
+  }
+
   if (strBeforeDot !== '') strBeforeDot = parseInt(strBeforeDot, radix);
   if (strAfterDot !== '') strAfterDot = parseInt(strAfterDot, radix);
   let str = strBeforeDot + (metDot ? '.' + strAfterDot : '');
@@ -113,12 +118,19 @@ function parseNumber(string, allowExponent = true, seperator = '_') {
   }
 
   let num = sign * +str, base = num;
+  if (metImag && num === 0) {
+    num = 1;
+    base = 1;
+  }
   if (exp) {
     num *= Math.pow(10, exp.num);
     str += 'e' + exp.str;
     exp = exp.num;
   }
-  return { pos, str: string.substring(0, pos), sign, base, exp, radix, num };
+  if (metImag) {
+    str += imag;
+  }
+  return { pos, str: string.substring(0, pos), sign, base, exp, radix, num, imag: metImag };
 }
 
 /** Requires Runspace instance */

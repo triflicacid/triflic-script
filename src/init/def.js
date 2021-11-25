@@ -2,8 +2,8 @@ const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli } = require("../maths/functions");
-const { print, sort, findIndex, system, numberTypes, toBinary, fromBinary } = require("../utils");
-const { typeOf, types, isNumericType } = require("../evaluation/types");
+const { sort, system, numberTypes, toBinary, fromBinary } = require("../utils");
+const { typeOf, types } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
@@ -15,8 +15,6 @@ function define(rs) {
   /****************** CORE VARIABLES */
   rs.defineVar('nan', NaN, 'Value representing Not A Number', true);
   rs.defineVar('inf', Infinity, 'Value representing Infinity', true);
-  rs.defineVar('true', true, '\'true\' is a boolean value that represents mathematical and logical truth', true);
-  rs.defineVar('false', false, '\'false\' is a boolean value that is used when the result of a logical statement is false', true);
   rs.defineVar('undef', new UndefinedValue(rs), 'A variable that has not been assigned a value is of type undefined', true);
   rs.defineVar('universal_set', new SetValue(rs, []), 'Universal set', false);
 
@@ -358,7 +356,7 @@ function defineVars(rs) {
   rs.defineVar('omega', OMEGA, 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
   rs.defineVar('phi', PHI, 'Phi, the golden ratio, approx (1 + √5)/2', true); // phi, golden ratio
   rs.defineVar('tau', TWO_PI, 'A constant representing the ratio between circumference and radius of a circle'); // tau
-  rs.defineVar(Complex.imagLetter, Complex.I(), '√(-1)');
+  // rs.defineVar(Complex.imagLetter, new Complex(0, 1), '√(-1)');
   rs.defineVar('ln2', Math.LN2, 'Natural logarithm of 2');
   rs.defineVar('ln10', Math.LN10, 'Natural logarithm of 10');
   rs.defineVar('log2e', Math.LOG2E, 'Base-2 logarithm of e');
@@ -397,7 +395,7 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isprime', { x: 'real' }, ({ x }) => new BoolValue(rs, isPrime(x.toPrimitive('real'))), 'return 0 or 1 depending on if x is prime'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'primes', { limit: 'real_int' }, ({ limit }) => new ArrayValue(rs, generatePrimes(limit.toPrimitive('real'))), 'generate list of primes 0..limit'));
 
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'factors', { x: 'real' }, ({ x }) => new ArrayValue(rs, primeFactors(x.toPrimitive('real'))), 'return prime factors of x'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'factors', { x: 'real' }, ({ x }) => new ArrayValue(rs, primeFactors(x.toPrimitive('real')).map(n => new NumberValue(rs, n))), 'return prime factors of x'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'factorial', { z: 'complex' }, ({ z }) => new NumberValue(rs, factorial(z.toPrimitive('complex'))), 'calculate the factorial of x using the Gamma function'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'factorialReal', { x: 'real_int' }, ({ x }) => new NumberValue(rs, factorialReal(x.toPrimitive('real'))), 'calculate the factorial of x using the common algorithm'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ln', { z: 'complex' }, ({ z }) => new NumberValue(rs, Complex.log(z.toPrimitive('complex'))), 'calculate the natural logarithm of x')); // natural logarithm
