@@ -1,5 +1,7 @@
 const { types, isNumericType, isRealType } = require("../src/evaluation/types");
 const { Value, StringValue, NumberValue, BoolValue, ArrayValue, UndefinedValue } = require("../src/evaluation/values");
+const Complex = require("../src/maths/Complex");
+const { random } = require("../src/maths/functions");
 const Matrix = require("../src/maths/Matrix");
 const { RunspaceBuiltinFunction } = require("../src/runspace/Function");
 
@@ -138,10 +140,39 @@ module.exports = rs => {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mcheckerboard', { m: 'matrix', startSign: '?real_int' }, ({ m, startSign }) => new MatrixValue(rs, m.toPrimitive("matrix").checkerboard(startSign ? startSign.toPrimitive('real_int') : undefined)), 'Matrix: get checkerboard matrix (multiply by +, -, +, - ... throughout)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mcofac', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive('matrix').cofactors()), 'Matrix: calculate matrix of cofactors'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'minv', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive('matrix').inverse()), 'Matrix: calculate inverse matrix'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mref', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, Matrix.toRowEchelonForm(m.toPrimitive('matrix').toPrimitiveNumbers()).toComplexNumbers()), 'Matrix: transform to Row Echelon Form'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrref', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, Matrix.toReducedRowEchelonForm(m.toPrimitive('matrix').toPrimitiveNumbers()).toComplexNumbers()), 'Matrix: transform to Reduced Row Echelon Form'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrneq', { m: 'matrix', value: '?complex' }, ({ m, value }) => new NumberValue(rs, m.toPrimitive('matrix').countNotRows(value ? value.toPrimitive("complex") : 0)), 'Matrix: count rows which do not contain <value> (default = 0)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrank', { m: 'matrix' }, ({ m }) => new NumberValue(rs, m.toPrimitive('matrix').rank()), 'Matrix: return rank of matrix (number of non-zero rows in matrix in RREF)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mdot', { a: 'matrix', b: 'matrix' }, ({ a, b }) => new NumberValue(rs, Matrix.dot(a.toPrimitive("matrix"), b.toPrimitive("matrix"))), 'Matrix: Return dot product of two matrices'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrand', { rows: 'real_int', cols: 'real_int', rMin: '?real', rMax: '?real' }, ({ rows, cols, rMin, rMax }) => {
+    rows = rows.toPrimitive("real_int");
+    cols = cols.toPrimitive("real_int");
+    rMin = rMin ? rMin.toPrimitive("real") : undefined;
+    rMax = rMax ? rMax.toPrimitive("real") : undefined;
+    let arr = [];
+    for (let r = 0; r < rows; ++r) {
+      arr[r] = [];
+      for (let c = 0; c < cols; ++c) {
+        arr[r][c] = random(rMin, rMax);
+      }
+    }
+    return new MatrixValue(rs, new Matrix(arr));
+  }, 'Matrix: Return <rows>*<cols> matrix filled with random numbers equivalent to random(<rMin>, <rMax>)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mmap', { m: 'matrix', fn: 'func' }, async ({ m, fn }, evalObj) => {
+    m = m.toPrimitive("matrix");
+    fn = fn.castTo("func").getFn();
+    const mat = m.copy();
+    for (let r = 0; r < mat.rows; ++r) {
+      const row = new NumberValue(rs, new Complex(r));
+      for (let c = 0; c < mat.cols; ++c) {
+        const col = new NumberValue(rs, new Complex(c));
+        let ret = await fn.call(evalObj, [row, col, new NumberValue(rs, mat.get(r, c))]);
+        mat.set(r, c, ret.toPrimitive('complex'));
+      }
+    }
+    return new MatrixValue(rs, mat);
+  }, 'Matrix: Go through each row/col of matrix and set to <complex>fn(row, col, currentValue)'));
 
   rs.defineVar('id2', new MatrixValue(rs, Matrix.identity(2)), '2 by 2 identity matrix', true);
-  rs.defineVar('m1', new MatrixValue(rs, Matrix.fromString('6 1; 4 -2;')));
-  rs.defineVar('m2', new MatrixValue(rs, Matrix.fromString('1 2; 3 4;')));
-  rs.defineVar('m3', new MatrixValue(rs, Matrix.fromString(`${1 / 8} ${1 / 16}; ${1 / 4} ${-3 / 8}`)));
-  rs.defineVar('m4', new MatrixValue(rs, Matrix.fromString(`${1 / 32} ${-1 / 64}; ${-1 / 16} ${5 / 32}`)));
 };

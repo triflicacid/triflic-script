@@ -46,12 +46,15 @@ function factorialReal(n) {
 
 /** Return LCF of the two numbers */
 function LCF(n1, n2) {
+  let i = 0;
   while (n1 !== n2) {
     if (n1 > n2) {
       n1 = n1 - n2;
     } else {
       n2 = n2 - n1;
     }
+    ++i;
+    if (i > 1e7) return 1;
   }
   return n1;
 }
@@ -99,6 +102,12 @@ function generatePrimes(limit) {
     }
   }
   return primes;
+}
+
+function random(a = undefined, b = undefined) {
+  if (a === undefined && b === undefined) return Math.random();
+  if (b === undefined) return Math.random() * a;
+  return a + Math.random() * (b - a);
 }
 
 const mean = arr => sum(arr) / arr.length;
@@ -196,4 +205,4 @@ function range(a, b, step = 1) {
   return range;
 }
 
-module.exports = { bernoulli, lambertw, zeta, factorialReal, LCF, primeFactors, isPrime, generatePrimes, mean, PMCC, variance, gamma, factorial, stirling, nextNearest, wrightomega, range };
+module.exports = { bernoulli, lambertw, zeta, factorialReal, LCF, primeFactors, isPrime, generatePrimes, random, mean, PMCC, variance, gamma, factorial, stirling, nextNearest, wrightomega, range };

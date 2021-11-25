@@ -1,13 +1,14 @@
 const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
-const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli } = require("../maths/functions");
+const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli, random } = require("../maths/functions");
 const { sort, system, numberTypes, toBinary, fromBinary } = require("../utils");
 const { typeOf, types } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
 const { errors, errorDesc } = require("../errors");
+const { Fraction } = require("../maths/Fraction");
 const fs = require("fs");
 
 /** Core definitions !REQUIRED! */
@@ -411,11 +412,7 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'random', { a: '?real', b: '?real' }, ({ a, b }) => {
     if (a !== undefined) a = a.toPrimitive('real');
     if (b !== undefined) b = b.toPrimitive('real');
-    let n;
-    if (a !== undefined && b === undefined) n = Math.random() * a; // random(max)
-    else if (a !== undefined && b !== undefined) n = (Math.random() * (b - a)) + a; // random(min, max)
-    else n = Math.random();
-    return new NumberValue(rs, n);
+    return new NumberValue(rs, random(a, b));
   }, 'return a pseudo-random decimal number. Range: 0 arguments: 0-1. 1 argument: 0-a. 2 arguments: a-b'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nPr', { n: 'real_int', r: 'real_int' }, ({ n, r }) => {
     n = n.toPrimitive('real');
@@ -471,6 +468,16 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'strformat', { str: 'string', values: { ellipse: 1 } }, ({ str, values }) => str.castTo('string').format(values.toPrimitive('array')), 'Return formatted string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nformat', { n: 'complex', region: '?string' }, ({ n, region }) => new StringValue(rs, n.toPrimitive('complex').toLocaleString(region ? region.toPrimitive('string') : 'en-GB')), 'Return formatted number string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'expform', { z: 'complex', fdigits: '?real_int' }, ({ z, fdigits }) => new StringValue(rs, z.toPrimitive('complex').toExponential(fdigits ? fdigits.toPrimitive('real_int') : undefined)), 'Return complex number in exponential form, with <fdigits> fractional digits'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'tofrac', { num: 'real', improper: '?bool' }, ({ num, improper }) => new StringValue(rs, new Fraction(num.toPrimitive("real")).toString(improper ? improper.toPrimitive('bool') : true)), 'Convert a real number to a fraction (string)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fromfrac', { frac: 'string' }, ({ frac }) => new NumberValue(rs, new Fraction(frac.toPrimitive("string")).toNumber()), 'Convert fraction string to a number'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'quadratic', { a: 'complex', b: 'complex', c: 'complex' }, ({ a, b, c }) => {
+    a = a.toPrimitive("complex");
+    b = b.toPrimitive("complex");
+    c = c.toPrimitive("complex");
+    let sqrt = Complex.sqrt(Complex.pow(b, 2).sub(Complex.mult(4, a).mult(c)));
+    let mb = Complex.mult(b, -1), ta = Complex.mult(a, 2);
+    return new ArrayValue(rs, [new NumberValue(rs, Complex.add(mb, sqrt).div(ta)), new NumberValue(rs, Complex.sub(mb, sqrt).div(ta))]);
+  }, 'Solve quadratic in form ax^2 + bx + c'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'zroots', { n: 'real_int', r: 'complex' }, ({ n, r }) => {
     n = n.toPrimitive("real_int");
     r = r.toPrimitive("complex");

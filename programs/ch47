@@ -1,0 +1,10 @@
+// AQA A level chapter 47 task 1
+
+items = [2, 5, 3, 6, 4, 8, 9];
+println("items: " + <string>items);
+println("head: " + <string>items[0]);
+println("length: " + len(items));
+println("doubled: " + <string>map(items, n -> n * 2));
+println("filtered: " + <string>filter(items, n -> n > 5));
+println("reduced: " + <string>reduce(items, (a, b) -> a + b));
+println("list is " + ((len(items) == 0) ? ("") : ("not")) + " empty");

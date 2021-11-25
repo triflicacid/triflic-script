@@ -161,7 +161,31 @@ class Matrix {
   /** calculare inverse matrix */
   inverse() {
     let inter = this.getMinors().checkerboard().transpose();
-    return inter.scalarMult(Complex.div(1, inter.determinant()));
+    return inter.scalarMult(Complex.div(1, this.determinant()));
+  }
+
+  /** Count rows which do not contain the given complex number */
+  countNotRows(n = 0) {
+    n = Complex.assert(n);
+    let i = 0;
+    for (let r = 0; r < this.matrix.length; ++r) {
+      let all0 = true;
+      for (let c = 0; c < this.matrix[r].length; ++c) {
+        if (!this.matrix[r][c].equals(n)) {
+          all0 = false;
+          break;
+        }
+      }
+      if (!all0) ++i;
+    }
+    return i;
+  }
+
+  /** Return matrix rank */
+  rank() {
+    // Number of non-zero rows in a matrix in reduced-row echelon form
+    const rref = Matrix.toReducedRowEchelonForm(this.copy().toPrimitiveNumbers()).toComplexNumbers();
+    return rref.countNotRows(0);
   }
 
   /** Return string representation as a flat string e.g "0 0 0; 0 0 0;" */
@@ -172,6 +196,26 @@ class Matrix {
   /** Return string representation as an array e.g [[0,0,0],[0,0,0]] */
   toArrayString() {
     return '[' + this.matrix.map(a => '[' + a.join(',') + ']').join(',') + ']';
+  }
+
+  /** Convert contents to pritimitive numbers from Complex (taking real parts) */
+  toPrimitiveNumbers() {
+    for (let r = 0; r < this.matrix.length; ++r) {
+      for (let c = 0; c < this.matrix[r].length; ++c) {
+        this.matrix[r][c] = this.matrix[r][c].a;
+      }
+    }
+    return this;
+  }
+
+  /** Convert contents from primitive numbers to complex number */
+  toComplexNumbers() {
+    for (let r = 0; r < this.matrix.length; ++r) {
+      for (let c = 0; c < this.matrix[r].length; ++c) {
+        this.matrix[r][c] = new Complex(this.matrix[r][c]);
+      }
+    }
+    return this;
   }
 }
 
@@ -259,6 +303,21 @@ Matrix.mult = (a, b) => {
   }
 };
 
+/** Calculate dot product of two matrices */
+Matrix.dot = (a, b) => {
+  if (a.rows === b.rows && b.cols === a.cols) {
+    const sum = new Complex(0);
+    for (let r = 0; r < a.rows; ++r) {
+      for (let c = 0; c < a.cols; ++c) {
+        sum.add(Complex.mult(a.get(r, c), b.get(r, c)));
+      }
+    }
+    return sum;
+  } else {
+    throw E_SAMESIZE;
+  }
+};
+
 /** Calculate the determinant of a matrix */
 Matrix.determinant = matrix => {
   if (matrix.isSquare()) {
@@ -302,10 +361,10 @@ Matrix.toRowEchelonForm = matrix => {
   let nr = matrix.rows, nc = matrix.cols;
 
   // Bubble all all-zero rows to bottom of matrix
-  for (let r = 0; r < nr; ++r) {
+  for (let r = 0; r < matrix.rows; ++r) {
     // If row all zeroes?
     let all0 = true;
-    for (let c = 0; c < nc; ++c) {
+    for (let c = 0; c < matrix.cols; ++c) {
       if (matrix.get(r, c) !== 0) {
         all0 = false;
         break;
@@ -334,11 +393,12 @@ Matrix.toRowEchelonForm = matrix => {
         swapRows(matrix, p, p + r);
         r++;
       }
-
-      for (let r = 1; r < nr - p; ++r) {
+      if (repeat) continue;
+      
+      for (;r < nr - p; ++r) {
         if (matrix.get(p + r, p) !== 0) {
-          let x = -matrix.get(p + r, p) / matrix.get(p, p);
-          for (let c = p; c <= nc; ++c) {
+          const x = -matrix.get(p + r, p) / matrix.get(p, p);
+          for (let c = p; c < nc; ++c) {
             matrix.set(p + r, c, matrix.get(p, c) * x + matrix.get(p + r, c));
           }
         }
@@ -363,12 +423,12 @@ Matrix.toReducedRowEchelonForm = matrix => {
       }
     }
 
-    if (r !== r) swapRows(matrix, i, r);
+    if (i !== r) swapRows(matrix, i, r);
 
     const k = matrix.get(r, lead);
     for (let c = 0; c < colCount; ++c) matrix.set(r, c, matrix.get(r, c) / k);
 
-    for (let i = 0; i < rowCount; ++i) {
+    for (i = 0; i < rowCount; ++i) {
       const k = matrix.get(i, lead);
       if (i !== r) {
         for (let c = 0; c < colCount; ++c) matrix.set(i, c, matrix.get(i, c) - k * matrix.get(r, c));

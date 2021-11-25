@@ -1,0 +1,29 @@
+let to_guess = lcase(argv[0] ?? "hello");
+
+let guessed = [];
+let incorrect_guesses = 0;
+loop {
+    println("Progress  : " + join(map(split(to_guess, ""), c -> (c in guessed) ? (c) : ("_")), " "));
+    println("Guessed   : " + join(guessed, ", "));
+    println("Incorrect : " + nformat(incorrect_guesses));
+    let letter = lcase(input("Guess a letter:> "));
+    if (len(letter) != 1) {
+        println("Invalid letter.");
+    } else if (letter in guessed) {
+        println("You have already guessed this letter >:(");
+    } else if (letter in to_guess) {
+        println("Letter is correct :D");
+        guessed += letter;
+        not_guessed = filter(split(to_guess, ""), c -> !(c in guessed));
+        if (len(not_guessed) == 0) {
+            break;
+        }
+    } else {
+        println("Letter is incorrect D:");
+        guessed += letter;
+        incorrect_guesses += 1;
+    }
+    println();
+}
+
+println("The word was " + to_guess);

@@ -1,6 +1,6 @@
-const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracketError, expectedSyntaxError, isDigit, decodeEscapeSequence } = require("../utils");
+const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracketError, expectedSyntaxError, decodeEscapeSequence } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
-const { StringValue, ArrayValue, NumberValue, FunctionRefValue, Value, SetValue, UndefinedValue, MapValue, CharValue, BoolValue } = require("./values");
+const { StringValue, NumberValue, Value, UndefinedValue, CharValue, BoolValue } = require("./values");
 const operators = require("./operators");
 const { errors } = require("../errors");
 const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure, SwitchStructure, LabelStructure, GotoStructure, LetStructure } = require("./structures");
@@ -1224,6 +1224,32 @@ function _tokenify(obj) {
     // Variable? (symbol)
     let symbol = parseSymbol(string.substr(i));
     if (symbol !== null) {
+      // Break? (reached termination)
+      if (obj.terminateOn.includes(symbol)) {
+        obj.terminateOn = symbol;
+        i += symbol.length;
+        obj.pos += symbol.length;
+        break;
+      }
+
+      if (symbol === 'begin') {
+        const begin = 'begin', end = 'end';
+        const pobj = createTokenStringParseObj(obj.rs, string.substr(i + begin.length), obj.pos + begin.length, obj.depth + 1, [end], true);
+        _tokenify(pobj);
+
+        // Check that everything was matched
+        const len = (pobj.pos - obj.pos);
+        if (pobj.terminateOn !== end) {
+          throwMatchingBracketError(begin, end, obj.pos);
+        }
+        const group = new BracketedTokenLines(currentLine, pobj.lines, "{", obj.pos);
+        currentTokens.push(group);
+
+        obj.pos += len;
+        i += len;
+        continue;
+      }
+
       let t;
       if (KeywordToken.keywords.includes(symbol)) { // Keyword?
         t = new KeywordToken(currentLine, symbol, obj.pos);

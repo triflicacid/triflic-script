@@ -479,6 +479,16 @@ Syntax: `false`
 
 Represent the falsey boolean value
 
+### `begin`, `end`
+Use to open/close blocks. They are equivalent to using `{` and `}`.
+
+`func f(x) begin x + 1 end`
+
+is equivalent to
+
+`func f(x) { x + 1 }`
+>>>>>>> 4a07a976866652cf88f7951e68f55c8d1a353381
+
 ## Types
 Variables all have a type which may change. New types may be added - see `imports/matrix.js` for an example.
 
