@@ -104,7 +104,7 @@ function parseNumber(string, allowExponent = true, seperator = '_', imag = 'i') 
     }
   }
 
-  if (imag && string[pos] === imag) {
+  if (imag && (strBeforeDot !== '' || strAfterDot !== '') && string[pos] === imag) {
     pos++;
     metImag = true;
   }
@@ -118,10 +118,6 @@ function parseNumber(string, allowExponent = true, seperator = '_', imag = 'i') 
   }
 
   let num = sign * +str, base = num;
-  if (metImag && num === 0) {
-    num = 1;
-    base = 1;
-  }
   if (exp) {
     num *= Math.pow(10, exp.num);
     str += 'e' + exp.str;
