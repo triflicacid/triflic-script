@@ -6,9 +6,11 @@ const fs = require("fs");
 const path = require("path");
 const Complex = require("./src/maths/Complex");
 const { define, defineVars, defineFuncs } = require("./src/init/def");
+const defineNode = require("./src/init/def-node");
 const Runspace = require("./src/runspace/Runspace");
-const { printError, consoleColours } = require("./src/utils");
-const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
+const { printError } = require("./src/utils");
+const { ArrayValue, primitiveToValueClass, NumberValue } = require("./src/evaluation/values");
+const setupIo = require("./src/runspace/setup-io");
 
 async function main() {
   if (process.argv.includes("--help")) {
@@ -30,14 +32,23 @@ async function main() {
     if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter;
     opts.app = 'FILE';
     opts.file = file;
+    opts.root = __dirname;
     const rs = new Runspace(opts);
     define(rs);
+    defineNode(rs);
     if (opts.defineVars) defineVars(rs);
     if (opts.defineFuncs) defineFuncs(rs);
     rs.importFiles.push(file);
+    // Setup things
+    setupIo(rs);
+    require("./src/runspace/runspace-createImport");
+    rs.root = __dirname;
+
     await rs.import("<io>");
 
+
     rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
+    rs.defineVar('VERSION', new NumberValue(rs, Runspace.VERSION), 'Current version of ' + Runspace.LANG_NAME);
 
     let start = Date.now(), ret, error, time, evalObj = {};
     try {

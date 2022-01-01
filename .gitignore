@@ -1,2 +1,4 @@
 /node_modules/*
 *.env
+web/source.js
+web/source.js.LICENSE.txt

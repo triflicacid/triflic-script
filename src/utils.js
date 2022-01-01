@@ -1,23 +1,5 @@
 const Complex = require("./maths/Complex");
-const readline = require("readline");
 const { errors } = require("./errors");
-const { exec } = require('child_process');
-
-const STDIN = process.stdin, STDOUT = process.stdout;
-
-/** Get user input from STDIN */
-async function input(msg = '') {
-  const instance = readline.createInterface({
-    input: STDIN,
-    output: STDOUT
-  });
-  return new Promise(function (resolve, reject) {
-    instance.question(msg, x => {
-      instance.close();
-      resolve(x);
-    });
-  });
-}
 
 /** Print */
 function print(...args) {
@@ -263,19 +245,6 @@ function decodeEscapeSequence(string, pos) {
   return { char, pos };
 }
 
-/** Run a system command */
-async function system(command) {
-  return new Promise((resolve, reject) => {
-    exec(command.toString(), (err, stdout, stderr) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(stdout);
-      }
-    });
-  });
-}
-
 const numberTypes = ["uint8", "int8", "uint16", "int16", "uint32", "int32", "uint64", "int64", "float32", "float64"];
 const numberTypeGetMethods = ["getUint8", "getInt8", "getUint16", "getInt16", "getUint32", "getInt32", "getBigUint64", "getBigInt64", "getFloat32", "getFloat64"];
 const numberTypeSetMethods = ["setUint8", "setInt8", "setUint16", "setInt16", "setUint32", "setInt32", "setBigUint64", "setBigInt64", "setFloat32", "setFloat64"];
@@ -305,6 +274,6 @@ function fromBinary(bin, type = 'float64') {
 }
 
 module.exports = {
-  system, input, print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence,
+  print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence,
   toBinary, fromBinary, numberTypes,
 };

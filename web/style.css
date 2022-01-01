@@ -1,0 +1,10 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.stdin,
+.stdout {
+  width: 97vw;
+  height: 20vh;
+  outline: none;
+}

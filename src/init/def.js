@@ -2,14 +2,13 @@ const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli, random } = require("../maths/functions");
-const { sort, system, numberTypes, toBinary, fromBinary } = require("../utils");
+const { sort, numberTypes, toBinary, fromBinary } = require("../utils");
 const { typeOf, types } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
 const { errors, errorDesc } = require("../errors");
 const { Fraction } = require("../maths/Fraction");
-const fs = require("fs");
 
 /** Core definitions !REQUIRED! */
 function define(rs) {
@@ -44,18 +43,6 @@ function define(rs) {
       help = `Type: string (operator)\nName: ${info.name}\nDesc: ${info.desc}\nArgs: ${argStr}\nPrecedence: ${info.precedence}\nUnary Overload: ${info.unary ? `yes (${info.unary})` : 'no'}\nSyntax: ${info.syntax}\nAssociativity: ${info.assoc}`;
     } else if (item instanceof StringValue && KeywordToken.keywords.includes(item.value)) { // KEYWORDS
       help = `Type: string (keyword)\nValue: ${item.value}`;
-    } else if (item instanceof StringValue && item.value === 'general') {
-      return new Promise(res => {
-        fs.readFile('README.md', { encoding: 'utf-8' }, (err, data) => {
-          res(new StringValue(rs, data.toString('utf-8')));
-        });
-      });
-    } else if (item instanceof StringValue && item.value === 'operators') {
-      return new Promise(res => {
-        fs.readFile('Operators.md', { encoding: 'utf-8' }, (err, data) => {
-          res(new StringValue(rs, data.toString('utf-8')));
-        });
-      });
     } else if (item instanceof Value) {
       help = `Type: ${item.type()}\nValue: ${item.toString()}`;
     } else {
@@ -311,16 +298,6 @@ function define(rs) {
       throw new Error(`[${errors.BAD_ARG}] Argument Error: no such error code [${code}]`);
     }
   }, 'Return brief description of an error code (the [...] in an error message)'));
-
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'system', { cmd: 'string' }, async ({ cmd }) => {
-    cmd = cmd.castTo('string');
-    try {
-      let ret = await system(cmd.toPrimitive('string'));
-      return new StringValue(rs, ret);
-    } catch (e) {
-      throw new Error(`[${errors.GENERAL}] Error whilst running command '${cmd}':\n${e}`);
-    }
-  }, 'Execute a system command and return STDOUT'));
 
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ucase', { str: 'string' }, ({ str }) => new StringValue(rs, str.toString().toUpperCase()), 'String: to upper case'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'lcase', { str: 'string' }, ({ str }) => new StringValue(rs, str.toString().toLowerCase()), 'String: to upper case'));

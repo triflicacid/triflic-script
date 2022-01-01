@@ -1,11 +1,13 @@
 require("dotenv").config();
 const Discord = require("discord.js");
 const { define, defineVars, defineFuncs } = require("./src/init/def");
+const defineNode = require("./src/init/def-node");
 const Runspace = require("./src/runspace/Runspace");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 const { parseArgString } = require("./src/init/args");
 const Complex = require("./src/maths/Complex");
 const { UndefinedValue, ArrayValue, primitiveToValueClass, NumberValue } = require("./src/evaluation/values");
+const setupIo = require("./src/runspace/setup-io");
 
 // CHECK FOR REQUIRED ENV VARIABLES
 if (!process.env.BOT_TOKEN) throw new Error(`Setup Error: missing BOT_TOKEN environment variable`);
@@ -21,6 +23,7 @@ async function createRunspace(argString = '') {
   opts.app = 'DISCORD';
   const rs = new Runspace(opts); // Create object
   define(rs);
+  defineNode(rs);
   if (opts.defineVars) defineVars(rs);
   if (opts.defineFuncs) defineFuncs(rs);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
@@ -42,6 +45,12 @@ async function createRunspace(argString = '') {
   rs.deleteVar('import');
   rs.deleteVar('system');
   rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the host program');
+  rs.defineVar('VERSION', new NumberValue(rs, Runspace.VERSION), 'Current version of ' + Runspace.LANG_NAME);
+
+  // Setup things
+  setupIo(rs);
+  require("./src/runspace/runspace-createImport");
+  rs.root = __dirname;
   return rs;
 }
 

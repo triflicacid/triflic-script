@@ -23,6 +23,7 @@ For more help, see `programs/` and the built-in `help` function.
 - `discord.js` - connect to a discord bot and listens on a particular channel (defined as `BOT_TOKEN` and `CHANNEL` in `.env`)
   Type `!start` to start the maths environment. Everything after this point will be fed into the engine. Type `!close` to close session.
 - `file.js` - takes a filename to execute
+- `web.js` - compiled and may be executed on a webpage. Run `npm run build-web` to compile. Run code in `web/` at `index.html`.
 
 ## Interpreter Arguments
 All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. They are all optional.

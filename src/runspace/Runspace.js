@@ -1,25 +1,23 @@
-const readline = require("readline");
 const process = require("process");
 const RunspaceVariable = require("./Variable");
 const { tokenify } = require("../evaluation/tokens");
 const { createEvalObj } = require("../utils");
 const { primitiveToValueClass, MapValue, Value, FunctionRefValue, UndefinedValue, ArrayValue, BoolValue } = require("../evaluation/values");
-const path = require("path");
-const fs = require("fs");
 const { RunspaceFunction } = require("./Function");
-const { errors } = require("../errors");
 const { Block } = require("../evaluation/block");
 
+/**
+ * For "normal" behaviour, run setup-io.js and runspace-createImport.js
+ */
 class Runspace {
   constructor(opts = {}) {
     this._vars = [new Map()]; // Arrays represents different scopes
 
     this.opts = opts;
-    opts.version = 0.904;
+    opts.version = Runspace.VERSION;
     opts.time = Date.now();
     this.storeAns(!!opts.ans);
-    this.root = path.join(__dirname, '../../');
-    opts.rootDir = this.root;
+    this.root = ""; // MUST BE SET EXTERNALLY
 
     this.importStack = [this.root]; // Stack of import directories
     this.importFiles = []; // Stack of imported files - stops circular imports
@@ -28,23 +26,13 @@ class Runspace {
 
     this.stdin = process.stdin;
     this.stdout = process.stdout;
-    this.io = readline.createInterface({
-      input: this.stdin,
-      output: this.stdout,
-    });
     this._instances = [];
 
     this.onLineHandler = undefined;
     this.onDataHandler = undefined;
 
-    this.io.on('line', line => this.onLineHandler?.(this.io, line));
-    this.stdin.on('data', async key => {
-      if (this.onDataHandler) await this.onDataHandler(this.io, key);
-    });
-
     this.defineVar('_isMain', true, 'Are we currently in a MAIN script (i.e. not an import) ?');
   }
-
   get UNDEFINED() { return new UndefinedValue(this); }
   get TRUE() { return new BoolValue(this, true); }
   get FALSE() { return new BoolValue(this, false); }
@@ -138,7 +126,7 @@ class Runspace {
 
   /** Create 'me' varianle */
   createMeVar() {
-    return new RunspaceVariable('me', new MapValue(this), 'Object stored in current block', true)
+    return new RunspaceVariable('me', new MapValue(this), 'Object stored in current block', true);
   }
 
   /** Push new execution instance */
@@ -207,85 +195,9 @@ class Runspace {
       throw new Error(`In file '${this.importFiles[lvl]}':\n${e}`);
     }
   }
-
-  /** Attempt to import a file. Throws error of returns Value instance. */
-  async import(file) {
-    let fpath;
-    if (file[0] === '<' && file[file.length - 1] === '>') {
-      fpath = path.join(this.root, "imports/", file.substring(1, file.length - 1) + '.js');
-    } else {
-      fpath = path.join(this.importStack[this.importStack.length - 1], file.toString());
-    }
-    if (this.importFiles.includes(fpath)) { // Circular import?
-      throw new Error(`[${errors.BAD_IMPORT}] Import Error: circular import '${fpath}'`);
-    }
-
-    // Setup history
-    let _isMain = this.getVar('_isMain').castTo('bool');
-    this.setVar('_isMain', this.FALSE);
-    const restore = () => {
-      this.setVar('_isMain', _isMain);
-      this.importStack.pop();
-      this.importFiles.pop();
-    };
-
-    this.importStack.push(path.dirname(fpath));
-    this.importFiles.push(fpath);
-    let stats;
-    try {
-      stats = fs.lstatSync(fpath);
-    } catch (e) {
-      restore();
-      throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot locate file '${file}' (path '${fpath}'):\n${e}`);
-    }
-
-    if (stats.isFile()) {
-      const ext = path.extname(fpath);
-      if (ext === '.js') {
-        let fn;
-        try {
-          fn = require(fpath);
-        } catch (e) {
-          restore();
-          throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: error whilst requiring ${fpath}:\n${e}`);
-        }
-        if (typeof fn !== 'function') throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
-        let resp;
-        try {
-          resp = await fn(this);
-        } catch (e) {
-          restore();
-          console.error(e);
-          throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: error whilst executing ${fpath}'s export function:\n${e}`);
-        }
-
-        restore();
-        return resp ?? new UndefinedValue(this);
-      } else {
-        let text;
-        try {
-          text = fs.readFileSync(fpath, 'utf8');
-        } catch (e) {
-          restore();
-          throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: unable to read file (full path: ${fpath}):\n${e}`);
-        }
-
-        let ret;
-        try {
-          ret = await this.execute(text);
-        } catch (e) {
-          restore();
-          throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}):\n${e}`);
-        }
-
-        restore();
-        return ret ?? new UndefinedValue(this);
-      }
-    } else {
-      restore();
-      throw new Error(`[${errors.BAD_ARG}] Argument Error: path is not a file (full path: ${fpath})`);
-    }
-  }
 }
+
+Runspace.LANG_NAME = "TriflicScript";
+Runspace.VERSION = 1.000;
 
 module.exports = Runspace;

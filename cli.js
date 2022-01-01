@@ -1,23 +1,32 @@
 const Runspace = require("./src/runspace/Runspace");
 const { define, defineVars, defineFuncs } = require("./src/init/def");
+const defineNode = require("./src/init/def-node");
 const { consoleColours, printError } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
-const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
-const { errors } = require("./src/errors");
+const { ArrayValue, primitiveToValueClass, NumberValue } = require("./src/evaluation/values");
+const setupIo = require("./src/runspace/setup-io");
 
 // PARSE ARGV, SETUP RUNSPACE
 const opts = parseArgString(process.argv, true);
 if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter;
 opts.app = 'CLI';
 opts.file = __filename;
+opts.root = __dirname;
 const rs = new Runspace(opts);
+rs.root = __dirname;
 define(rs);
+defineNode(rs);
 if (opts.defineVars) defineVars(rs);
 if (opts.defineFuncs) defineFuncs(rs);
 rs.importFiles.push('<interpreter>');
 
+// Setup things
+setupIo(rs);
+require("./src/runspace/runspace-createImport");
+
 rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
+rs.defineVar('VERSION', new NumberValue(rs, Runspace.VERSION), 'Current version of ' + Runspace.LANG_NAME);
 
 // Evaluate some input
 async function evaluate(input) {
@@ -65,7 +74,7 @@ async function main() {
 
   // Print intro stuff to screen
   if (opts.intro) {
-    rs.io.output.write(`-- JS Maths v${rs.opts.version} --\nType help(), copyright() for more information.\n`);
+    rs.io.output.write(`-- ${Runspace.LANG_NAME} v${Runspace.VERSION} --\nType help(), copyright() for more information.\n`);
     let notes = [];
     if (opts.strict) notes.push("strict mode is enabled");
     if (!opts.bidmas) notes.push("BIDMAS is being ignored");
