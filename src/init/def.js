@@ -31,20 +31,20 @@ function define(rs) {
         if (fn === undefined) {
           item._throwNullRef();
         } else {
-          let type = (fn instanceof RunspaceBuiltinFunction ? 'built-in' : 'user-defined') + (fn.constant ? '; constant' : '');
-          help = `Type: function [${type}]\nDesc: ${fn.about()}\nArgs: ${fn.argCount}${fn.optional !== 0 ? ` (${fn.optional} optional)` : ''}\nSignature: ${fn.signature()}`;
+          help = `${(fn instanceof RunspaceBuiltinFunction ? 'built-in' : 'user-defined')} function ${fn.signature()}\n/* @about ${fn.about()} */`;
         }
       } else {
-        help = `Type: variable${v.constant ? ' (constant)' : ''} - ${v.value.type()}\nDesc: ${v.desc}\nValue: ${v.toPrimitive('string')}`;
+        help = `${v.constant ? 'constant' : 'variable'} ${item.value}: ${v.value.type()} = ${v.toPrimitive("string")}\n/* @about ${v.desc} */`;
       }
     } else if (item instanceof StringValue && operators[item.value] !== undefined) { // Operator
       const info = operators[item.value];
       const argStr = Array.isArray(info.args) ? `${info.args.join(' or ')} (${info.args.length} overloads)` : info.args;
-      help = `Type: string (operator)\nName: ${info.name}\nDesc: ${info.desc}\nArgs: ${argStr}\nPrecedence: ${info.precedence}\nUnary Overload: ${info.unary ? `yes (${info.unary})` : 'no'}\nSyntax: ${info.syntax}\nAssociativity: ${info.assoc}`;
+      help = `operator ${item.value} "${info.name}"\n/* @about ${info.desc} (${argStr} args)${info.unary ? ` (has unary overload)` : ''}\n * @precedence ${info.precedence}, @associativity ${info.assoc} */`;
     } else if (item instanceof StringValue && KeywordToken.keywords.includes(item.value)) { // KEYWORDS
-      help = `Type: string (keyword)\nValue: ${item.value}`;
+      help = `keyword "${item.value}"`;
     } else if (item instanceof Value) {
-      help = `Type: ${item.type()}\nValue: ${item.toString()}`;
+      let str = item.toString();
+      help = `string[${str.length}] "${str}"`;
     } else {
       if (rs.opts.strict) throw new Error(`[${errors.BAD_ARG}] Argument Error: Cannot get help on given argument`);
     }

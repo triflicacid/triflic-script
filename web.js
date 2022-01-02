@@ -123,7 +123,7 @@ window.addEventListener("load", async () => {
 
   // Basic I/O functions
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
-    alert(`>> EXITING WITH CODE ${c.toString()}`);
+    alert(`>> EXITING WITH CODE ${c ? c.toString() : 0}`);
     window.location.reload();
     return c;
   }, 'Exit the current session'));
