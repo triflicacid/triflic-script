@@ -192,12 +192,13 @@ class Runspace {
       value = value.castTo('any');
       return value;
     } catch (e) {
+      this.popInstance();
       throw new Error(`In file '${this.importFiles[lvl]}':\n${e}`);
     }
   }
 }
 
 Runspace.LANG_NAME = "TriflicScript";
-Runspace.VERSION = 1.001;
+Runspace.VERSION = 1.002;
 
 module.exports = Runspace;
