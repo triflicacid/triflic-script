@@ -15,6 +15,7 @@ const errors = {
   DEL: 'ERDEL', // Error whilst deleting value
   TYPE_ERROR: 'ETYPE', // Error to do with types
   CAST_ERROR: 'ECAST', // Error whilst casting
+  JSON_ERROR: 'EJSON',
 };
 
 const errorDesc = {
@@ -34,6 +35,7 @@ const errorDesc = {
   [errors.DEL]: `Error whilst attempting to delete (remove) an object`,
   [errors.TYPE_ERROR]: `One or more types is invalid, unexpected or incorrect for the given context`,
   [errors.CAST_ERROR]: `Unable to cast the given value to the given type`,
+  [errors.JSON_ERROR]: `Malformed JSON`,
 };
 
 module.exports = { errors, errorDesc };

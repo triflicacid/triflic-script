@@ -273,7 +273,21 @@ function fromBinary(bin, type = 'float64') {
   return dv[numberTypeGetMethods[i]](0, true);
 }
 
+/** Return JSON representation of a Value (returns StringValue) */
+function toJson(value) {
+  if (typeof value === "string") return value;
+  const error = () => new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot convert type ${value.type()} to JSON`);
+  let json;
+  try {
+    json = value.__toJson__();
+  } catch (e) {
+    throw error();
+  }
+  if (json == undefined) throw error();
+  return json;
+}
+
 module.exports = {
   print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence,
-  toBinary, fromBinary, numberTypes,
+  toBinary, fromBinary, numberTypes, toJson,
 };

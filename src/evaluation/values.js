@@ -1,7 +1,7 @@
 const Complex = require("../maths/Complex");
 const { range } = require("../maths/functions");
 const { RunspaceFunction } = require("../runspace/Function");
-const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal, peek } = require("../utils");
+const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal, peek, toJson } = require("../utils");
 const { castingError, isNumericType, isRealType } = require("./types");
 const { errors } = require("../errors");
 
@@ -111,6 +111,11 @@ class UndefinedValue extends Value {
   /* operator: == */
   __eq__(v) {
     return new BoolValue(this.rs, v instanceof UndefinedValue);
+  }
+
+  /** Return JS string of JSON */
+  __toJson__() {
+    return "null";
   }
 }
 
@@ -235,6 +240,14 @@ class NumberValue extends Value {
       return new ArrayValue(this.rs, rng.map(n => new NumberValue(this.rs, n)));
     }
   }
+
+  /** Return JSON representation */
+  __toJson__() {
+    if (Complex.isNaN(this.value) || !Complex.isFinite(this.value)) return new "null";
+    if (isRealType(this.type())) {
+      return this.toPrimitive('real').toString();
+    }
+  }
 }
 
 class StringValue extends Value {
@@ -245,6 +258,11 @@ class StringValue extends Value {
   }
 
   type() { return "string"; }
+
+  /** Return JSON representation */
+  __toJson__() {
+    return "\"" + this.value.replace(/[\\$'"]/g, "\\$&") + "\"";
+  }
 
   /** Interpolate if necessary... */
   async eval(evalObj) {
@@ -426,6 +444,11 @@ class CharValue extends Value {
   /** copy() function */
   __copy__() { return new CharValue(this.rs, this.value); }
 
+  /** Return JSON representation */
+  __toJson__() {
+    return this.castTo("string").__toJson__();
+  }
+
   /** operator: == */
   __eq__(other) {
     let t = other.type(), eq = false;
@@ -541,6 +564,9 @@ class BoolValue extends Value {
   /** copy() function */
   __copy__() { return new BoolValue(this.rs, this.value); }
 
+  /** Return JSON representation */
+  __toJson__() { return this.value ? "true" : "false"; }
+
   /** operator: == */
   __eq__(a) { return new BoolValue(this.rs, isNumericType(a.type()) ? this.value === a.toPrimitive('bool') : false); }
 
@@ -593,6 +619,9 @@ class ArrayValue extends Value {
 
   /** abs() function */
   __abs__() { return this.value.length; }
+
+  /** Return JSON representation*/
+  __toJson__() { return new "[" + this.value.map(v => toJson(v)).join(',') + "]"; }
 
   /** min() function */
   __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.min(...this.value.map(v => v.toPrimitive('real')))); }
@@ -734,6 +763,9 @@ class SetValue extends Value {
     return this.value.length;
   }
 
+  /** Return JSON representation*/
+  __toJson__() { return "[" + this.value.map(v => toJson(v)) + "]"; }
+
   /** abs() function */
   __abs__() { return this.value.length; }
 
@@ -838,6 +870,9 @@ class MapValue extends Value {
 
   /** abs() function */
   __abs__() { return this.value.size; }
+
+  /** Return JSON representation*/
+  __toJson__() { return "{" + Array.from(this.value.entries()).map(([k, v]) => "\"" + k + "\":" + toJson(v)).join(',') + "}"; }
 
   /** min() function */
   __min__() {

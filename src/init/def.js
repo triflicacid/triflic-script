@@ -161,6 +161,11 @@ function define(rs) {
     if (length === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no len()`);
     return new NumberValue(rs, length === undefined ? NaN : length);
   }, 'return length of argument or set new length'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'to_json', { o: 'any' }, ({ o }) => {
+    const json = o.castTo("any").__toJson__?.();
+    if (json === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} cannot be converted to JSON`);
+    return new StringValue(rs, json);
+  }, 'return JSON representation of object'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'max', { o: 'any' }, ({ o }) => {
     const max = o.castTo("any").__max__?.();
     if (max === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no max()`);
