@@ -50,7 +50,7 @@ function define(rs) {
     }
     return new StringValue(rs, help);
   }, 'Get general help or help on a provided argument'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copyright', {}, () => new StringValue(rs, "Copyright (c) 2021 Ruben Saunders.\nAll Right Reserved."), 'View copyright information'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copyright', {}, () => new StringValue(rs, "Copyright (c) 2022 Ruben Saunders.\nAll Right Reserved."), 'View copyright information'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, ({ obj, key }) => {
     const v = key === undefined ? obj.__del__?.(key) : obj.castTo("any").__del__?.(key);
     if (v === undefined) throw new Error(`[${errors.DEL}] Argument Error: cannot del() object of type ${obj.type()}`);

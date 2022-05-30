@@ -377,7 +377,8 @@ class ForInStructure extends Structure {
 
     if (typeof iter.__iter__ !== 'function') throw new Error(`[${errors.TYPE_ERROR}] Type ${iter.type()} is not iterable`);
     let collection = iter.__iter__();
-    if (Array.isArray(collection[0])) {
+    if (collection.length === 0);
+    else if (Array.isArray(collection[0])) {
       if (this.vars.length === 1) { // One var contains an array
         let i = 0;
         while (true) {

@@ -7,7 +7,7 @@ function main(rs) {
     rs.io.output.write(o.toString());
     return new UndefinedValue(rs);
   }, 'prints object to the screen'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'printf', { o: 'any', options: '?array' }, ({ o, options }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'printf', { o: 'any', options: { type: 'array', optional: true, ellipse: true } }, ({ o, options }) => {
     let formatted = options ? o.castTo('string').format(options.toPrimitive('array')) : o.castTo('string');
     rs.io.output.write(formatted.toString());
     return new UndefinedValue(rs);

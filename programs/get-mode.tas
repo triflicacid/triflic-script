@@ -1,0 +1,41 @@
+// Ask how many digits they would like to enter
+let count = +input("How many numeric digits would you like to enter? ");
+
+// Get <n> digits
+let digits = [];
+for (_ in 0:count) {
+  let n = +input("Enter a numerical digit: ");
+  digits += n;
+}
+
+let freqs = <map>;
+for (digit in digits) {
+  if (digit in freqs) {
+    freqs[digit] += 1;
+  } else {
+    freqs[digit] = 1;
+  }
+}
+
+let most_freq;
+for (digit, freq in freqs) {
+  if (most_freq == undef) {
+    most_freq = digit;
+  } else if (freq > freqs[most_freq]) {
+    most_freq = digit;
+  }
+}
+
+let multiple = false;
+for (digit, freq in freqs) {
+  if (digit != most_freq && freq == freqs[most_freq]) {
+    multiple = true;
+    break;
+  }
+}
+
+if (multiple) {
+  println("Data was multimodal");
+} else {
+  println("The most frequently entered digit was {most_freq} and it was entered {freqs[most_freq]} times");
+}
