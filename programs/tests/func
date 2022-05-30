@@ -60,11 +60,6 @@ println(f(10));
 println(pow(3));
 println(pow(3, 4));
 
-adder = a -> b -> a + b;
-add5 = adder(5);
-println(add5(7));
-println(add5(-1));
-
 // '...' arguments: compact to array
 func print_array(...items) {
   println("[{len(items)}] \{{join(items, ',')}}");

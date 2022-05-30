@@ -1,12 +1,12 @@
 /** Simple Demonstration */
-// println("Before");
-// goto a;
-// label b;
-// println("Middle!");
-// exit();
-// label a;
-// println("After");
-// goto b;
+println("Before");
+goto a;
+label b;
+println("Middle!");
+exit();
+label a;
+println("After");
+goto b;
 
 /** GOTO label defined in lower scope */
 // func() {
@@ -18,13 +18,13 @@
 // println("After Label");
 
 /** GOTO label defined in higher scope */
-func main() {
-  goto ret;
-  if (false) {
-    label ret;
-    return 42;
-  }
-  0;
-};
+// func main() {
+//   goto ret;
+//   if (false) {
+//     label ret;
+//     return 42;
+//   }
+//   0;
+// };
 
-println(main());
+// println(main());

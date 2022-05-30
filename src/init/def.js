@@ -23,7 +23,7 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'help', { item: '?any' }, async ({ item }) => {
     let help = '';
     if (item === undefined) {
-      help = `help(?s) \t Get help on an argument - use help("general") for help doc, help("operators") for help on operators\ncopyright() \t View copyright information\nerror_code(code) \t Return brief help on a given error code\nvars() \t Return arry of all variables\noperators() \t Return array of all operators\ntypes() \t Return array of all available types \nnew(type) \t Instantiates a new value of type <type> \nkeywords() \t Return array of all keywords \nimport() \t Import a script relative to import_dir()\nexit() \t Terminate the program`;
+      help = `help(?s) \t Get help on an argument e.g. function, variable, operator\ncopyright() \t View copyright information\nerror_code(code) \t Return brief help on a given error code\nvars() \t Return array of all variables\noperators() \t Return array of all operators\ntypes() \t Return array of all available types \nnew(type) \t Instantiates a new value of type <type> \nkeywords() \t Return array of all keywords \nimport() \t Import a script relative to import_dir()\nexit() \t Terminate the program`;
     } else if (item instanceof VariableToken) {
       let v = item.getVar();
       if (v.value instanceof FunctionRefValue) {
@@ -57,8 +57,6 @@ function define(rs) {
     return v;
   }, 'attempt to delete given object. If a key is given, attempts to delete that key from the given object.'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }, evalObj) => {
-    // print(`Terminating with exit code ${c === undefined ? 0 : c.toString()}`);
-    // process.exit(0);
     if (c === undefined) c = new NumberValue(rs, 0);
     evalObj.action = -1;
     evalObj.actionValue = c.toString();

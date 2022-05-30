@@ -153,7 +153,7 @@ class RunspaceUserFunction extends RunspaceFunction {
     });
 
     let ret = await this.tstr.eval(evalObj);
-    ret = ret.castTo('any');
+    ret = ret.castTo(this.returnType);
     this.rs.popScope();
     return ret;
   }

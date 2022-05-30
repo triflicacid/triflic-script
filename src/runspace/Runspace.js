@@ -15,6 +15,7 @@ class Runspace {
 
     this.opts = opts;
     opts.version = Runspace.VERSION;
+    this.opts.name = Runspace.LANG_NAME;
     opts.time = Date.now();
     this.storeAns(!!opts.ans);
     this.root = ""; // MUST BE SET EXTERNALLY

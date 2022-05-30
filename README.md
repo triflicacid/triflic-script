@@ -1,9 +1,9 @@
-# NodeJS Scripting Language
+# TriflicScript: NodeJS Scripting Language
 Started as a single-line maths-focused interpreter, allowing for maths involving complex number
 
 Now, supports multi-line programs with basic control structures. Due to origins this program, the interpreter has some quirks.
 
-If I has known how this would progress, I would've written this in Java or C++ for speed. As this is written in JavaScript, it is pretty slow: my script is interpreted (probably pretty badly), which is then interpreted by JavaScript's V8 and run as C++. Not very fast :(.
+If I had known how this would progress, I would've written this in Java or C++ for speed. As this is written in JavaScript, it is pretty slow: my script is interpreted (probably pretty badly), which is then interpreted by JavaScript's V8 and run as C++. Not very fast :(.
 
 For more help, see `programs/` and the built-in `help` function.
 
@@ -98,7 +98,7 @@ Any other halts execution.
 - `-1` is used for exit via `exit(c)`. `actionValue` = `<c>` which corresponds to the exit code.
 - `-2` is used for program halting after a `goto` call.
 
-## Magic Methods
+## Internal Methods
 Some functions call a method of the argument. As such, implementation may be changed by external code.
 
 - `del(a, b)` calls `a.__del__(b)`
@@ -454,6 +454,8 @@ Labels may be references no matter the scope - whether it is in a higher or lowe
 ### `goto`
 Syntax: `goto <label>`
 
+**Unstable**
+
 Jumps to label `<label>` and continues execution from that point.
 - `<label>` is a label created by the `label` statement.
 
@@ -488,7 +490,6 @@ Use to open/close blocks. They are equivalent to using `{` and `}`.
 is equivalent to
 
 `func f(x) { x + 1 }`
->>>>>>> 4a07a976866652cf88f7951e68f55c8d1a353381
 
 ## Types
 Variables all have a type which may change. New types may be added - see `imports/matrix.js` for an example.
