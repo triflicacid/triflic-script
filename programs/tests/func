@@ -47,6 +47,17 @@ func greet(name = "Default") {
 greet();
 greet("Joe");
 
+// Default argument as an expression
+let a = 4;
+
+func f(x: string = (1 + a)) {
+  println("x = ({type (x)}) {x}");
+}
+
+f();
+a = 10;
+f();
+
 // Default value with type
 func greet(name: string = "Default") {
   println("Hello, " + name);

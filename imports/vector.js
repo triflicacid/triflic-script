@@ -71,7 +71,7 @@ module.exports = rs => {
         bool: o => new BoolValue(o.rs, true),
     };
 
-    rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vector', { args: {type:'any', ellipse:1} }, ({ args }) => {
+    rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vector', { args: { type: 'any', ellipse: 1 } }, ({ args }) => {
         args = args.toPrimitive('array');
         if (args.length === 1) {
             let size = args[0];

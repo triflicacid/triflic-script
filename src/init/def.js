@@ -62,6 +62,15 @@ function define(rs) {
     evalObj.actionValue = c.toString();
     return c;
   }, 'exit application with given code'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'blockid', {}, (_, evalObj) => new NumberValue(rs, evalObj.blockID), 'Get current block id'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'lineid', {}, (_, evalObj) => new NumberValue(rs, evalObj.lineID), 'Get current line id'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'signal', { code: '?real_int', value: '?any' }, ({ code, value }, evalObj) => {
+    if (code !== undefined) {
+      evalObj.action = code.toPrimitive("real_int");
+      if (value !== undefined) evalObj.actionValue = value.toPrimitive("string");
+    }
+    return new NumberValue(rs, evalObj.action);
+  }, 'Get/set current evaluation signal'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'locals', {}, () => {
     const vars = [];
     rs._vars[rs._vars.length - 1].forEach((variable, name) => {

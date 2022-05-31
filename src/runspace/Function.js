@@ -88,7 +88,6 @@ class RunspaceUserFunction extends RunspaceFunction {
   constructor(rs, name, args, body, desc = 'user-defined', returnType = "any") {
     super(rs, name, args, desc, returnType);
     this.tstr = body;
-    this.meVar = rs.createMeVar();
   }
 
   clone() {
@@ -99,10 +98,9 @@ class RunspaceUserFunction extends RunspaceFunction {
   async call(evalObj, args) {
     this.checkArgCount(args);
     this.rs.pushScope();
-    this.rs.defineVar('me', this.meVar);
     // Set arguments to variables matching definition symbols
     let i = 0;
-    this.args.forEach((data, arg) => {
+    for (let [arg, data] of this.args) {
       if (data.pass === undefined || data.pass === 'val') {
         let casted;
         if (data.ellipse) { // '...' parameter
@@ -123,11 +121,22 @@ class RunspaceUserFunction extends RunspaceFunction {
           }
           casted = this.rs.generateArray(values);
         } else {
+          let castncopy = true;
           if (data.optional && args[i] === undefined) {
-            casted = data.default ?? this.rs.UNDEFINED;
+            if (data.default) {
+              casted = typeof data.default.eval === 'function' ? await data.default.eval(evalObj) : data.default; // Evaluate default argument value
+            } else {
+              casted = this.rs.UNDEFINED; // No default provided
+              castncopy = false;
+            }
           } else {
+            casted = args[i];
+          }
+
+          // Cast and copy value
+          if (castncopy) {
             try {
-              casted = args[i].castTo(data.type);
+              casted = casted.castTo(data.type);
             } catch (e) {
               throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${data.type} (function ${this.name}):\n${e}`);
             }
@@ -150,7 +159,7 @@ class RunspaceUserFunction extends RunspaceFunction {
         throw new Error(`Unknown pass-by value '${data.pass}' for '${args[i]}'`);
       }
       i++;
-    });
+    }
 
     let ret = await this.tstr.eval(evalObj);
     ret = ret.castTo(this.returnType);

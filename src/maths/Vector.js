@@ -34,28 +34,28 @@ class Vector {
 
 /** Generate vector of size... */
 Vector.create = function (size = 2) {
-    return new Vector(...Array.from({ length: size }).fill(0));
+    return new Vector(Array.from({ length: size }).fill(0));
 };
 
 /** CHeck that vectors are the same size */
-Vector.checkSize = function(v1, v2) {
+Vector.checkSize = function (v1, v2) {
     if (v1.size() !== v2.size()) throw new Error(`[${errors.BAD_ARG}] Vectors must be the same size`);
 }
 
 /** Add two vectors together: v1 + v2 */
-Vector.add = function(v1, v2) {
+Vector.add = function (v1, v2) {
     Vector.checkSize(v1, v2);
     return new Vector(v1.data.map((_, i) => Complex.add(v1.data[i], v2.data[i])));
 };
 
 /** Subtract two vectors: v1 - v2 */
-Vector.sub = function(v1, v2) {
+Vector.sub = function (v1, v2) {
     Vector.checkSize(v1, v2);
     return new Vector(v1.data.map((_, i) => Complex.sub(v1.data[i], v2.data[i])));
 };
 
 /** Scalar multiplication */
-Vector.scalarMult = function(v, n) {
+Vector.scalarMult = function (v, n) {
     return new Vector(v.data.map(z => Complex.mult(z, n)));
 };
 

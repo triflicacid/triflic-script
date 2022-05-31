@@ -26,7 +26,6 @@ setupIo(rs);
 require("./src/runspace/runspace-createImport");
 
 rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
-rs.defineVar('VERSION', new NumberValue(rs, Runspace.VERSION), 'Current version of ' + Runspace.LANG_NAME);
 
 // Evaluate some input
 async function evaluate(input) {

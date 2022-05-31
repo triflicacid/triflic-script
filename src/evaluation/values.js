@@ -282,6 +282,7 @@ class StringValue extends Value {
         }
       }
     }
+    return this;
   }
 
   /** len() function */

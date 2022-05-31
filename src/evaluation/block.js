@@ -82,7 +82,7 @@ class Block {
         evalObj.action = -2;
         break;
       } else { // Any other exit code: break and propagate
-        // throw new Error(`FATAL: Unknown action '${obj.action}' in block ${obj.blockID}, line ${obj.lineID}`);
+        // throw new Error(`FATAL: Unknown signal '${obj.action}' in block ${obj.blockID}, line ${obj.lineID}`);
         propagateEvalObj(obj, evalObj);
         break;
       }

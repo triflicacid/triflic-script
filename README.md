@@ -12,6 +12,14 @@ For more help, see `programs/` and the built-in `help` function.
 - Array-unpacking `[a, b] = [1, 2]` does not work
 
 ## TODO
+- Optional semi-colons. Expression terminates on
+  - `\n`, assuming not inside a bracketed group `[]` or `()`
+  - At the end of a block
+- Ellipses, when used inside function definitions
+  - May have parameters following it e.g. `f(a, ...b, c)`. May still only contain a single ellipse.
+    - `f(1,2)` -> `a=1, b=[], c=2`
+    - `f(1,2,3)` -> `a=1, b=[2], c=3`
+    - `f(1,2,3,4,5)` -> `a=1, b=[2,3,4], c=5`
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
 
 ## Bugs
@@ -34,7 +42,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `file.js` - Arguments proceed `node file.js <file>`
 
 ### Arguments
-Not every argument does used in every execution method.
+Not every argument is used in every execution method.
 
 - `strict` : `boolean`. Strict mode? (actions are more tightly controlled).
 - `bidmas` : `boolean`. Should expressions obey BIDMAS (order of operations)?
@@ -86,8 +94,8 @@ Any other extension:
 - The file contents are passed into `Runspace#execute`
 
 ## `evalObj`
-This is an object passed to built-in functions. The property `action` may be changed to alter control flow, and the corresponding `actionValue` provides a value for `action`. Possible values:
-- `0` -> nothing
+This is an object passed to built-in functions, and is reset after each line evaluation. The property `action` may be changed to alter control flow, and the corresponding `actionValue` provides a value for `action`. Possible values:
+- `0` -> nothing; OK.
 - `1` -> break out of current block. Triggered by `break`.
 - `2` -> continue current block. Triggered by `continue`.
 - `3` -> return from current block. Triggered by `return <x>` where `actionValue` = `<x>`.
@@ -105,8 +113,8 @@ Some functions call a method of the argument. As such, implementation may be cha
 - `copy(a)` calls `a.__copy__()`
 - `len(a, ?b)` calls `a.__len__(b)` (`b` is used to set length of object)
 - `abs(a)` calls `a.__abs__()`
-- `get(a, b)` calls `a.__get__(b)`
-- `set(a, b, c)` calls `a.__set__(b, c)`
+- `getprop(a, b)` calls `a.__get__(b)`. Used by `<a>.<b>`.
+- `setprop(a, b, c)` calls `a.__set__(b, c)`. Used by `<a>.<b> = <c>`
 - `reverse(a)` calls `a.__reverse__()`
 - `find(a, b)` calls `a.__find__(b)`
 - `min(a)` calls `a.__min__()`
@@ -212,6 +220,9 @@ Variables may be assigned to using the `=` assignment operator. Variables may be
 - Assignment using `=>`
   - Sets `symbol` to `value`. If no binding to `symbol` exists, throws an error.
 
+- Declaration using `let`
+  - Declares variable `symbol` in given scope to `undef`
+
 If `--ans` is truthy, the `ans` variable contains the value of the last executed line. e.g. `2 + 1; ans` -> `3`
 
 ### Functions
@@ -233,6 +244,8 @@ Syntax: `<args> -> <body>`
 *NB This syntax is syntactic sugar for a `func` keyword. As such, while error positions may match, error messages may not*
 
 `f = x -> x * 2` is equivalent to `f = func(x) { x * 2 }`
+
+See `func` keyword for more information.
 
 ### Ellipse `...`
 The ellipse is part of syntax rather than an operator. Its behaviour depends on the context:
@@ -276,7 +289,7 @@ See `Operators.md` for detailed operator help.
 | < | Less Than | 12 | ltr | Return boolean result of comparison between LHS and RHS | `4 < 5` => `true` | `__lt__` |
 | >= | Greater Than or Equal To | 12 | ltr | Return boolean result of comparison between LHS and RHS | `5 >= 5` => `true` | `__ge__` |
 | > | Greater Than | 12 | ltr | Return boolean result of comparison between LHS and RHS | `4 > 5` => `false` | `__gt__` |
-| in | Member Test | 12 | rtl | Is LHS member of RHS (must have space after i.e. "in ") | `"time" in headers` => `true` | `__in__` |
+| in | Member Test | 12 | rtl | Is LHS member of RHS | `"time" in headers` => `true` | `__in__` |
 | == | Equality | 11 | ltr | Is the LHS equal to the RHS? | `5 == 5` => `true`, `2 == "2"` => `false` | `__eq__` |
 | != | Not Equality | 11 | ltr | Is the LHS not equal to the RHS? | `5 != 5` => `false`, `2 != "2"` => `true` | `__neq__` |
 | & | Bitwise And | 10 | ltr | Apply a bitwise AND to LHS and RHS | `5 & 3` => `1` | `__bitwiseAnd__` |
@@ -285,7 +298,7 @@ See `Operators.md` for detailed operator help.
 | && | Logical And | 7 | ltr | Are both the LHS and RHS truthy? Returns RHS or `false`. | `0 && 1` => `false` | `__and__` |
 | \|\| | Logical Or | 6 | ltr | Is either LHS or RHS truthy? | `0 \|\| 1` => `1` | `__or__` |
 | ?? | Nullish Coalescing | 5 | ltr | Returns LHS unless LHS is undef, in which case return RHS | `undef ?? 2` => `2` | n/a |
-| ?: | Conditional | 4 | rtl | syntax `(<cond>) ? (<ifTrue>) [: <ifFalse>]`. If `<cond>` is truthy, return `<ifTrue>` else return `<ifFalse>` or `false` | `(0) ? ("Yes") : ("No")` => `"No"` | n/a |
+| ?: | Conditional | 4 | rtl | syntax `(<cond>) ? (<ifTrue>) [: (<ifFalse>)]` | `(0) ? ("Yes") : ("No")` => `"No"`, (0) ? ("Yes")` => `false` | n/a |
 | = | Assignment | 3 | rtl | Assigns the RHS to the LHS (creates new symbol binding) | `name = "john"` => `"john"` | `__assign__` |
 | => | Nonlocal Assignment | 3 | rtl | Assigns the RHS to the LHS (uses existing symbol binding) | `name => "john"` => `"john"` | `__nonlocalAssign__` |
 | += | Addition Assignment | 3 | rtl | Assigns RHS to RHS + LHS | `a = 10, a += 2, a` => `12` | `__assignAdd__` |
@@ -303,7 +316,7 @@ See `Operators.md` for detailed operator help.
 ### `if`, `else`
 An `if` structure consists of a condition and a block. If may have additional conditions and blocks using the `else if` statement, and a final block after `else`.
 
-Syntax: `if (<condition>) {<block>} [else if (<condition> <block>), [...]] [else <block>]`
+Syntax: `if (<condition>) {<block>} [else if (<condition>) {<block>}, [...]] [else {<block>}]`
 
 If the `<condition>` is truthy, the `<block>` is executed and the rest of the structure is skipped. If no `if` or `else if` blocks is executed, the `else` block will execute.
 
@@ -354,6 +367,7 @@ Syntax: `for (<action>) {<block>} [then {<block>}]`
   - If `collection` is a linear array, one variable is expected and will contain each value in `collection` each iteration
   - If `collection` is a 2D array, and there is one variable, this variable will contain the array value in `collection` each iteration
   - If `collection` is a 2D array, and there are multiple variable, the number of variables must match the length of the array value in `collection` and each value from the array will be unpacked into the corresponding variable each Iteration
+  - A map `{ key: value }` is considered as `[[key, value]]` for the above calculations
 
   See examples in `tests/for-in`
 
@@ -388,7 +402,7 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
     - This must be the last parameter
     - Paramater must not be optional
     - Parameter must be pass-by-value
-    - When calles, this parameter takes any arguments and combines them into an array.
+    - When called, this parameter takes any arguments and combines them into an array.
   - `[:]` - marks that the following information is describing the argument
   - `["val"|"ref"]`: pass-by method of the argument. Is not present, default is `val`.
     - `val`: pass-by-value. The value provided for this argument is **copied** into a new local variable upon calling.
@@ -396,7 +410,7 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
   - `[?]`: A question marke prefixing the type marks if the parameter is optional or not. If optional and a value is not provided, `undef` is passed as the parameter's value.
   - `<type>`: The type of the argument.
   - `=`: marks following as default value if parameter is omitted
-  - `<value>`: default value of the parameter if ommited (*Note, may only be a single token e.g. can't be '1 + 2'*)
+  - `<value>`: default value of the parameter if ommited (may only be a single token e.g. can't be '1 + 2' but may be `(1 + 2)`)
 
 - `<rettype>` is the return type of the function
   - Default is `any`
@@ -532,3 +546,8 @@ The assignation operator `=` assigns a value to a symbol **is the current scope*
 The assignation operator `=>` assigns a value to a symbol **which is not in the current scope**. It assigns the value to the next available binding to that symbol and, if non is found, an error is thrown.
 
 See the programs in `programs/tests/scope` and compare the two functions.
+
+## External Modification
+A basic JavaScript API is provided to create custom functions, types, operators etc...
+
+See `imports/` for examples, notable `matrix.js` which defines a new type - `matrix` - as well as some useful functions. It may be imported via `import("<matrix>")`

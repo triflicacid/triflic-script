@@ -716,6 +716,9 @@ class TokenLine {
                           data.optional = true;
                           data.default = arg.tokens[i];
                           if (data.default instanceof ValueToken) data.default = data.default.value;
+                          else if (data.default instanceof BracketedTokenLines) {
+                            data.default.prepare();
+                          }
                           i++;
                         } else ok = false;
                       } else ok = false;
