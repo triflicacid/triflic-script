@@ -31,7 +31,7 @@ function define(rs) {
         if (fn === undefined) {
           item._throwNullRef();
         } else {
-          help = `${(fn instanceof RunspaceBuiltinFunction ? 'built-in' : 'user-defined')} function ${fn.signature()}\n/* @about ${fn.about()} */`;
+          help = `${(fn instanceof RunspaceBuiltinFunction ? 'built-in' : 'user-defined')} function ${fn.signature()}\n/* @argcount ${fn.argMin === fn.argMax ? fn.argMin : isFinite(fn.argMax) ? `${fn.argMin}-${fn.argMax}` : fn.argMin + "+"}, @about ${fn.about()} */`;
         }
       } else {
         help = `let ${item.value}: ${v.value.type()} = ${v.toPrimitive("string")}\n/* @about ${v.desc} */`;

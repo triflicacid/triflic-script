@@ -14,13 +14,6 @@ For more help, see `programs/` and the built-in `help` function.
 - Optional semi-colons. Expression terminates on
   - `\n`, assuming not inside a bracketed group `[]` or `()`
   - At the end of a block
-- Ellipses, when used inside function definitions
-  - May have parameters following it e.g. `f(a, ...b, c)`. May still only contain a single ellipse.
-    - `f(1,2)` -> `a=1, b=[], c=2`
-    - `f(1,2,3)` -> `a=1, b=[2], c=3`
-    - `f(1,2,3,4,5)` -> `a=1, b=[2,3,4], c=5`
-- Function parenthesis (when defining) may be omitted to declare a function with no parameters when using the `func` keyword
-  - E.g. `func main { ... }`. NOTE, calling will still require parenthesis e.g. `main`
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
 
 ## Bugs
@@ -422,10 +415,14 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
 - `<args>` is a comma-seperated list of identifiers. Syntax: `[...]<arg>[: ["val"|"ref"] [?]<type>][= <value>]`. If ommited, the function takes no parameters
   - `<arg>` - argument name
   - `[...]` - marks parameter as compact.
-    - This must be the last parameter
-    - Paramater must not be optional
+    - Must only be one parameter
     - Parameter must be pass-by-value
     - When called, this parameter takes any arguments and combines them into an array.
+  
+    Examples given `f = (a, ...b, c) -> ;`
+    - `f(1,2)` -> `a=1, b=[], c=2`
+    - `f(1,2,3)` -> `a=1, b=[2], c=3`
+    - `f(1,2,3,4,5)` -> `a=1, b=[2,3,4], c=5`
   - `[:]` - marks that the following information is describing the argument
   - `["val"|"ref"]`: pass-by method of the argument. Is not present, default is `val`.
     - `val`: pass-by-value. The value provided for this argument is **copied** into a new local variable upon calling.

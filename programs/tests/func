@@ -91,6 +91,16 @@ func print_array(...items: char) {
 }
 print_array(65, 66, 67, 68, 69);
 
+// In middle of parameter list
+func multi(a, ...b, c) {
+  println("{a=}; {b=}; {c=}");
+}
+
+multi(1, 2); // a=1, b=[], c=2
+multi(1, 2, 3); // a=1, b=[2], c=3
+
+// f(5);
+
 // Using '...' to expand arguments
 powargs = [4, 2];
 println("{powargs=} : {pow(...powargs) = }");

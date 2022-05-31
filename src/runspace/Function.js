@@ -11,15 +11,12 @@ class RunspaceFunction {
     this.rs = rs;
     this.rargs = args;
     this.args = new Map(); // { [arg: string]: { pass: "val"|"ref", type: string } }
-    this.argCount = 0; // Number of arguments
-    this.optional = 0; // Number of OPTIONAL arguments
-    this.hasEllipse = false; // Has ellipse argument?
     this.name = name;
     this.desc = desc ?? '[no information]';
-    this.constant = false;
     this.returnType = returnType;
+    this.argMin = 0;
+    this.argMax = 0;
 
-    let metOptn = false;
     for (let arg in args) {
       if (args.hasOwnProperty(arg)) {
         let data = {};
@@ -43,30 +40,26 @@ class RunspaceFunction {
             data.type = data.type.substr(1);
           }
           data.ellipse = !!args[arg].ellipse;
-          this.hasEllipse = data.ellipse;
         }
 
         if (!(data.type in types)) throw new Error(`[${errors.TYPE_ERROR}] Type Error: argument '${arg}: ${data.type}': invalid type '${data.type}' (function: ${name})`);
-        if (data.optional) {
-          metOptn = true;
-          this.optional++;
-        } else {
-          if (metOptn) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument cannot follow optional argument : '${arg}' (function: ${name})`);
-        }
 
         this.args.set(arg, data);
-        this.argCount++;
+
+        if (data.ellipse) this.argMax = Infinity;
+        else if (data.optional) this.argMax++;
+        else {
+          this.argMax++;
+          this.argMin++;
+        }
       }
     }
   }
 
   /** Check arg count */
   checkArgCount(args) {
-    if (!this.hasEllipse) {
-      let req = this.argCount - this.optional;
-      let expected = this.optional === 0 ? req : `${req}-${this.argCount}`;
-      if (args.length < req || args.length > this.argCount) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects ${expected} argument${expected == 1 ? '' : 's'} {${Array.from(this.args.values()).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()} "${a}"`).join(', ')}}`);
-    }
+    if (args.length < this.argMin) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects at least ${this.argMin} argument${this.argMin == 1 ? '' : 's'} {${Array.from(this.args.values()).filter(obj => !(obj.optional || obj.ellipse)).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()} "${a}"`).join(', ')}}`);
+    if (args.length > this.argMax) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects at most ${this.argMax} argument${this.argMax == 1 ? '' : 's'} {${Array.from(this.args.values()).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()} "${a}"`).join(', ')}}`);
   }
 
   about() {
@@ -103,8 +96,8 @@ class RunspaceUserFunction extends RunspaceFunction {
       if (data.pass === undefined || data.pass === 'val') {
         let casted;
         if (data.ellipse) { // '...' parameter
-          let values = [];
-          for (; i < args.length; i++) {
+          let values = [], lim = args.length - (this.args.size - i);
+          for (; i <= lim; i++) {
             let value = args[i];
             try {
               value = value.castTo(data.type);
@@ -119,6 +112,7 @@ class RunspaceUserFunction extends RunspaceFunction {
             values.push(value);
           }
           casted = this.rs.generateArray(values);
+          --i;
         } else {
           let castncopy = true;
           if (data.optional && args[i] === undefined) {
@@ -135,6 +129,7 @@ class RunspaceUserFunction extends RunspaceFunction {
           // Cast and copy value
           if (castncopy) {
             try {
+              // console.log(casted, data)
               casted = casted.castTo(data.type);
             } catch (e) {
               throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${data.type} (function ${this.name}):\n${e}`);

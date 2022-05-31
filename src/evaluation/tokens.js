@@ -1292,7 +1292,9 @@ function parseAsFunctionArgs(argGroup) {
 
       // Collapse multiple arguments into array?
       if (arg.tokens[i].value === '...') {
+        if (foundEllipse) throw new Error(`[${errors.SYNTAX}] Syntax Error: only one parameter may have '...' , found second at position ${arg.tokens[i].pos}`);
         data.ellipse = true;
+        foundEllipse = true;
         i++;
       }
 
@@ -1303,7 +1305,6 @@ function parseAsFunctionArgs(argGroup) {
         if (param.value in argObj) throw new Error(`[${errors.NAME}] Name Error: Duplicate parameter name '${param.value}' at position ${param.pos}`);
         i++;
       }
-      if (foundEllipse) throw new Error(`[${errors.SYNTAX}] Syntax Error: '...' must be last parameter (encountered parameter '${param.value}' after '...' at position ${param.pos})`);
 
       // Type information?
       if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === ':') {
@@ -1318,6 +1319,7 @@ function parseAsFunctionArgs(argGroup) {
         if (ok && arg.tokens[i] instanceof OperatorToken) {
           if (arg.tokens[i].value === '?') {
             if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': pass-by-reference parameter '${param}' cannot be optional`);
+            if (foundEllipse) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': optional parameter cannot follow a collapse parameter (param '${param.value}')`);
             data.optional = true;
             lastOptional = arg.tokens[0].value;
             i++;
