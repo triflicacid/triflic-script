@@ -44,12 +44,12 @@ class Runspace {
   }
 
   /** Declare a new variable in the topmost scope. Return variable object */
-  defineVar(name, value = undefined, desc = undefined, constant = false) {
+  defineVar(name, value = undefined, desc = undefined) {
     if (value === undefined) value = new UndefinedValue(this);
     let obj;
-    if (value instanceof Value || value instanceof RunspaceFunction) obj = new RunspaceVariable(name, value, desc, constant);
+    if (value instanceof Value || value instanceof RunspaceFunction) obj = new RunspaceVariable(name, value, desc);
     else if (value instanceof RunspaceVariable) obj = value.copy();
-    else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc, constant);
+    else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc);
 
     this._vars[this._vars.length - 1].set(name, obj); // Insert into top-level scope
     return obj;
@@ -200,6 +200,6 @@ class Runspace {
 }
 
 Runspace.LANG_NAME = "TriflicScript";
-Runspace.VERSION = 1.002;
+Runspace.VERSION = 1.005;
 
 module.exports = Runspace;

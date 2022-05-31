@@ -13,9 +13,9 @@ const { ArrayValue, primitiveToValueClass, NumberValue } = require("./src/evalua
 const setupIo = require("./src/runspace/setup-io");
 
 async function main() {
-  if (process.argv.includes("--help")) {
-    console.log(`Syntax: 'node file.js <file> [args]'`);
-    return 1;
+  if (process.argv.length < 3 || process.argv.includes("--help")) {
+    console.log(`Usage: 'node file.js <file> [args]`);
+    return 0;
   } else {
     // Find file
     let argv = yargs(hideBin(process.argv)).argv, file = argv._[0];
@@ -36,7 +36,7 @@ async function main() {
     const rs = new Runspace(opts);
     define(rs);
     defineNode(rs);
-    if (opts.defineVars) defineVars(rs);
+    defineVars(rs);
     if (opts.defineFuncs) defineFuncs(rs);
     rs.importFiles.push(file);
     // Setup things
@@ -48,7 +48,6 @@ async function main() {
 
 
     rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
-    rs.defineVar('VERSION', new NumberValue(rs, Runspace.VERSION), 'Current version of ' + Runspace.LANG_NAME);
 
     let start = Date.now(), ret, error, time, evalObj = {};
     try {

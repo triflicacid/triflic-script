@@ -1,9 +1,8 @@
 class RunspaceVariable {
-  constructor(name, value, desc = undefined, constant = false) {
+  constructor(name, value, desc = undefined) {
     this.name = name;
     this.value = value;
     this.desc = desc ?? '[no information]';
-    this.constant = constant;
     this.refFor = undefined; // What is this a reference to? (update this variable on __assign__) (this is a RunspaceVariable)
   }
   castTo(type) { return this.value.castTo(type); }

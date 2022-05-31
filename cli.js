@@ -4,8 +4,9 @@ const defineNode = require("./src/init/def-node");
 const { consoleColours, printError } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
-const { ArrayValue, primitiveToValueClass, NumberValue } = require("./src/evaluation/values");
+const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
 const setupIo = require("./src/runspace/setup-io");
+const { system } = require("./src/utils-node");
 
 // PARSE ARGV, SETUP RUNSPACE
 const opts = parseArgString(process.argv, true);
@@ -17,7 +18,7 @@ const rs = new Runspace(opts);
 rs.root = __dirname;
 define(rs);
 defineNode(rs);
-if (opts.defineVars) defineVars(rs);
+defineVars(rs);
 if (opts.defineFuncs) defineFuncs(rs);
 rs.importFiles.push('<interpreter>');
 
@@ -53,7 +54,7 @@ async function evaluate(input) {
       rs.io.output.write(`** Took ${time} ms (${execObj.parse} ms parsing, ${execObj.exec} ms execution)\n`);
     }
   }
-  return execObj.status;
+  return execObj;
 }
 
 async function main() {
@@ -75,10 +76,8 @@ async function main() {
   if (opts.intro) {
     rs.io.output.write(`-- ${Runspace.LANG_NAME} v${Runspace.VERSION} --\nType help(), copyright() for more information.\n`);
     let notes = [];
-    if (opts.strict) notes.push("strict mode is enabled");
     if (!opts.bidmas) notes.push("BIDMAS is being ignored");
     if (!opts.niceErrors) notes.push("nice error messages are disabled");
-    if (!opts.defineVars) notes.push("pre-defined variables were not defined");
     if (!opts.defineFuncs) notes.push("pre-defined functions were not defined");
     if (!opts.ans) notes.push("variable ans is not defined");
     notes.forEach(note => rs.io.output.write(`${consoleColours.Bright}${consoleColours.FgWhite}${consoleColours.Reverse}Note${consoleColours.Reset} ${note}\n`));
@@ -89,28 +88,30 @@ async function main() {
   if (opts.multiline) {
     const lines = []; // Line buffer
     rs.onLineHandler = async (io, line) => {
-      let status;
+      let result;
       if (line.length === 0) {
         const input = lines.join('\n');
         lines.length = 0;
-        status = await evaluate(input);
+        result = await evaluate(input);
         io.setPrompt(opts.prompt);
       } else {
         lines.push(line);
         io.setPrompt('.'.repeat(opts.prompt.length - 1) + ' ');
       }
 
-      if (status < 0) {
+      if (result.status < 0) {
         rs.io.removeAllListeners();
         rs.io.close();
+        console.log("Process exited with code " + result.statusValue);
       } else rs.io.prompt();
     };
   } else {
     rs.onLineHandler = async (io, line) => {
-      let status = await evaluate(line);
-      if (status < 0) {
+      let result = await evaluate(line);
+      if (result.status < 0) {
         rs.io.removeAllListeners();
         rs.io.close();
+        console.log("Process exited with code " + result.statusValue);
       } else rs.io.prompt();
     };
   }

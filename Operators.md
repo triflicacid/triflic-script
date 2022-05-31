@@ -31,8 +31,8 @@ There are some types listed that are general terms:
 | `*` | `numeric` | `numeric` | Multiplies arg1 by arg2 | `10 * 2` => `20` |
 | `*` | `numeric` | `string` | Casts arg2 to a number and multiplies arg1 by arg2 | `10 * "2"` => `20` |
 | `+` | `numeric` | `numeric` | Adds arg2 and arg2 | `5 + 3` => `8` |
-| `+` | `numeric` | `undefined` | Returns `NaN` | `10 + undefined` => `NaN` |
-| `+` | `numeric` | `string` | Concatenates arg1 (as a string) and arg2 | `10 + "2"` => `102` |
+| `+` | `numeric` | `undefined` | Returns `nan` | `10 + undefined` => `nan` |
+| `+` | `numeric` | `string` | Concatenates arg1 (as a string) and arg2 | `10 + "2"` => `"102"` |
 | `-` | `numeric` | `numeric` | Subtracts arg2 from arg1 | `10 - 3` => `7` |
 | `-` | `numeric` | `string` | Casts arg2 to a number and subtracts arg2 from arg1 | `10 - "3"` => `7` |
 | `<<` | `real-like` | `real-like` | Shifts arg1 arg2-bits to the left | `20 << 2` => `80` |
@@ -47,7 +47,7 @@ There are some types listed that are general terms:
 | `+` | `string` | `any` | Concatenate arg1 and arg2 (as a string) | `"Hello" + "World"` => `"HelloWorld"` |
 | `:` | `string` | `string` | arg1 and arg2 must be of length 1. Return sequence using ASCII codes between the two strings. | `"a":"e"` => `["a","b","c","d"]` |
 | `[]` | `string` | `any` | arg2 is inside `[]`. Evaluate arg2 and get character (as a string) at index arg2 in array arg1. Note that assigning to this value will alter the original string. The inserted value will be casted to a `char`. | `str = "Hello"; str[0]; str[1] = 69; str;` => `"h", "HEllo"` |
-| `%` | `string` | `any|array` | Interpolates items in arg2 into string at arg1 using formatting options | `"%s is %i years old" % ["Joe", 42]` => `"Joe is 42 years old"` |
+| `%` | `string` | `any` or `array` | Interpolates items in arg2 into string at arg1 using formatting options | `"%s is %i" % ["Joe", 42]` => `"Joe is 42"` |
 | `==` | `bool` | `any` | Returns true if arg2 is a bool and has same logical value | `true == true` => `true` |
 | `~` | `bool` | n/a | Returns bitwise NOT of bool (true = 1, false = 0) | `~true` => `-2` |
 | `&` | `bool` | `real-like` | ANDs arg1 and arg2 | `true & 5` => `1` |
@@ -59,18 +59,12 @@ There are some types listed that are general terms:
 | `==` | `array` | `any` | Return true is arg2 is array, they are of equal length and each item in arg1 equals each item in arg2 | `[1,2] == [1,2]` => `true` |
 | `*` | `array` | `real` | Repeats contents of arg1 arg2 times | `[1] * 4` => `[1,1,1,1]` |
 | `*` | `array` | `array` | Returns intersection (overlap) of arg1 and arg2 | `[1,2,3] * [0,1,2]` => `[1,2]` |
-| `∩` | `array` | `array` | Returns intersection (overlap) of arg1 and arg2 | `[1,2,3] ∩ [0,1,2]` => `[1,2]` |
-| `∪` | `array` | `array` | Returns union (join) of arg1 and arg2 | `[1,2,3] ∪ [0,1,2]` => `[1,2,3,0,1,2]` |
 | `+` | `array` | `array` | Concatenates arg1 and arg2 | `[1,2] + [3,4]` => `[1,2,3,4]` |
 | `+` | `array` | `any` | Pushes arg2 onto arg1 | `[1,2] + 3` => `[1,2,3]` |
-| `++` | `array` | n/a | Pushes `undefined` onto arg1 | `[1]++` => `[1,undefined]` |
 | `-` | `array` | `array` | Removes items in arg2 from arg1 | `[1,2,3] - [0,2]` => `[1,3]` |
-| `--` | `array` | n/a | Pops value from arg1 | `[1,2,3] ∩ [0,1,2]` => `[]` |
 | `==` | `set` | `any` | Returns true if arg2 is a set and they contain the same items | `{1,2} == {2,1}` => `true` |
 | `!` | `set` | n/a | Removes every item in `universal_set` from arg1 | `universal_set = {1,3}`, `!{1,2}` => `{3}` |
 | `*` | `set` | `set` | Calculate intersection of arg1 and arg2 | `{0,1,2} * {1,2,3}` => `{1,2}` |
-| `∩` | `set` | `set` | Calculate intersection of arg1 and arg2 | `{0,1,2} ∩ {1,2,3}` => `{1,2}` |
-| `∪` | `set` | `set` | Calculate union of arg1 and arg2 | `{0,1,2} ∪ {1,2,3}` => `{0,1,2,3}` |
 | `+` | `set` | `set` | Join arg1 and arg2 | `{0,1,2} + {1,2,3}` => `{0,1,2,3}` |
 | `+` | `set` | `any` | Add arg2 to arg1 | `{0,1,2} + 3` => `{0,1,2,3}` |
 | `-` | `set` | `set` | Removes all items in arg2 from arg1 | `{1,2,3} - {0,2}` => `{1,3}` |

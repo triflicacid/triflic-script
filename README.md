@@ -44,9 +44,7 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 ### Arguments
 Not every argument is used in every execution method.
 
-- `strict` : `boolean`. Strict mode? (actions are more tightly controlled).
 - `bidmas` : `boolean`. Should expressions obey BIDMAS (order of operations)?
-- `define-vars` : `boolean`. Whether or not to define common variables such as `pi` and `e`.
 - `define-funcs` : `boolean`. Whether or not to define in-built functions such as `sin` and `summation`. Note that core functions such as `exit` are still defined.
 - `prompt` : `string`. What prompt to display for input.
 - `intro` : `boolean`. Whether or not to print welcome prompt.
@@ -128,6 +126,8 @@ A program may be interpreted and executed via `Runspace#execute`
 
 ## Syntax
 
+There is no syntax highlighter for TriflicScript, although syntax highlighting for the Rust language is suitable for TriflicScript.
+
 ### Literals
 These are structures in the code which define values:
 
@@ -208,6 +208,16 @@ Syntax: `<string> % <values>`
 If there are more `%`s than values, insert as may values as there are and preserver any other `%`s
 
 If there are less `%`s than values, append left-over values onto end of string, seperated by spaces, as if `%s` was present.
+
+### Arrays
+
+Arrays are defined by square brackets `[]` and contain a collection of values
+
+#### Array Unpacking
+
+Array unpacking is used to assign multiple variables on a single line. An array assignation expression takes the form `[<symbols>] = [<values>]` where `<symbols>` is a comma-seperated list of symbols.
+
+See `tests/array-unpacking` for examples of the situations of array unpacking.
 
 ### Variables
 Variables store values in memory. There are some predefined variables (assuming `--define-vars` is truthy).

@@ -177,7 +177,7 @@ class VariableToken extends Token {
   __nonlocalAssign__(value) {
     value = value.castTo("any");
     const name = this.value;
-    if (!this.exists()) throw new Error(`[${errors.NULL_REF}] Null Reference: operator =>: non non-local binding for symbol '${name}'. Did you mean to use '=' ?`);
+    if (!this.exists()) throw new Error(`[${errors.NULL_REF}] Null Reference: no non-local binding for symbol '${name}'. Did you mean to use '=' ?`);
     this.tstr.rs.setVar(name, value);
     return value;
   }
@@ -316,7 +316,6 @@ class TokenLine {
   }
 
   parse() {
-    // return this._parse();
     try {
       return this._parse();
     } catch (e) {
@@ -852,6 +851,15 @@ class TokenLine {
               const structure = new LetStructure(this.tokens[i].pos, this.rs, this.tokens[i + 1]);
               structure.validate();
               this.tokens.splice(i, 2, structure);
+            } else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === "[" && this.tokens[i + 1].value.length === 1) {
+              let elements = this.tokens[i + 1].value[0].splitByCommas(), symbols = [];
+              for (let i = 0; i < elements.length; i++) {
+                if (elements[i].tokens.length === 1 && elements[i].tokens[0] instanceof VariableToken) symbols.push(elements[i].tokens[0]);
+                else throw new Error(`[${errors.SYNTAX}] Syntax Error: expected array of symbols on lhs of expression at position ${elements[i].pos}, got otherwise in member ${i}`);
+              }
+              const structure = new LetStructure(this.tokens[i].pos, this.rs, symbols);
+              structure.validate();
+              this.tokens.splice(i, 2, structure);
             } else {
               throw new Error(`[${errors.SYNTAX}] Syntax Error: expected symbol, got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos} in 'let' expression`);
             }
@@ -947,6 +955,8 @@ class TokenLine {
         let ret = await cT.eval(evalObj);
         if (ret !== undefined) stack.push(ret);
       } else if (cT instanceof Structure) {
+        // If, in infix, is before an assignment operator, special
+        if (cT instanceof ArrayStructure && T[i + 2] instanceof OperatorToken && T[i + 2].value === "=") cT.assignment = true;
         let ret = await cT.eval(evalObj); // Execute structure body
         if (ret !== undefined) stack.push(ret);
       } else {

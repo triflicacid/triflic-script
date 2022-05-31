@@ -13,10 +13,10 @@ const { Fraction } = require("../maths/Fraction");
 /** Core definitions !REQUIRED! */
 function define(rs) {
   /****************** CORE VARIABLES */
-  rs.defineVar('nan', NaN, 'Value representing Not A Number', true);
-  rs.defineVar('inf', Infinity, 'Value representing Infinity', true);
-  rs.defineVar('undef', new UndefinedValue(rs), 'A variable that has not been assigned a value is of type undefined', true);
-  rs.defineVar('universal_set', new SetValue(rs, []), 'Universal set', false);
+  rs.defineVar('nan', NaN, 'Value representing Not A Number');
+  rs.defineVar('inf', Infinity, 'Value representing Infinity');
+  rs.defineVar('undef', new UndefinedValue(rs), 'A variable that has not been assigned a value is of type undefined');
+  rs.defineVar('universal_set', new SetValue(rs, []), 'Universal set');
 
   /****************** CORE FUNCTIONS */
 
@@ -34,7 +34,7 @@ function define(rs) {
           help = `${(fn instanceof RunspaceBuiltinFunction ? 'built-in' : 'user-defined')} function ${fn.signature()}\n/* @about ${fn.about()} */`;
         }
       } else {
-        help = `${v.constant ? 'constant' : 'variable'} ${item.value}: ${v.value.type()} = ${v.toPrimitive("string")}\n/* @about ${v.desc} */`;
+        help = `let ${item.value}: ${v.value.type()} = ${v.toPrimitive("string")}\n/* @about ${v.desc} */`;
       }
     } else if (item instanceof StringValue && operators[item.value] !== undefined) { // Operator
       const info = operators[item.value];
@@ -59,11 +59,9 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }, evalObj) => {
     if (c === undefined) c = new NumberValue(rs, 0);
     evalObj.action = -1;
-    evalObj.actionValue = c.toString();
+    evalObj.actionValue = c.toPrimitive("real");
     return c;
   }, 'exit application with given code'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'blockid', {}, (_, evalObj) => new NumberValue(rs, evalObj.blockID), 'Get current block id'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'lineid', {}, (_, evalObj) => new NumberValue(rs, evalObj.lineID), 'Get current line id'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'signal', { code: '?real_int', value: '?any' }, ({ code, value }, evalObj) => {
     if (code !== undefined) {
       evalObj.action = code.toPrimitive("real_int");

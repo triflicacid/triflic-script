@@ -24,7 +24,7 @@ async function createRunspace(argString = '') {
   const rs = new Runspace(opts); // Create object
   define(rs);
   defineNode(rs);
-  if (opts.defineVars) defineVars(rs);
+  defineVars(rs);
   if (opts.defineFuncs) defineFuncs(rs);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
     if (rs.discordLatestMsg) {
@@ -68,7 +68,7 @@ client.on('message', async msg => {
   if (!msg.author.bot && msg.channel.id === process.env.CHANNEL) {
     try {
       if (msg.content.startsWith('!start')) {
-        await sessionStart(msg, msg.content.substr(6));
+        await sessionStart(msg, msg.content.substring(6));
       } else {
         if (envSessions[msg.author.id]) {
           envSessions[msg.author.id].discordLatestMsg = msg;
@@ -76,7 +76,7 @@ client.on('message', async msg => {
             let timeObj = {};
             let out = await envSessions[msg.author.id].execute(msg.content, undefined, timeObj);
             if (out !== undefined) await msg.reply('`' + out.toString() + '`');
-            if (envSessions[msg.author.id]?.opts.timeExecution) await msg.reply(`Timeings: ${timeObj.parse} ms parsing, ${timeObj.exec} ms execution`);
+            if (envSessions[msg.author.id]?.opts.timeExecution) await msg.reply(`Timings: ${timeObj.parse} ms parsing, ${timeObj.exec} ms execution`);
           } catch (e) {
             let error = e.toString().split('\n').map(l => `\`⚠ ${l}\``).join('\n');
             await msg.reply(error);

@@ -201,15 +201,6 @@ const operators = {
     syntax: 'a * b',
     assoc: 'ltr',
   },
-  "∩": {
-    name: 'intersection',
-    precedence: 15,
-    args: 2,
-    fn: (a, b) => a.castTo('any').__intersect__?.(b.castTo('any')),
-    desc: `a ∩ b`,
-    syntax: 'intersection of a and b',
-    assoc: 'ltr',
-  },
   "+": {
     name: 'addition',
     precedence: 14,
@@ -218,15 +209,6 @@ const operators = {
     desc: `a + b`,
     syntax: 'a + b',
     unary: 'u+',
-    assoc: 'ltr',
-  },
-  "∪": {
-    name: 'union',
-    precedence: 14,
-    args: 2,
-    fn: (a, b) => a.castTo('any').__union__?.(b.castTo('any')),
-    desc: `a ∪ b`,
-    syntax: 'union of a and b',
     assoc: 'ltr',
   },
   "-": {

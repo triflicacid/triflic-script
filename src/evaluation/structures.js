@@ -21,6 +21,7 @@ class ArrayStructure extends Structure {
     super("ARRAY", pos);
     this.rs = rs;
     this.elements = elements;
+    this.assignment = false; // Is array being used in an assignment expression?
   }
 
   validate() {
@@ -28,8 +29,18 @@ class ArrayStructure extends Structure {
   }
 
   async eval(evalObj) {
-    const values = await Promise.all(this.elements.map(el => el.eval(evalObj)));
-    return new ArrayValue(this.rs, values);
+    if (this.assignment) {
+      let values = [];
+      for (let i = 0; i < this.elements.length; i++) {
+        let el = this.elements[i];
+        if (el.tokens.length !== 1 || typeof el.tokens[0].getVarNoError !== 'function') throw new Error(`[${errors.SYNTAX}] Syntax Error: malformed array assignation expression. Expected array of symbols on lhs of expression at position ${this.pos}, member ${i}`);
+        values.push(el.tokens[0]);
+      }
+      return new ArrayValue(this.rs, values, false);
+    } else {
+      let values = await Promise.all(this.elements.map(el => el.eval(evalObj)));
+      return new ArrayValue(this.rs, values);
+    }
   }
 }
 
@@ -667,6 +678,7 @@ class GotoStructure extends Structure {
   }
 }
 
+/** Variable declartion: let */
 class LetStructure extends Structure {
   /** symbol -> VariableToken */
   constructor(pos, rs, symbol) {
@@ -678,8 +690,13 @@ class LetStructure extends Structure {
   validate() { }
 
   async eval(evalObj) {
-    this.rs.defineVar(this.symbol.value);
-    return this.symbol;
+    if (Array.isArray(this.symbol)) {
+      for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value);
+      return new ArrayValue(this.rs, this.symbol, false); // Return array of un-evaluated symbols for expression purposes
+    } else {
+      this.rs.defineVar(this.symbol.value);
+      return this.symbol;
+    }
   }
 }
 

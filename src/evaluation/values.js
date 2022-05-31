@@ -599,8 +599,8 @@ class BoolValue extends Value {
 }
 
 class ArrayValue extends Value {
-  constructor(runspace, items = []) {
-    super(runspace, items.map(v => v.castTo('any')));
+  constructor(runspace, items = [], castToAny = true) {
+    super(runspace, castToAny ? items.map(v => v.castTo('any')) : items);
   }
 
   type() { return "array"; }
@@ -684,16 +684,17 @@ class ArrayValue extends Value {
     }));
   }
 
+  /** Array assignmation. This -> symbols. Other -> values */
   __assign__(other) {
     if (other.type() === 'array') {
       try {
-        if (other.value.length !== this.value.length) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot unpack array of length ${other.value.length} into array of length ${this.value.length}`);
-        const tmpValues = [];
-        for (let i = 0; i < other.value.length; i++) {
+        // if (other.value.length > this.value.length) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot unpack array of length ${other.value.length} into array of length ${this.value.length}`);
+        let lim = this.value.length, tmpValues = [];
+        for (let i = 0; i < lim; i++) {
           if (typeof this.value[i].__assign__ !== 'function') {
-            throw new Error(`[${errors.TYPE_ERROR}] Type Error: Unable to unpack arrays: cannot assign to type ${this.value[i].type()} (${this.value[i]}) is `);
+            throw new Error(`[${errors.TYPE_ERROR}] Type Error: Unable to unpack arrays: cannot assign to type ${this.value[i].type()} (${this.value[i]})`);
           }
-          tmpValues.push(other.value[i].castTo("any"));
+          tmpValues.push(other.value[i] ? other.value[i].castTo("any") : this.rs.UNDEFINED);
         }
 
         for (let i = 0; i < this.value.length; i++) {
@@ -714,18 +715,6 @@ class ArrayValue extends Value {
     const t = n.type();
     if (t === 'array') return new ArrayValue(this.rs, intersect(this.toPrimitive('array'), n.toPrimitive('array')));
     if (t === 'real') return new ArrayValue(this.rs, arrRepeat(this.toPrimitive('array'), n.toPrimitive('real_int')));
-  }
-
-  /** operator: ∩ */
-  __intersect__(n) {
-    const t = n.type();
-    if (t === 'array') return new ArrayValue(this.rs, intersect(this.toPrimitive('array'), n.toPrimitive('array')));
-  }
-
-  /** operator: ∪ */
-  __union__(n) {
-    const t = n.type();
-    if (t === 'array') return new ArrayValue(this.rs, this.toPrimitive('array').concat(n.toPrimitive('array')));
   }
 
   /** operator: + */
@@ -824,18 +813,6 @@ class SetValue extends Value {
   __mul__(n) {
     const t = n.type();
     if (t === 'set') return new SetValue(this.rs, intersect(this.toPrimitive('array'), n.toPrimitive('array')));
-  }
-
-  /** operator: ∩ */
-  __intersect__(n) {
-    const t = n.type();
-    if (t === 'set') return new SetValue(this.rs, intersect(this.toPrimitive('array'), n.toPrimitive('array')));
-  }
-
-  /** operator: ∪ */
-  __union__(n) {
-    const t = n.type();
-    if (t === 'set') return new SetValue(this.rs, this.toPrimitive('array').concat(n.toPrimitive('array')));
   }
 
   /** operator: + */
