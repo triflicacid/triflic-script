@@ -8,7 +8,6 @@ class RunspaceFunction {
    * @param {string} desc - optional description of function
    */
   constructor(rs, name, args, desc = undefined, returnType = 'any') {
-
     this.rs = rs;
     this.rargs = args;
     this.args = new Map(); // { [arg: string]: { pass: "val"|"ref", type: string } }

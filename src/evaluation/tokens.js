@@ -1,11 +1,12 @@
 const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracketError, expectedSyntaxError, decodeEscapeSequence } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
-const { StringValue, NumberValue, Value, UndefinedValue, CharValue, BoolValue } = require("./values");
+const { StringValue, NumberValue, Value, UndefinedValue, CharValue, BoolValue, FunctionRefValue } = require("./values");
 const operators = require("./operators");
 const { errors } = require("../errors");
 const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure, SwitchStructure, LabelStructure, GotoStructure, LetStructure } = require("./structures");
 const { Block } = require("./block");
 const Complex = require("../maths/Complex");
+const { RunspaceUserFunction } = require("../runspace/Function");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -343,28 +344,83 @@ class TokenLine {
           }
         }
         this.tokens[i] = this.tokens[i].value; // Remove all ValueToken objects
-      } else if ((this.tokens[i] instanceof VariableToken || (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '(')) && this.tokens[i + 1] instanceof OperatorToken && this.tokens[i + 1].value === '-' && this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === '>') {
-        let block, j = i + 3;
-
-        if (this.tokens[j] instanceof BracketedTokenLines && this.tokens[j].opening === '{') {
-          block = this.block.createChild(this.tokens[j].value, this.tokens[j].pos);
-          j++;
+      } else if (i === 0 && this.tokens[i] instanceof VariableToken && this.tokens[i + 1] instanceof OperatorToken && this.tokens[i + 1].value === '-' && this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === '>') {
+        //* SHORTHAND LAMBDA WITHOUT PARAMETERS OR RETURN TYPE
+        // Extract function body
+        let name = this.tokens[i].value, body, toSplice = 4;
+        if (this.tokens[i + 3] instanceof Block) {
+          body = this.tokens[i + 3];
         } else {
           // Extract everything up to EOL or COMMA
-          let tokens = [];
+          let tokens = [], j = i + 3;
           for (; j < this.tokens.length; j++) {
-            if (this.tokens[j] instanceof EOLToken || (this.tokens[j] instanceof OperatorToken && this.tokens[j].value === ',')) {
-              break;
-            } else {
-              tokens.push(this.tokens[j]);
-            }
+            if (this.tokens[j] instanceof EOLToken || (this.tokens[j] instanceof OperatorToken && this.tokens[j].value === ',')) break;
+            tokens.push(this.tokens[j]);
           }
           if (tokens.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected following '->', got ${this.tokens[j] ? `${this.tokens[j]} at position ${this.tokens[j].pos}` : `end of input at position ${this.tokens[j - 1].pos}`}`);
-          block = this.block.createChild([new TokenLine(this.rs, undefined, tokens)], this.tokens[i + 3]?.pos);
+          body = this.block.createChild([new TokenLine(this.rs, undefined, tokens)], this.tokens[i + 5]?.pos);
+          toSplice = j - i;
         }
 
-        let args = this.tokens[i] instanceof VariableToken ? new BracketedTokenLines(this, [new TokenLine(this.rs, undefined, [this.tokens[i]])], '(', this.tokens[i].pos) : this.tokens[i];
-        this.tokens.splice(i, j - i, new KeywordToken(this, 'func', this.tokens[i].pos), args, block);
+        // Prepare
+        body.breakable = 0;
+        body.returnable = 2; // Handle returns directly
+        body.prepare();
+
+        // Create function
+        let fn = new RunspaceUserFunction(this.rs, name, {}, body);
+        let ref = new FunctionRefValue(this.rs, fn);
+
+        // Define function
+        this.rs.defineVar(fn.name, ref);
+
+        // Remove used tokens
+        this.tokens.splice(i, toSplice);
+      } else if ((this.tokens[i] instanceof VariableToken || (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '(')) && this.tokens[i + 1] instanceof OperatorToken && this.tokens[i + 1].value === '-' && this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === '>') {
+        //* SHORTHAND LAMBDA WITHOUT RETURN TYPE
+        let structure = new FuncStructure(this.tokens[i].pos, this.rs, {});
+        structure.args = this.tokens[i] instanceof VariableToken ? ({ [this.tokens[i].value]: { type: 'any' } }) : parseAsFunctionArgs(this.tokens[i]);
+
+        // Extract function body
+        if (this.tokens[i + 3] instanceof Block) {
+          structure.body = this.tokens[i + 3];
+          this.tokens.splice(i, 3, structure);
+        } else {
+          // Extract everything up to EOL or COMMA
+          let tokens = [], j = i + 3;
+          for (; j < this.tokens.length; j++) {
+            if (this.tokens[j] instanceof EOLToken || (this.tokens[j] instanceof OperatorToken && this.tokens[j].value === ',')) break;
+            tokens.push(this.tokens[j]);
+          }
+          if (tokens.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected following '->', got ${this.tokens[j] ? `${this.tokens[j]} at position ${this.tokens[j].pos}` : `end of input at position ${this.tokens[j - 1].pos}`}`);
+          structure.body = this.block.createChild([new TokenLine(this.rs, undefined, tokens)], this.tokens[i + 5]?.pos);
+          this.tokens.splice(i, j - i, structure);
+        }
+
+        structure.validate();
+      } else if ((this.tokens[i] instanceof VariableToken || (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '(')) && (this.tokens[i + 1] instanceof OperatorToken && this.tokens[i + 1].value === ":" && this.tokens[i + 3] instanceof OperatorToken && this.tokens[i + 3].value === '-' && this.tokens[i + 4] instanceof OperatorToken && this.tokens[i + 4].value === '>')) {
+        //* SHORTHAND LAMBDA WITH RETURN TYPE
+        let structure = new FuncStructure(this.tokens[i].pos, this.rs, {});
+        structure.returnType = this.tokens[i + 2].value;
+        structure.args = this.tokens[i] instanceof VariableToken ? ({ [this.tokens[i].value]: { type: 'any' } }) : parseAsFunctionArgs(this.tokens[i]);
+
+        // Extract function body
+        if (this.tokens[i + 5] instanceof Block) {
+          structure.body = this.tokens[i + 5];
+          this.tokens.splice(i, 5, structure);
+        } else {
+          // Extract everything up to EOL or COMMA
+          let tokens = [], j = i + 5;
+          for (; j < this.tokens.length; j++) {
+            if (this.tokens[j] instanceof EOLToken || (this.tokens[j] instanceof OperatorToken && this.tokens[j].value === ',')) break;
+            tokens.push(this.tokens[j]);
+          }
+          if (tokens.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected following '->', got ${this.tokens[j] ? `${this.tokens[j]} at position ${this.tokens[j].pos}` : `end of input at position ${this.tokens[j - 1].pos}`}`);
+          structure.body = this.block.createChild([new TokenLine(this.rs, undefined, tokens)], this.tokens[i + 5]?.pos);
+          this.tokens.splice(i, j - i, structure);
+        }
+
+        structure.validate();
       } else if (this.tokens[i] instanceof BracketedTokenLines) {
         let ok = true;
         if (this.tokens[i].opening === '[') { // *** ARRAY
@@ -634,109 +690,41 @@ class TokenLine {
               this.tokens.splice(i, 1);
             }
 
-            let ok = true;
+            let ok = true, offset = 0, removeCount = 0;
+
+            // Arguments?
+            let argGroup;
             if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
-              let removeCount = 3, offset = 2;
-              let returnType = 'any';
+              argGroup = this.tokens[i + 1];
+              removeCount = 3
+              offset = 2;
+            } else {
+              removeCount = 2;
+              offset = 1;
+            }
 
-              if (this.tokens[i + offset] instanceof OperatorToken && this.tokens[i + offset].value === ':') {
-                offset++;
+            // Return Value
+            let returnType = "any";
+            if (ok && this.tokens[i + offset] instanceof OperatorToken && this.tokens[i + offset].value === ':') {
+              offset++;
+              removeCount++;
+              if (this.tokens[i + offset] instanceof VariableToken || this.tokens[i + offset] instanceof KeywordToken) {
+                returnType = this.tokens[i + offset].value;
                 removeCount++;
-                if (this.tokens[i + offset] instanceof VariableToken || this.tokens[i + offset] instanceof KeywordToken) {
-                  returnType = this.tokens[i + offset].value;
-                  removeCount++;
-                  offset++;
-                } else ok = false;
-              }
-
-              if (ok && this.tokens[i + offset] instanceof Block) {
-                const argLine = this.tokens[i + 1];
-                structure.body = this.tokens[i + offset];
-                structure.returnType = returnType;
-                this.tokens.splice(i, removeCount, structure);
-
-                // Extract argGroup
-                // Syntax: "arg[: [ref|val] [?]type [= ...]]"
-                let argObj = {}, lastOptional = null, foundEllipse = false; // Last encountered optional argument, found ellipse '...' ?
-                if (argLine.value.length === 1) {
-                  let args = argLine.value[0].splitByCommas(false); // DO NOT do extra parsing - not required for function arguments
-                  for (let arg of args) {
-                    let data = {}, ok = true, i = 0, param;
-
-                    // Collapse multiple arguments into array?
-                    if (arg.tokens[i].value === '...') {
-                      data.ellipse = true;
-                      i++;
-                    }
-
-                    // Parameter name
-                    if (arg.tokens[i] === undefined || !(arg.tokens[i] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected parameter name, got ${arg.tokens[i]} at position ${arg.tokens[i]?.pos}`);
-                    else {
-                      param = arg.tokens[i];
-                      if (param.value in argObj) throw new Error(`[${errors.NAME}] Name Error: Duplicate parameter name '${param.value}' at position ${param.pos}`);
-                      i++;
-                    }
-                    if (foundEllipse) throw new Error(`[${errors.SYNTAX}] Syntax Error: '...' must be last parameter (encountered parameter '${param.value}' after '...' at position ${param.pos})`);
-
-                    // Type information?
-                    if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === ':') {
-                      i++;
-
-                      if (arg.tokens[i] instanceof VariableToken && (arg.tokens[i + 1] instanceof VariableToken || arg.tokens[i + 1] instanceof KeywordToken || (arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '?'))) {
-                        if (arg.tokens[i].value === 'val' || arg.tokens[i].value === 'ref') {
-                          data.pass = arg.tokens[i].value;
-                          i++;
-                        } else ok = false;
-                      }
-                      if (ok && arg.tokens[i] instanceof OperatorToken) {
-                        if (arg.tokens[i].value === '?') {
-                          if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': pass-by-reference parameter '${param}' cannot be optional`);
-                          data.optional = true;
-                          lastOptional = arg.tokens[0].value;
-                          i++;
-                        } else {
-                          ok = false;
-                        }
-                      }
-                      if (ok) {
-                        if (arg.tokens[i] instanceof VariableToken || arg.tokens[i] instanceof KeywordToken) {
-                          data.type = arg.tokens[i].value;
-                          i++;
-                        } else ok = false;
-                      }
-                    }
-
-                    // Default value?
-                    if (ok && arg.tokens[i]) {
-                      if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === '=') {
-                        i++;
-                        if (arg.tokens[i] instanceof Token) {
-                          if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '=' at position ${arg.tokens[i].pos}: ${data.pass} parameter '${param.value}' cannot have a default value`);
-                          data.optional = true;
-                          data.default = arg.tokens[i];
-                          if (data.default instanceof ValueToken) data.default = data.default.value;
-                          else if (data.default instanceof BracketedTokenLines) {
-                            data.default.prepare();
-                          }
-                          i++;
-                        } else ok = false;
-                      } else ok = false;
-                    }
-
-                    // Set parameter info
-                    if (ok && arg.tokens[i] !== undefined) ok = false;
-                    if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter '${param.value}' at position ${param.pos}`);
-                    if (lastOptional && !data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${param.value}' cannot precede optional argument '${lastOptional}' (position ${param.pos})`);
-                    if (data.ellipse) {
-                      foundEllipse = true;
-                      if (data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: '...' parameter '${param.value}' at ${param.pos} may not be optional`);
-                      if (!(data.pass === undefined || data.pass === 'val')) throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid pass-by type for '...' parameter '${param.value}' at ${param.pos}: ${data.pass}`);
-                    }
-                    argObj[param.value] = data;
-                  }
-                }
-                structure.args = argObj;
+                offset++;
               } else ok = false;
+            }
+
+            // Block for function body
+            if (this.tokens[i + offset] instanceof Block) {
+              structure.body = this.tokens[i + offset];
+              structure.returnType = returnType;
+              this.tokens.splice(i, removeCount, structure);
+
+              // Parse arguments
+              if (argGroup) {
+                structure.args = parseAsFunctionArgs(argGroup);
+              }
             } else ok = false;
 
             if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid FUNC construct at position ${structure.pos}`);
@@ -1291,6 +1279,90 @@ function _tokenify(obj) {
   }
 
   return;
+}
+
+/** Parse BracketedTokenLine as function arguments string. Return argument object. */
+function parseAsFunctionArgs(argGroup) {
+  // Syntax: "arg[: [ref|val] [?]type [= ...]]"
+  let argObj = {}, lastOptional = null, foundEllipse = false; // Last encountered optional argument, found ellipse '...' ?
+  if (argGroup.value.length === 1) {
+    let args = argGroup.value[0].splitByCommas(false); // DO NOT do extra parsing - not required for function arguments
+    for (let arg of args) {
+      let data = {}, ok = true, i = 0, param;
+
+      // Collapse multiple arguments into array?
+      if (arg.tokens[i].value === '...') {
+        data.ellipse = true;
+        i++;
+      }
+
+      // Parameter name
+      if (arg.tokens[i] === undefined || !(arg.tokens[i] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected parameter name, got ${arg.tokens[i]} at position ${arg.tokens[i]?.pos}`);
+      else {
+        param = arg.tokens[i];
+        if (param.value in argObj) throw new Error(`[${errors.NAME}] Name Error: Duplicate parameter name '${param.value}' at position ${param.pos}`);
+        i++;
+      }
+      if (foundEllipse) throw new Error(`[${errors.SYNTAX}] Syntax Error: '...' must be last parameter (encountered parameter '${param.value}' after '...' at position ${param.pos})`);
+
+      // Type information?
+      if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === ':') {
+        i++;
+
+        if (arg.tokens[i] instanceof VariableToken && (arg.tokens[i + 1] instanceof VariableToken || arg.tokens[i + 1] instanceof KeywordToken || (arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '?'))) {
+          if (arg.tokens[i].value === 'val' || arg.tokens[i].value === 'ref') {
+            data.pass = arg.tokens[i].value;
+            i++;
+          } else ok = false;
+        }
+        if (ok && arg.tokens[i] instanceof OperatorToken) {
+          if (arg.tokens[i].value === '?') {
+            if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': pass-by-reference parameter '${param}' cannot be optional`);
+            data.optional = true;
+            lastOptional = arg.tokens[0].value;
+            i++;
+          } else {
+            ok = false;
+          }
+        }
+        if (ok) {
+          if (arg.tokens[i] instanceof VariableToken || arg.tokens[i] instanceof KeywordToken) {
+            data.type = arg.tokens[i].value;
+            i++;
+          } else ok = false;
+        }
+      }
+
+      // Default value?
+      if (ok && arg.tokens[i]) {
+        if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === '=') {
+          i++;
+          if (arg.tokens[i] instanceof Token) {
+            if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected token '=' at position ${arg.tokens[i].pos}: ${data.pass} parameter '${param.value}' cannot have a default value`);
+            data.optional = true;
+            data.default = arg.tokens[i];
+            if (data.default instanceof ValueToken) data.default = data.default.value;
+            else if (data.default instanceof BracketedTokenLines) {
+              data.default.prepare();
+            }
+            i++;
+          } else ok = false;
+        } else ok = false;
+      }
+
+      // Set parameter info
+      if (ok && arg.tokens[i] !== undefined) ok = false;
+      if (!ok) throw new Error(`[${errors.SYNTAX}] Syntax Error: FUNCTION: invalid syntax in parameter '${param.value}' at position ${param.pos}`);
+      if (lastOptional && !data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${param.value}' cannot precede optional argument '${lastOptional}' (position ${param.pos})`);
+      if (data.ellipse) {
+        foundEllipse = true;
+        if (data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: '...' parameter '${param.value}' at ${param.pos} may not be optional`);
+        if (!(data.pass === undefined || data.pass === 'val')) throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid pass-by type for '...' parameter '${param.value}' at ${param.pos}: ${data.pass}`);
+      }
+      argObj[param.value] = data;
+    }
+  }
+  return argObj;
 }
 
 module.exports = { Token, BracketToken, VariableToken, OperatorToken, TokenLine, KeywordToken, BracketedTokenLine: BracketedTokenLines, tokenify };

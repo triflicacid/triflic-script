@@ -19,6 +19,8 @@ For more help, see `programs/` and the built-in `help` function.
     - `f(1,2)` -> `a=1, b=[], c=2`
     - `f(1,2,3)` -> `a=1, b=[2], c=3`
     - `f(1,2,3,4,5)` -> `a=1, b=[2,3,4], c=5`
+- Function parenthesis (when defining) may be omitted to declare a function with no parameters when using the `func` keyword
+  - E.g. `func main { ... }`. NOTE, calling will still require parenthesis e.g. `main`
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
 
 ## Bugs
@@ -255,13 +257,16 @@ There are two types of functions: `built-in`s and `user-defined`
 #### lambda
 A lambda is a short-hand syntax for defining single-line, anonymous functions
 
-Syntax: `<args> -> <body>`
+Syntax: `<args>[: <returnType>] -> <body>`
 - `<args>` - either a single symbol e.g. `x` or an argument list e.g. `(x, y: ref string)`
+- `<returnType>` - return type of function
 - `<body>` - function body. Either a block `{...}`, or up to `;` or `,`
 
-*NB This syntax is syntactic sugar for a `func` keyword. As such, while error positions may match, error messages may not*
-
 `f = x -> x * 2` is equivalent to `f = func(x) { x * 2 }`
+
+If appears at beginning of a line, may have this special format: `<name> -> <body>` to define a function without any arguments called `name`. This will define the function without returning a reference
+
+`hi -> "Hello"` is equivalent to `func hi { "Hello" }`
 
 See `func` keyword for more information.
 
@@ -406,7 +411,7 @@ A keyword commonly used after loop statements.
 `<block>` is executed after the loop terminates *naturally* (i.e. will not execute if `break`/`return` is used)
 
 ### `func`
-Syntax: `func [name] (<args>)[: <rettype>] {<block>}`
+Syntax: `func [name] [(<args>)][: <rettype>] {<block>}`
 
 This defines a function. `name` is optional.
 - If `name` is present, this defines a function and stores it in the current scope under a variable called `name`. No value is returned.
@@ -414,7 +419,7 @@ This defines a function. `name` is optional.
 
 i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };` achieve the same result.
 
-- `<args>` is a comma-seperated list of identifiers. Syntax: `[...]<arg>[: ["val"|"ref"] [?]<type>][= <value>]`.
+- `<args>` is a comma-seperated list of identifiers. Syntax: `[...]<arg>[: ["val"|"ref"] [?]<type>][= <value>]`. If ommited, the function takes no parameters
   - `<arg>` - argument name
   - `[...]` - marks parameter as compact.
     - This must be the last parameter

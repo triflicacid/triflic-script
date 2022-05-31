@@ -6,6 +6,10 @@ hi();
 hi = func() { println("Hello"); };
 hi();
 
+// Function declaration without parenthesis
+func hi { println("Hello"); }
+hi();
+
 // With arguments
 func add(a, b) { a + b; }
 println(add(5 + i, 3));
@@ -70,6 +74,10 @@ f = x -> x * 2, pow = (a, b = 2) -> a ** b;
 println(f(10));
 println(pow(3));
 println(pow(3, 4));
+
+// Definite lambda function
+get_pi -> pi;
+println(get_pi());
 
 // '...' arguments: compact to array
 func print_array(...items) {
