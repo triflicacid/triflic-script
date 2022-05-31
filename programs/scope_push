@@ -1,10 +1,12 @@
 func main() {
-  a = 12;
-  b = 10;
+  let a = 12;
+  let b = 10;
+
+  scope_push();
 }
 
 main();
-println(vars()); // Unexpectedly, prints [a,b]
+println(locals()); // Unexpectedly, prints [a,b]
 
 // program created [PUSH] -> scopes [{ <global> }]
 // main function is called [PUSH] -> scopes [{ <global> }, { <function main> }]

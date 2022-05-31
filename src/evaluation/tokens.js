@@ -433,7 +433,7 @@ class TokenLine {
             }
             structure.validate();
             this.tokens[i] = structure;
-          } else {
+          } else if (!(this.tokens[i - 1] instanceof KeywordToken && this.tokens[i - 1].value === "let")) { //* BLOCK assuming not following LET declaration
             if (this.block == undefined) throw new Error(`[${errors.SYNTAX}]: Syntax Error: invalid syntax '{' at position ${this.tokens[i].pos} (no enclosing block found)`);
             this.tokens[i] = this.block.createChild(this.tokens[i].value, this.tokens[i].pos);
           }
@@ -851,16 +851,18 @@ class TokenLine {
               const structure = new LetStructure(this.tokens[i].pos, this.rs, this.tokens[i + 1]);
               structure.validate();
               this.tokens.splice(i, 2, structure);
-            } else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === "[" && this.tokens[i + 1].value.length === 1) {
+            } else if (this.tokens[i + 1] instanceof BracketedTokenLines && (this.tokens[i + 1].opening === "[" || this.tokens[i + 1].opening === "{") && this.tokens[i + 1].value.length === 1) {
               let elements = this.tokens[i + 1].value[0].splitByCommas(), symbols = [];
               for (let i = 0; i < elements.length; i++) {
                 if (elements[i].tokens.length === 1 && elements[i].tokens[0] instanceof VariableToken) symbols.push(elements[i].tokens[0]);
                 else throw new Error(`[${errors.SYNTAX}] Syntax Error: expected array of symbols on lhs of expression at position ${elements[i].pos}, got otherwise in member ${i}`);
               }
               const structure = new LetStructure(this.tokens[i].pos, this.rs, symbols);
+              structure.variation = this.tokens[i + 1].opening === "{" ? "set" : "array";
               structure.validate();
               this.tokens.splice(i, 2, structure);
             } else {
+              console.log(this.tokens[i + 1]);
               throw new Error(`[${errors.SYNTAX}] Syntax Error: expected symbol, got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos} in 'let' expression`);
             }
             break;
@@ -956,7 +958,7 @@ class TokenLine {
         if (ret !== undefined) stack.push(ret);
       } else if (cT instanceof Structure) {
         // If, in infix, is before an assignment operator, special
-        if (cT instanceof ArrayStructure && T[i + 2] instanceof OperatorToken && T[i + 2].value === "=") cT.assignment = true;
+        if ((cT instanceof ArrayStructure || cT instanceof SetStructure) && T[i + 2] instanceof OperatorToken && (T[i + 2].value === "=" || T[i + 2].value === "=>")) cT.assignment = true;
         let ret = await cT.eval(evalObj); // Execute structure body
         if (ret !== undefined) stack.push(ret);
       } else {

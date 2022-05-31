@@ -6,7 +6,6 @@ const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
 const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
 const setupIo = require("./src/runspace/setup-io");
-const { system } = require("./src/utils-node");
 
 // PARSE ARGV, SETUP RUNSPACE
 const opts = parseArgString(process.argv, true);

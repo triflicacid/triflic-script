@@ -685,26 +685,34 @@ class ArrayValue extends Value {
   }
 
   /** Array assignmation. This -> symbols. Other -> values */
-  __assign__(other) {
+  __assignTemplate(other, assignFnName) {
     if (other.type() === 'array') {
       try {
         // if (other.value.length > this.value.length) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot unpack array of length ${other.value.length} into array of length ${this.value.length}`);
         let lim = this.value.length, tmpValues = [];
         for (let i = 0; i < lim; i++) {
-          if (typeof this.value[i].__assign__ !== 'function') {
+          if (typeof this.value[i][assignFnName] !== 'function') {
             throw new Error(`[${errors.TYPE_ERROR}] Type Error: Unable to unpack arrays: cannot assign to type ${this.value[i].type()} (${this.value[i]})`);
           }
           tmpValues.push(other.value[i] ? other.value[i].castTo("any") : this.rs.UNDEFINED);
         }
 
         for (let i = 0; i < this.value.length; i++) {
-          this.value[i].__assign__(tmpValues[i]);
+          this.value[i][assignFnName](tmpValues[i]);
         }
         return this;
       } catch (e) {
         throw new Error(`[${errors.BAD_ARG}] Errors whilst unpacking array[${other.value.length}] into array[${this.value.length}]:\n${e}`);
       }
     }
+  }
+
+  __assign__(other) {
+    return this.__assignTemplate(other, "__assign__");
+  }
+
+  __nonlocalAssign__(other) {
+    return this.__assignTemplate(other, "__nonlocalAssign__");
   }
 
   /** operator: == */
@@ -826,6 +834,38 @@ class SetValue extends Value {
   __sub__(n) {
     const t = n.type();
     if (t === 'set') return new SetValue(this.rs, arrDifference(this.toPrimitive('array'), n.toPrimitive('array')));
+  }
+
+  /** Map assignmation. This -> symbols. Other (map) -> values */
+  __assignTemplate(other, assignFnName) {
+    if (other.type() === 'map') {
+      try {
+        let tmpValues = new Map();
+        for (let i = 0; i < this.value.length; i++) {
+          if (typeof this.value[i][assignFnName] !== 'function') {
+            throw new Error(`[${errors.TYPE_ERROR}] Type Error: Unable to unpack arrays: cannot assign to type ${this.value[i].type()} (${this.value[i]})`);
+          }
+          let key = this.value[i].value;
+          tmpValues.set(key, other.value.has(key) ? other.value.get(key).castTo("any") : this.rs.UNDEFINED);
+        }
+
+        for (let i = 0; i < this.value.length; i++) {
+          let key = this.value[i].value;
+          this.value[i][assignFnName](tmpValues.get(key));
+        }
+        return this;
+      } catch (e) {
+        throw new Error(`[${errors.BAD_ARG}] Errors whilst unpacking array[${other.value.length}] into array[${this.value.length}]:\n${e}`);
+      }
+    }
+  }
+
+  __assign__(other) {
+    return this.__assignTemplate(other, "__assign__")
+  }
+
+  __nonlocalAssign__(other) {
+    return this.__assignTemplate(other, "__nonlocalAssign__");
   }
 }
 

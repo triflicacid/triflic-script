@@ -1,4 +1,4 @@
-// symbols == values
+// array: symbols == values
 let a, let b, let c;
 println("{a=}, {b=}, {c=}"); // a=undef, b=undef, c=undef
 [a, b, c] = [1, 2, 3];
@@ -6,7 +6,7 @@ println("{a=}, {b=}, {c=}"); // a=1, b=1, c=3
 
 println();
 
-// symbols > values
+// array: symbols > values
 let a, let b, let c = -1;
 println("{a=}, {b=}, {c=}"); // a=undef, b=undef, c=-1
 [a, b, c] = [4, 5];
@@ -14,14 +14,22 @@ println("{a=}, {b=}, {c=}"); // a=4, b=5, c=undef
 
 println();
 
-// symbols < values
+// array: symbols < values
 let a, let b, let c = -1;
 println("{a=}, {b=}, {c=}"); // a=undef, b=undef, c=-1
 [a, b] = [6, 7, 8];
 println("{a=}, {b=}, {c=}"); // a=6, b=7, c=-1
 
-// swapping variables
+// array: swapping variables
 let a = 1, let b = 2;
 println("{a=}, {b=}");
 [a, b] = [b, a];
 println("{a=}, {b=}");
+
+println();
+
+// map: extracting keys
+let app = "unknown";
+println("{app=}"); // app=unknown
+{ app } = headers;
+println("{app=}"); // app=FILE

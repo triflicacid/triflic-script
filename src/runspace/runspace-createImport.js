@@ -39,7 +39,7 @@ Runspace.prototype.import = async function (file) {
     if (ext === '.js') {
       let fn;
       try {
-        fn = require(fpath);
+        fn = require(path.resolve(fpath));
       } catch (e) {
         restore();
         throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: error whilst requiring ${fpath}:\n${e}`);

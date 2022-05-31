@@ -79,6 +79,7 @@ class SetStructure extends Structure {
     super("SET", pos);
     this.rs = rs;
     this.elements = elements;
+    this.assignment = false; // Is array being used in an assignment expression?
   }
 
   validate() {
@@ -86,8 +87,18 @@ class SetStructure extends Structure {
   }
 
   async eval(evalObj) {
-    const values = await Promise.all(this.elements.map(el => el.eval(evalObj)));
-    return new SetValue(this.rs, values.map(v => v.castTo('any')));
+    if (this.assignment) {
+      let values = [];
+      for (let i = 0; i < this.elements.length; i++) {
+        let el = this.elements[i];
+        if (el.tokens.length !== 1 || typeof el.tokens[0].getVarNoError !== 'function') throw new Error(`[${errors.SYNTAX}] Syntax Error: malformed map assignation expression. Expected set of symbols on lhs of expression at position ${this.pos}, member ${i}`);
+        values.push(el.tokens[0]);
+      }
+      return new SetValue(this.rs, values);
+    } else {
+      let values = await Promise.all(this.elements.map(el => el.eval(evalObj)));
+      return new SetValue(this.rs, values.map(v => v.castTo('any')));
+    }
   }
 }
 class IfStructure extends Structure {
@@ -685,17 +696,23 @@ class LetStructure extends Structure {
     super("LET", pos);
     this.rs = rs;
     this.symbol = symbol;
+    this.variation = "single";
   }
 
   validate() { }
 
   async eval(evalObj) {
-    if (Array.isArray(this.symbol)) {
-      for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value);
-      return new ArrayValue(this.rs, this.symbol, false); // Return array of un-evaluated symbols for expression purposes
-    } else {
-      this.rs.defineVar(this.symbol.value);
-      return this.symbol;
+    switch (this.variation) {
+      case "array":
+        for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value);
+        return new ArrayValue(this.rs, this.symbol, false); // Return array of un-evaluated symbols for expression purposes
+      case "set":
+        for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value);
+        return new SetValue(this.rs, this.symbol); // Return array of un-evaluated symbols for expression purposes
+      default:
+        this.rs.defineVar(this.symbol.value);
+        return this.symbol;
+
     }
   }
 }

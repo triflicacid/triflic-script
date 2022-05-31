@@ -55,7 +55,8 @@ There are some types listed that are general terms:
 | `^` | `bool` | `real-like` | XORs arg1 and arg2 | `true ^ 5` => `4` |
 | `+` | `bool` | `numeric` | Adds arg1 and arg2 | `true + 1` => `2` |
 | `[]` | `array` | `any` | arg2 is inside `[]`. Evaluate arg2 and get item at index arg2 in array arg1  | `argv[0]` => `"--intro"` |
-| `=` | `array` | `array` | If arrays are equal length, assign each item in arg1 to the corresponding item in arg2 | `[a,b] = [1,2]` => `a=1, b=2` |
+| `=` | `array` | `array` | Assign each item in arg1 to the corresponding item in arg2, or `undef` | `[a,b] = [1,2]` => `a=1, b=2` |
+| `=` | `set` | `map` | Assign each item in arg1 to the value of the corresponding key in arg2, or `undef` | `{app} = headers` => `app=CLI` |
 | `==` | `array` | `any` | Return true is arg2 is array, they are of equal length and each item in arg1 equals each item in arg2 | `[1,2] == [1,2]` => `true` |
 | `*` | `array` | `real` | Repeats contents of arg1 arg2 times | `[1] * 4` => `[1,1,1,1]` |
 | `*` | `array` | `array` | Returns intersection (overlap) of arg1 and arg2 | `[1,2,3] * [0,1,2]` => `[1,2]` |
@@ -74,9 +75,13 @@ There are some types listed that are general terms:
 | `()` | `func` | argument string | Calls arg1 with arguments arg2 | `sin(1)` => `0.8414709848078965` |
 | `==` | `func` | `func` | Return true if function names match | `sin == sin` => `true` |
 | `=` | `symbol` | `any` | Creates new binding for symbol arg1 and sets to arg2 | `a = 10, a` => `10` |
-| `=>` | `symbol` | `any` | Sets existing binding to symbol arg1 to arg2 (symbol must already have been defined) | `a => 10, a` => `10` |
+| `=>` | `symbol` | `any` | Sets existing binding to symbol arg1 to arg2* | `a => 10, a` => `10` |
 | `+=` | `symbol` | `any` | Adds arg2 to variable arg1 | `a = 10, a += 5, a` => `15` |
 | `-=` | `symbol` | `any` | Subtracts arg2 from variable arg1 | `a = 10, a -= 5, a` => `5` |
 | `*=` | `symbol` | `any` | Multiplies variable arg1 by arg2 | `a = 10, a *= 2, a` => `20` |
 | `/=` | `symbol` | `any` | Divides variable arg1 by arg2 | `a = 10, a /= 2, a` => `5` |
 | `%=` | `symbol` | `any` | Sets arg1 to arg1 % arg2 | `a = 10, a %= 3, a` => `1` |
+
+## Notes
+
+- `=>` : the symbol(s) must already be defined. This operator otherwise behaves equivalently to `=`.

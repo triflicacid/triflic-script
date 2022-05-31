@@ -9,7 +9,6 @@ For more help, see `programs/` and the built-in `help` function.
 
 ## Important Notes
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
-- Array-unpacking `[a, b] = [1, 2]` does not work
 
 ## TODO
 - Optional semi-colons. Expression terminates on
@@ -62,6 +61,7 @@ For more information on built-ins, enter `help()`.
 ### Variables
 - `ans` : `any`. Present if `--ans` is truthy. Contains value of last executed expression.
 - `_isMain` : `bool`. Boolean indicating if script was run or is imported.
+- `headers` : `map`. Contains all headers used to initialise the application, including the value of all CLI argument described above.
 
 ### `exit(code: ?real_int)`
 **NB no longer unceremoniously calls `process.exit()`
@@ -71,7 +71,7 @@ Exits the current script execution (sets eval flag to `-1`) with a current code.
 After everything is cleared up, calls `#<Runspace>.onExitHandler(code)`
 
 ### `import(file: string)`
-Internal: calls `#<Runspace>.import()`
+Internal: calls `#<Runspace>.import(file)`
 
 This functions is used to import scripts into the current runspace. `file` may be any valid file.
 
@@ -209,16 +209,6 @@ If there are more `%`s than values, insert as may values as there are and preser
 
 If there are less `%`s than values, append left-over values onto end of string, seperated by spaces, as if `%s` was present.
 
-### Arrays
-
-Arrays are defined by square brackets `[]` and contain a collection of values
-
-#### Array Unpacking
-
-Array unpacking is used to assign multiple variables on a single line. An array assignation expression takes the form `[<symbols>] = [<values>]` where `<symbols>` is a comma-seperated list of symbols.
-
-See `tests/array-unpacking` for examples of the situations of array unpacking.
-
 ### Variables
 Variables store values in memory. There are some predefined variables (assuming `--define-vars` is truthy).
 
@@ -234,6 +224,24 @@ Variables may be assigned to using the `=` assignment operator. Variables may be
   - Declares variable `symbol` in given scope to `undef`
 
 If `--ans` is truthy, the `ans` variable contains the value of the last executed line. e.g. `2 + 1; ans` -> `3`
+
+#### Unpacking
+
+Unpacking refers to extracting and defining multiple variables from a single value
+
+- Array unpacking
+
+An array assignation expression takes the form `[<symbols>] = [<values>]` where `<symbols>` is a comma-seperated list of symbols. Each variable is assigned to its matching value, or `undef` if there is none.
+
+e.g. `[a, b] = [1, 2]` => `a = 1, b = 2`.
+
+- Map unpacking
+
+A map assignation expression takes the form `{<symbols>} = <map>` where `<symbols>` is a comma-seperated list of symbols. Each variable is assigned to its matching value in `<map>` where `<symbol>` acts as the key, or `undef` if there is no matching key.
+
+e.g. `{a, b} = [b: 11, a: "hi"]` => `a = "hi", b = 11`.
+
+**See `tests/unpacking` for full examples.
 
 ### Functions
 Functions recieve arguments and return a value.
@@ -492,7 +500,7 @@ It is **not** recommended to jump across scopes i.e. jumping into a function
 ### `let`
 Syntax: `let <symbol>`
 
-Defines variable `<symbol>` in the local scope
+Defines variable `<symbol>` in the local scope. May be a single symbol, an array of symbols or a set of symbols.
 
 Used to ensure that `<symbol>` is a local variable. See `tests/let` for examples.
 
