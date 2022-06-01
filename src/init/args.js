@@ -10,10 +10,8 @@ function parseArgString(args, doHideBin = true) {
     prompt: argv.prompt === undefined ? '>> ' : argv.prompt.toString(),
     intro: getArgvBool(argv, "intro", true),
     niceErrors: getArgvBool(argv, "nice-errors", true),
-    ans: getArgvBool(argv, "ans", true),
     imag: argv.imag,
     bidmas: getArgvBool(argv, "bidmas", true),
-    revealHeaders: getArgvBool(argv, "reveal-headers", true),
     multiline: getArgvBool(argv, "multiline", false),
     timeExecution: getArgvBool(argv, "time", false),
   };

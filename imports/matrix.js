@@ -106,7 +106,7 @@ function isLegal(arr) {
 
 module.exports = (rs, ei) => {
   Value.typeMap[TYPE] = MatrixValue;
-  types[TYPE] = 13;
+  types.add(TYPE);
 
   ArrayValue.castMap.matrix = o => {
     if (isLegal(o)) {

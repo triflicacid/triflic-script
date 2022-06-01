@@ -56,10 +56,8 @@ window.addEventListener("load", async () => {
     prompt: '>> ',
     intro: true,
     niceErrors: true,
-    ans: true,
     imag: "i",
     bidmas: true,
-    revealHeaders: true,
     multiline: true,
     timeExecution: false,
   };

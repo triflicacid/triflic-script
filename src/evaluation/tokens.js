@@ -930,7 +930,8 @@ class TokenLine {
       let items = stack.map(x => x + (x.pos === undefined ? '' : ` (position ${x.pos})`));
       throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax ${items.join(', ')}. Did you miss an EOL token ${EOLToken.symbol} (${EOLToken.symbol.charCodeAt(0)}) ?\n(evaluation failed to reduce expression to single value)`);
     }
-    if (this.rs._storeAns) this.rs.setVar('ans', stack[0].castTo('any'));
+    // Update 'ans' var with latest value
+    this.rs.setVar('ans', stack[0].castTo('any'), undefined, evalObj.exec_instance.pid);
     return stack[0];
   }
 

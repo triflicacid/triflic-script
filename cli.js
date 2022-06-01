@@ -88,7 +88,6 @@ async function main() {
     if (!opts.bidmas) notes.push("BIDMAS is being ignored");
     if (!opts.niceErrors) notes.push("nice error messages are disabled");
     if (!opts.defineFuncs) notes.push("pre-defined functions were not defined");
-    if (!opts.ans) notes.push("variable ans is not defined");
     notes.forEach(note => rs.io.output.write(`${consoleColours.Bright}${consoleColours.FgWhite}${consoleColours.Reverse}Note${consoleColours.Reset} ${note}\n`));
     rs.io.output.write('\n');
   }

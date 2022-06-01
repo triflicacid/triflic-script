@@ -1,1 +1,3 @@
+// NOTE used to test import() in script `./import`
+
 let myvalue = true;

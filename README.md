@@ -48,8 +48,6 @@ Not every argument is used in every execution method.
 - `prompt` : `string`. What prompt to display for input.
 - `intro` : `boolean`. Whether or not to print welcome prompt.
 - `nice-errors` : `boolean`. Whether or not to catch errors and prinpt nicely to the screen, or to crash the program.
-- `ans` : `boolean`. Whether or not to provide the `ans` variable.
 - `imag` : `character`. What character to use to represent the imaginary component in complex numbers. Set `--imag " "` to essentially disable complex numbers.
-- `reveal-headers` : `boolean`. Reveal CLI options and other information to Runspace as `headers` map?
 - `multiline` : `boolean`. Does the CLI allow multiline input?
 - `time` : `boolean`. CLI times each line of execution and displays it.

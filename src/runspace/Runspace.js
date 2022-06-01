@@ -5,7 +5,7 @@ const { createEvalObj } = require("../utils");
 const { primitiveToValueClass, MapValue, Value, FunctionRefValue, UndefinedValue, ArrayValue, BoolValue } = require("../evaluation/values");
 const { RunspaceFunction } = require("./Function");
 const { Block } = require("../evaluation/block");
-const { errors } = require("../errors.js");
+const { errors } = require("../errors");
 
 /**
  * For "normal" behaviour, run setup-io.js and runspace-createImport.js
@@ -20,12 +20,11 @@ class Runspace {
     opts.version = Runspace.VERSION;
     this.opts.name = Runspace.LANG_NAME;
     opts.time = Date.now();
-    this._storeAns = !!opts.ans;
     this.root = ""; // MUST BE SET EXTERNALLY
 
     this.importStack = [this.root]; // Stack of import directories
 
-    if (opts.revealHeaders) this.defineHeaderVar();
+    this.defineHeaderVar(); // Define variable 'headers' which contains this.opts
 
     this.stdin = process.stdin;
     this.stdout = process.stdout;
@@ -153,19 +152,6 @@ class Runspace {
     return false;
   }
 
-  /** Store answer variable for given process? */
-  storeAns(v = undefined, pid = 0) {
-    const proc = this._procs.get(pid);
-    if (v === undefined) return proc.ans;
-    proc.ans = !!v;
-    if (proc.ans) {
-      this.defineVar('ans', this.UNDEFINED, 'Store result of last execution', pid);
-    } else {
-      this.deleteVar('ans', pid);
-    }
-    return proc.ans;
-  }
-
   /** Create new execution instance, return object */
   create_instance() {
     let ilvl = this._cilvl++;
@@ -214,12 +200,12 @@ class Runspace {
       pid,
       evalObj,
       ilvl, // Instance level
-      ans: this._storeAns,
       vars: [new Map()], // Arrays represents different scopes.
       children: [], // Array of child processes
       imported_files: [],
       import_stack: [],
     });
+    this.defineVar('ans', this.UNDEFINED, 'Store result of last execution', pid); // Define ans
     return pid;
   }
 
@@ -289,6 +275,6 @@ class Runspace {
 }
 
 Runspace.LANG_NAME = "TriflicScript";
-Runspace.VERSION = 1.100;
+Runspace.VERSION = 1.101;
 
 module.exports = Runspace;

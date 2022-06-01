@@ -42,7 +42,7 @@ class RunspaceFunction {
           data.ellipse = !!args[arg].ellipse;
         }
 
-        if (!(data.type in types)) throw new Error(`[${errors.TYPE_ERROR}] Type Error: argument '${arg}: ${data.type}': invalid type '${data.type}' (function: ${name})`);
+        if (!types.has(data.type)) throw new Error(`[${errors.TYPE_ERROR}] Type Error: argument '${arg}: ${data.type}': invalid type '${data.type}' (function: ${name})`);
 
         this.args.set(arg, data);
 

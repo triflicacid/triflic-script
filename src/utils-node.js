@@ -1,5 +1,4 @@
 const readline = require("readline");
-const { errors } = require("./errors");
 const { exec } = require('child_process');
 
 const STDIN = process.stdin, STDOUT = process.stdout;

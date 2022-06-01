@@ -62,7 +62,7 @@ class VectorValue extends Value {
 
 module.exports = (rs, ei) => {
     Value.typeMap[TYPENAME] = VectorValue;
-    types[TYPENAME] = 20;
+    types.add(TYPENAME);
 
     ArrayValue.castMap.vector = o => new VectorValue(o.rs, new Vector(...o.toPrimitive('array')));
     VectorValue.castMap = {

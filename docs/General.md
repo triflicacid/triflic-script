@@ -162,7 +162,7 @@ Variables may be assigned to using the `=` assignment operator. Variables may be
 - Declaration using `let`
   - Declares variable `symbol` in given scope to `undef`
 
-If `--ans` is truthy, the `ans` variable contains the value of the last executed line. e.g. `2 + 1; ans` -> `3`
+The `ans` variable contains the value of the last executed line. e.g. `2 + 1; ans` -> `3`
 
 #### Unpacking
 

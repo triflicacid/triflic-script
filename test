@@ -1,8 +1,0 @@
-let a = 2;
-
-// Lambda function
-pow = (a, b = 2) -> a ** b;
-println(pow(3));
-println(pow(3, 4));
-
-exit(1);
