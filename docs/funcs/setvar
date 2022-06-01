@@ -1,0 +1,9 @@
+// Sets a variable in the local scope
+
+println(isdefined("a")); // => false
+setvar("a", 14);
+println(isdefined("a")); // => true
+
+// Can be used to set invalid-name variables which would be impossible due to syntax
+setvar("invalid variable", 50);
+println(getvar("invalid variable")); // => 50

@@ -1,0 +1,26 @@
+// Loops through each item of array, calling given function on each
+
+let arr = 1:6;
+println(arr); // => [0,1,2,3,4,5]
+
+// No arguments: constant value
+foreach(arr, () -> print("*")); // => *****
+println();
+
+// 1 argument: value
+foreach(arr, n -> print("{n} ")); // => 0 1 2 3 4 5
+println();
+
+// 2 arguments: value, index
+foreach(arr, (n, i) -> print("{i}: {n}; ")); // => 0: 1; 1: 2; 2: 3; 3: 4; 4: 5;
+println();
+
+// 3 arguments: value, index, array (original array)
+foreach(arr, (n, i, a) -> println("Item {i}={n} of array {a}"));
+/*
+Item 0=1 of array [1,2,3,4,5]
+Item 1=2 of array [1,2,3,4,5]
+Item 2=3 of array [1,2,3,4,5]
+Item 3=4 of array [1,2,3,4,5]
+Item 4=5 of array [1,2,3,4,5]
+*/

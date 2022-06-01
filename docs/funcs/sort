@@ -1,0 +1,4 @@
+// Sorrts argument array numerically (casts all to real)
+
+let arr = [4, 2, 6, 9, 1];
+println(sort(arr)); // => [1,2,4,6,9]

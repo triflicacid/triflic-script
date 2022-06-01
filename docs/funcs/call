@@ -1,0 +1,5 @@
+// Call first argument with rest of arguments as arguments ot that fuction
+
+println(call(random)); // => 0.32643777621863546
+println(call(sin, 1)); // => 0.8414709848078965
+println(call(sin, 1, 2)); // ERROR: argument error

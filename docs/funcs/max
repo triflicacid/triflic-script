@@ -1,0 +1,13 @@
+// Returns maximum of arguments, or undefined if none
+
+// Array: converts all arguments to a real
+println(max([1, 2, 3])); // => 3
+println(max([1, 2, "Hello"])); // => nan
+println(max({1, 2, 2})); // => 2
+
+// Return key of maximum argument (if cannot compare value, skip)
+println(max({ "a": 1, "b": 2 })); // => b
+println(max({ "a": 1, "b": "Hello" })); // => a (as cannot compare string, b is skipped)
+
+// Return greatest character in string (ASCII wise)
+println(max("Hello")); // o

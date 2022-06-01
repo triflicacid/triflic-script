@@ -2,9 +2,9 @@ const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli, random } = require("../maths/functions");
-const { sort, numberTypes, toBinary, fromBinary } = require("../utils");
-const { typeOf, types } = require("../evaluation/types");
-const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue } = require("../evaluation/values");
+const { sort, numberTypes, toBinary, fromBinary, int_to_base, base_to_int } = require("../utils");
+const { types } = require("../evaluation/types");
+const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue, CharValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
 const { errors, errorDesc } = require("../errors");
@@ -65,40 +65,50 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'signal', { code: '?real_int', value: '?any' }, ({ code, value }, evalObj) => {
     if (code !== undefined) {
       evalObj.action = code.toPrimitive("real_int");
-      if (value !== undefined) evalObj.actionValue = value.toPrimitive("string");
+      if (value !== undefined) evalObj.actionValue = value;
     }
     return new NumberValue(rs, evalObj.action);
   }, 'Get/set current evaluation signal'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'locals', {}, () => {
-    const vars = [];
-    rs._vars[rs._vars.length - 1].forEach((variable, name) => {
-      vars.push(new StringValue(rs, name));
-    });
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'locals', {}, (_, evalObj) => {
+    const scopes = rs.get_process(evalObj.exec_instance.pid).vars;
+    const vars = Array.from(scopes[scopes.length - 1].keys()).map(n => new StringValue(rs, n));
     return new ArrayValue(rs, vars);
   }, 'list all variables in the current scope (local variables)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', {}, () => {
-    const vars = new Set();
-    for (let i = rs._vars.length - 1; i >= 0; i--) {
-      rs._vars[i].forEach((variable, name) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', {}, (_, evalObj) => {
+    const vars = new Set(), scopes = rs.get_process(evalObj.exec_instance.pid).vars;;
+    for (let i = scopes.length - 1; i >= 0; i--) {
+      scopes[i].forEach((variable, name) => {
         if (!vars.has(variable)) vars.add(name);
       });
     }
     return new ArrayValue(rs, Array.from(vars).map(v => new StringValue(rs, v)));
-  }, 'list all defined variables in the program'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'labels', {}, (_, evalObj) => new ArrayValue(rs, Array.from(rs.getCurrentInstance().blocks.get(evalObj.blockID).getAllLabels().keys()).map(l => new StringValue(rs, l))), 'list all addressable labels'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_push', {}, () => {
-    rs.pushScope();
-    return new NumberValue(rs, rs._vars.length);
+  }, 'list all defined variables in the process'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'globals', {}, () => {
+    const vars = Array.from(rs._globals.keys()).map(n => new StringValue(rs, n));
+    return new ArrayValue(rs, vars);
+  }, 'list all variables in the global scope. These cannot be deleted.'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'labels', {}, (_, evalObj) => {
+    const lmap = rs.get_instance(evalObj.exec_instance.ilvl).blocks.get(evalObj.blockID).getAllLabels();
+    return new ArrayValue(rs, Array.from(lmap.keys()).map(l => new StringValue(rs, l)));
+  }, 'list all addressable labels'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_push', {}, (_, evalObj) => {
+    rs.pushScope(evalObj.exec_instance.pid);
+    return new NumberValue(rs, rs.get_process(evalObj.exec_instance.pid).vars.length);
   }, 'Force a creation of a new lexical scope'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_pop', {}, () => {
-    rs.popScope();
-    return new NumberValue(rs, rs._vars.length);
-  }, 'Force the destruction of the current local scope'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_pop', {}, (_, evalObj) => {
+    const len = rs.get_process(evalObj.exec_instance.pid).vars.length;
+    if (len > 1) {
+      rs.popScope(evalObj.exec_instance.pid);
+      return new NumberValue(rs, len - 1);
+    } else {
+      return new NumberValue(rs, len);
+    }
+  }, 'Force the destruction of the current local scope (will not pop local#0)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'keywords', {}, () => new ArrayValue(rs, KeywordToken.keywords.map(kw => new StringValue(rs, kw))), 'list all keywords'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Object.keys(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.castTo(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, typeOf(o)), 'returns the type of object <o>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, o.type()), 'returns the type of object <o>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'void', { o: 'any' }, ({ o }) => new UndefinedValue(rs), 'throws away given argument - returns undefined'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
@@ -107,42 +117,53 @@ function define(rs) {
     if (value === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: Type ${t} cannot be initialised`);
     return value;
   }, 'create new value of type <t>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'array', { len: '?real_int', val: '?any' }, ({ len, val }) => {
-    if (len == undefined) return new ArrayValue(rs);
-    if (val == undefined) return new ArrayValue(rs, Array.from({ length: len.toPrimitive('real_int') }).fill(rs.UNDEFINED));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'array', { len: '?real_int', val: '?any' }, async ({ len, val }, evalObj) => {
+    if (len === undefined) return new ArrayValue(rs);
+    if (val === undefined) return new ArrayValue(rs, Array.from({ length: len.toPrimitive('real_int') }).fill(rs.UNDEFINED));
     val = val.castTo('any');
+    if (val.type() === "func") {
+      const arr = Array.from({ length: len.toPrimitive('real_int') });
+      for (let i = 0; i < arr.length; i++) arr[i] = await val.value.call(evalObj, [new NumberValue(rs, i)]);
+      return new ArrayValue(rs, arr);
+    }
     return new ArrayValue(rs, Array.from({ length: len.toPrimitive('real_int') }).fill(val));
-  }, 'create and return a new array of length <len=1>'));
+  }, 'create and return a new array of length <len=1>. Fill with value <val=undef>, of call <val>(index)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'array2d', { cols: 'real_int', rows: 'real_int', val: '?any' }, async ({ cols, rows, val }, evalObj) => {
     val = val ? val.castTo('any') : rs.UNDEFINED;
     cols = cols.toPrimitive('real_int');
     rows = rows.toPrimitive('real_int');
     if (val.type() === 'func') {
-      return new ArrayValue(rs, await Promise.all(Array.from({ length: cols }, async () => new ArrayValue(rs, await Promise.all(Array.from({ length: rows }, () => val.value.call(evalObj, [])))))));
+      return new ArrayValue(rs, await Promise.all(Array.from({ length: cols }, async () => new ArrayValue(rs, await Promise.all(Array.from({ length: rows }, () => val.value.call(evalObj)))))));
     } else {
       return new ArrayValue(rs, Array.from({ length: cols }, () => new ArrayValue(rs, Array.from({ length: rows }).fill(val))));
     }
-  }, 'create and return a 2D new array of length <len=1>'));
+  }, 'create and return a 2D new array with <cols> cols and <rows> rows, and fill with <val=undef> (may be a function)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copy', { o: 'any' }, ({ o }) => {
     const copy = o.castTo("any").__copy__?.();
     if (copy === undefined) throw new Error(`[${errors.CANT_COPY}] Type Error: Type ${o.type()} cannot be copied`);
     return copy;
   }, 'Return a copy of object <o>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new StringValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'call', { fn: 'string', args: { type: 'array', optional: true, ellipse: true } }, async ({ fn, args }, evalObj) => {
+    fn = fn.castTo("any").getFn();
+    const ret = await fn.call(evalObj, args ? args.toPrimitive("array").map(t => t.castTo("any")) : []);
+    return ret;
+  }, 'Call function <fn> with <args> provided as arguments'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new CharValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => new NumberValue(rs, chr.toString().charCodeAt(0)), 'return character code of <chr>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isdefined', { name: 'string' }, ({ name }) => {
-    let value = rs.getVar(name.toString());
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isdefined', { name: 'string' }, ({ name }, evalObj) => {
+    let value = rs.getVar(name.toString(), evalObj.exec_instance.pid);
     return new BoolValue(rs, value);
   }, 'returns boolean indicating if name <name> is defined and accessable'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'define', { name: 'string', value: '?any' }, ({ name, value }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'getvar', { name: 'string' }, ({ name }, evalObj) => {
+    const obj = rs.getVar(name.toString(), evalObj.exec_instance.pid)
+    return obj ? obj.castTo("any") : rs.UNDEFINED;
+  }, 'get variable with name <name> (or undef)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'setvar', { name: 'string', value: '?any' }, ({ name, value }, evalObj) => {
     name = name.toString();
     value = value.castTo('any');
-    rs.defineVar(name, value);
+    rs.defineVar(name, value, undefined, evalObj.exec_instance.pid);
     return value;
-  }, 'defines local variable with name <name>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'getvar', { name: 'string' }, ({ name }) => {
-    return rs.getVar(name.toString()) ?? rs.UNDEFINED;
-  }, 'get variable with name <name> (or undef)'));
+  }, 'sets/defines local variable with name <name>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
     let start, end, step;
     if (b === undefined) { start = 0; end = a.toPrimitive('real'); step = 1; }
@@ -225,43 +246,49 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'filter', { arr: 'array', fn: 'func' }, async ({ arr, fn }, evalObj) => {
     const array = [];
     fn = fn.castTo("func").getFn();
-    if (fn.argCount !== 1 && fn.argCount !== 2) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must have 1 or 2 arguments, got function with ${fn.argCount} arguments`);
+    if (fn.argMin !== 1 && fn.argMin !== 2) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must accept at least 1 or 2 arguments, got function with ${fn.argMin} arguments`);
     arr = arr.toPrimitive('array');
     for (let i = 0; i < arr.length; i++) {
-      let args = fn.argCount === 1 ? [arr[i]] : [arr[i], new NumberValue(rs, i)];
+      let args = fn.argMin === 1 ? [arr[i]] : [arr[i], new NumberValue(rs, i)];
       let bool = await fn.call(evalObj, args);
       if (bool.toPrimitive('bool')) array.push(arr[i]);
     }
     return new ArrayValue(rs, array);
   }, 'Remove all values from arr for which fn(value, ?index) is false'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'map', { arr: 'array', fn: 'func' }, async ({ arr, fn }, evalObj) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'map', { arr: 'array', fn: 'func' }, async ({ arr: rarr, fn }, evalObj) => {
     fn = fn.castTo("func").getFn();
-    arr = arr.toPrimitive('array');
+    let arr = rarr.toPrimitive('array');
     const array = [];
-    if (fn.argCount === 0) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, []));
-    else if (fn.argCount === 1) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i]]));
-    else if (fn.argCount === 2) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i], new NumberValue(rs, i)]));
-    else if (fn.argCount === 3) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i], new NumberValue(rs, i), arr]));
-    else throw new Error(`${errors.BAD_ARG} Argument Error: func must take 0-4 arguments, got ${fn.signature()}`);
+    if (fn.argMin === 0) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, []));
+    else if (fn.argMin === 1) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i]]));
+    else if (fn.argMin === 2) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i], new NumberValue(rs, i)]));
+    else if (fn.argMin === 3) {
+      let arrc = rarr.getVar().value.__copy__();
+      for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i], new NumberValue(rs, i), arrc]));
+    } else
+      throw new Error(`${errors.BAD_ARG} Argument Error: func must take 0-4 arguments, got ${fn.signature()}`);
     return new ArrayValue(rs, array);
   }, 'Apply func to each item in array, push return value to new array and return new array. Func -> (?item, ?index, ?array)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'foreach', { arr: 'array', fn: 'func' }, async ({ arr, fn }, evalObj) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'foreach', { arr: 'array', fn: 'func' }, async ({ arr: rarr, fn }, evalObj) => {
     fn = fn.castTo("func").getFn();
-    arr = arr.toPrimitive('array');
-    if (fn.argCount === 0) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, []);
-    else if (fn.argCount === 1) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i]]);
-    else if (fn.argCount === 2) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i], new NumberValue(rs, i)]);
-    else if (fn.argCount === 3) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i], new NumberValue(rs, i), arr]);
+    let arr = rarr.toPrimitive('array');
+    if (fn.argMin === 0) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, []);
+    else if (fn.argMin === 1) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i]]);
+    else if (fn.argMin === 2) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i], new NumberValue(rs, i)]);
+    else if (fn.argMin === 3) {
+      let arrc = rarr.getVar().value.__copy__();
+      for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i], new NumberValue(rs, i), arrc]);
+    }
     else throw new Error(`${errors.BAD_ARG} Argument Error: func must take 0-4 arguments, got ${fn.signature()}`);
     return new UndefinedValue(rs);
   }, 'Apply func to each item in array. Func -> (?item, ?index, ?array)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'reduce', { arr: 'array', fn: 'func', initial: '?any' }, async ({ arr, fn, initial }, evalObj) => {
     let acc = initial ? initial.castTo('any') : new NumberValue(rs, 0);
     fn = fn.castTo('func').getFn();
-    if (fn.argCount !== 2 && fn.argCount !== 3) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must have 2 or 3 arguments, got function with ${fn.argCount} arguments`);
+    if (fn.argMin !== 2 && fn.argMin !== 3) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must have 2 or 3 arguments, got function with ${fn.argMin} arguments`);
     arr = arr.toPrimitive('array');
     for (let i = 0; i < arr.length; i++) {
-      let args = fn.argCount === 2 ? [acc, arr[i]] : [acc, arr[i], new NumberValue(rs, i)];
+      let args = fn.argMin === 2 ? [acc, arr[i]] : [acc, arr[i], new NumberValue(rs, i)];
       acc = await fn.call(evalObj, args);
     }
     return acc;
@@ -279,10 +306,9 @@ function define(rs) {
     let list = array.getVar().value, length = list.value.length;
     if (item.type() === 'func') {
       let fn = item.value;
-      if (fn.argCount === 0) for (let i = 0; i < length; i++) list.value[i] = await fn.call(evalObj, []);
-      else if (fn.argCount === 1) for (let i = 0; i < length; i++) list.value[i] = await fn.call(evalObj, [new NumberValue(rs, i)]);
-      else if (fn.argCount === 2) for (let i = 0; i < length; i++) list.value[i] = await fn.call(evalObj, [new NumberValue(rs, i), list]);
-      else throw new Error(`[${errors.BAD_ARG}] Argument Error: func <item> has invalid argument count. Expected 0-2, got ${fn.argCount}`);
+      if (fn.argMin === 0) for (let i = 0; i < length; i++) list.value[i] = await fn.call(evalObj, []);
+      else if (fn.argMin === 1) for (let i = 0; i < length; i++) list.value[i] = await fn.call(evalObj, [new NumberValue(rs, i)]);
+      else throw new Error(`[${errors.BAD_ARG}] Argument Error: func <item> has invalid argument count. Expected 0-1, got ${fn.argMin}`);
     } else {
       for (let i = 0; i < length; i++) list.value[i] = item;
     }
@@ -291,15 +317,13 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'base', { arg: 'string', from: 'real_int', to: 'real_int' }, ({ arg, from, to }) => {
     from = from.toPrimitive('real_int');
     to = to.toPrimitive('real_int');
-    if (from < 2 || from > 36) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid base: <from> = ${from}`);
-    if (to < 2 || to > 36) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid base: <to> = ${to}`);
-    return new StringValue(rs, parseInt(arg.toString(), from).toString(to));
+    return new StringValue(rs, int_to_base(base_to_int(arg.toString(), from), to));
   }, 'Convert <arg> from base <from> to base <to>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, ({ str }) => rs.execute(str.toString()), 'evaluate an input'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, async ({ str }, evalObj) => await rs.exec(evalObj.exec_instance, str.toString()), 'evaluate an input'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'iif', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'Inline IF: If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, ({ file }) => rs.import(file.toString()), 'Import <file> - see README.md for more details'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import_stack', {}, () => rs.generateArray(rs.importStack.map(f => new StringValue(rs, f))), 'Return import stack'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'imported_files', {}, () => rs.generateArray(rs.importFiles.map(f => new StringValue(rs, f))), 'Return imported files in current import chain'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, async ({ file }, evalObj) => await rs.import(evalObj.exec_instance, file.toString()), 'Import <file> - see README.md for more details'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import_stack', {}, (_, evalObj) => rs.generateArray(rs.get_process(evalObj.exec_instance.pid).import_stack.map(f => new StringValue(rs, f))), 'Return import stack'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'imported_files', {}, (_, evalObj) => rs.generateArray(rs.get_process(evalObj.exec_instance.pid).imported_files.map(f => new StringValue(rs, f))), 'Return imported files in current import chain'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'error_code', { code: 'string' }, ({ code }) => {
     code = code.toPrimitive("string");
     if (code in errorDesc) {
@@ -338,11 +362,11 @@ function define(rs) {
 
 /** Built-in Variables */
 function defineVars(rs) {
-  rs.defineVar('DBL_EPSILON', DBL_EPSILON, 'smallest such that 1.0+DBL_EPSILON != 1.0', true);
-  rs.defineVar('pi', PI, 'pi is equal to the circumference of any circle divided by its diameter', true); // pi
+  rs.defineVar('DBL_EPSILON', DBL_EPSILON, 'smallest such that 1.0+DBL_EPSILON != 1.0');
+  rs.defineVar('pi', PI, 'pi is equal to the circumference of any circle divided by its diameter'); // pi
   rs.defineVar('e', E, 'Euler\'s constant'); // e
   rs.defineVar('omega', OMEGA, 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
-  rs.defineVar('phi', PHI, 'Phi, the golden ratio, approx (1 + √5)/2', true); // phi, golden ratio
+  rs.defineVar('phi', PHI, 'Phi, the golden ratio, approx (1 + √5)/2'); // phi, golden ratio
   rs.defineVar('tau', TWO_PI, 'A constant representing the ratio between circumference and radius of a circle'); // tau
   rs.defineVar(Complex.imagLetter, new Complex(0, 1), '√(-1)');
   rs.defineVar('ln2', Math.LN2, 'Natural logarithm of 2');
@@ -489,7 +513,7 @@ function defineFuncs(rs) {
     r = parseInt(r.toPrimitive('real'));
     let row = Array.from({ length: r - 1 }).map((_, i, a) => factorialReal(a.length) / (factorialReal(i) * factorialReal(a.length - i))).map(n => isFinite(n) ? n : 1).concat([1])
     return new ArrayValue(rs, row.map(n => new NumberValue(rs, Math.round(n))));
-  }), 'Return array of Pascal coefficients for <r>th for of Pascal\'s Triangle');
+  }, 'Return array of Pascal coefficients for <r>th for of Pascal\'s Triangle'));
 }
 
 module.exports = { define, defineVars, defineFuncs };

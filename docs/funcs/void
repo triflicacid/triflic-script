@@ -1,0 +1,3 @@
+// Throws away argument and returns constant undef
+
+println(void(2 + 3)); // => undef

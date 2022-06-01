@@ -4,14 +4,14 @@ const path = require("path");
 const { errors } = require("../errors");
 
 /** Attempt to import a file. Throws error of returns Value instance. */
-Runspace.prototype.import = async function (file) {
-  let fpath;
+Runspace.prototype.import = async function (exec_instance, file) {
+  let fpath, proc = this.get_process(exec_instance.pid);
   if (file[0] === '<' && file[file.length - 1] === '>') {
     fpath = path.join(this.root, "imports/", file.substring(1, file.length - 1) + '.js');
   } else {
-    fpath = path.join(this.importStack[this.importStack.length - 1], file.toString());
+    fpath = path.join(proc.import_stack[proc.import_stack.length - 1], file.toString());
   }
-  if (this.importFiles.includes(fpath)) { // Circular import?
+  if (proc.imported_files.includes(fpath)) { // Circular import?
     throw new Error(`[${errors.BAD_IMPORT}] Import Error: circular import '${fpath}'`);
   }
 
@@ -20,12 +20,12 @@ Runspace.prototype.import = async function (file) {
   this.setVar('_isMain', this.FALSE);
   const restore = () => {
     this.setVar('_isMain', _isMain);
-    this.importStack.pop();
-    this.importFiles.pop();
+    proc.import_stack.pop();
+    proc.imported_files.pop();
   };
 
-  this.importStack.push(path.dirname(fpath));
-  this.importFiles.push(fpath);
+  proc.import_stack.push(path.dirname(fpath));
+  proc.imported_files.push(fpath);
   let stats;
   try {
     stats = fs.lstatSync(fpath);
@@ -47,7 +47,7 @@ Runspace.prototype.import = async function (file) {
       if (typeof fn !== 'function') throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
       let resp;
       try {
-        resp = await fn(this);
+        resp = await fn(this, exec_instance);
       } catch (e) {
         restore();
         console.error(e);
@@ -67,7 +67,7 @@ Runspace.prototype.import = async function (file) {
 
       let ret;
       try {
-        ret = await this.execute(text);
+        ret = await this.exec(exec_instance, text);
       } catch (e) {
         restore();
         throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}):\n${e}`);

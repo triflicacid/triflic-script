@@ -1,0 +1,4 @@
+// Transforms input string to title case
+// First letter of each word is capitalised, rest is lowercase
+
+println(tcase("i AM A title")); // => I Am A Title

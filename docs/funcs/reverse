@@ -1,0 +1,8 @@
+// Reverses argument
+
+let arr = 1:4;
+println(arr); // => [0, 1, 2, 3]
+reverse(arr); // In-Place
+println(arr); // => [3, 2, 1, 0]
+
+println(reverse("Hello")); // => olleH

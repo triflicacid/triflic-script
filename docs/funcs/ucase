@@ -1,0 +1,3 @@
+// Transforms input string to uppercase
+
+println(ucase("Hello")); // => HELLO

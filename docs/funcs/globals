@@ -1,0 +1,6 @@
+// Return array of global vars (note these cannot be deleted)
+let a = 1;
+let b = 2;
+
+println(globals()); // [headers, ...]
+// NB Does not include a or b

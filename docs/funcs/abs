@@ -1,0 +1,7 @@
+// Return absolute value of argument
+
+println(abs(-6)); // => 6
+println(abs(3 + 4i)); // => 5 (sqrt(3*3 + 4*4) = 5)
+println(abs([1, 2, 3])); // => 3 (length);
+println(abs({1, 2, 2})); // => 2 (length);
+println(abs({"a":1, "b":2})); // => 2 (n keys);

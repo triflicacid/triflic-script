@@ -1,0 +1,29 @@
+// Signals control simple execution flow such as returning, breaking etc...
+
+// Get current line signal
+println(signal()); // => 0
+
+// Break out of block
+do {
+  signal(1);
+  println("Hello!"); // Not reached
+};
+
+println();
+
+// Continue through loop
+for (i in 1:5) {
+  if (i == 2) { signal(2) } // i=2 is omitted
+  println("{i=}");
+}
+
+println();
+
+// Return from function, with return value
+let r = func {
+  println("In func 1");
+  signal(3, 42);
+  println("In func 2"); // Not reached
+}();
+
+println("{r=}"); // => 42

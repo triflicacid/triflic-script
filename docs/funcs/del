@@ -1,0 +1,12 @@
+// Delete a local variable
+let a = 14;
+println(isdefined("a")); // => true
+println(del(a)); //  => true
+println(isdefined("a")); // => false
+
+println();
+
+// Delete a super-global variable (cannot delete super-global)
+println(isdefined("pi")); // => true
+println(del(pi)); //  => false
+println(isdefined("pi")); // => true

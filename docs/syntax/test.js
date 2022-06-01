@@ -20,9 +20,12 @@ async function main() {
   define(rs);
   defineVars(rs);
   if (opts.defineFuncs) defineFuncs(rs);
+
+  const exec_instance = rs.create_exec_instance(), mainProc = rs.get_process(exec_instance.pid);
+
   setupIo(rs);
   require("../../src/runspace/runspace-createImport");
-  await rs.import("<io>");
+  await rs.import(exec_instance, "<io>");
 
   rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
   let errors = [];
@@ -30,8 +33,8 @@ async function main() {
     let source, fpath = path.join(__dirname, file);
     rs.opts.file = file;
     rs.opts.time = Date.now();
-    rs.importFiles.length = 0;
-    rs.importFiles.push(fpath);
+    mainProc.imported_files.length = 0;
+    mainProc.imported_files.push(fpath);
     rs.defineHeaderVar();
     try {
       source = fs.readFileSync(fpath, { encoding: 'utf8' });
@@ -41,7 +44,7 @@ async function main() {
       continue;
     }
     try {
-      await rs.execute(source);
+      await rs.exec(exec_instance, source);
     } catch (e) {
       console.log(`[${file}] ERR : Error whilst executing script`);
       errors.push(file);
@@ -58,6 +61,7 @@ async function main() {
 
   rs.io.removeAllListeners();
   rs.io.close();
+  rs.terminate_exec_instance(exec_instance);
   console.log("Process exited with code " + (errors.length === 0 ? 0 : 1));
 }
 

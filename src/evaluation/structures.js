@@ -410,7 +410,7 @@ class ForInStructure extends Structure {
             break;
           }
 
-          this.body.rs.defineVar(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]));
+          this.body.rs.defineVar(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]), undefined, evalObj.exec_instance.pid);
           await this.body.eval(obj);
 
           if (obj.action === 1) break;
@@ -434,7 +434,7 @@ class ForInStructure extends Structure {
           }
 
           for (let a = 0; a < this.vars.length; a++) {
-            this.body.rs.defineVar(this.vars[a].value, collection[i][a]);
+            this.body.rs.defineVar(this.vars[a].value, collection[i][a], undefined, evalObj.exec_instance.pid);
           }
           await this.body.eval(obj);
 
@@ -460,7 +460,7 @@ class ForInStructure extends Structure {
           break;
         }
 
-        this.body.rs.defineVar(this.vars[0].value, collection[i]);
+        this.body.rs.defineVar(this.vars[0].value, collection[i], undefined, evalObj.exec_instance.pid);
         await this.body.eval(obj);
 
         if (obj.action === 1) break;
@@ -500,7 +500,7 @@ class FuncStructure extends Structure {
     let ret;
 
     if (this.name) { // Not anonymous - define function
-      this.rs.defineVar(fn.name, ref);
+      this.rs.defineVar(fn.name, ref, undefined, evalObj.exec_instance.pid);
     } else {
       ref.func = fn; // Bind to reference
       ret = ref; // Return reference
@@ -704,13 +704,13 @@ class LetStructure extends Structure {
   async eval(evalObj) {
     switch (this.variation) {
       case "array":
-        for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value);
+        for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value, undefined, undefined, evalObj.exec_instance.pid);
         return new ArrayValue(this.rs, this.symbol, false); // Return array of un-evaluated symbols for expression purposes
       case "set":
-        for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value);
+        for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value, undefined, undefined, evalObj.exec_instance.pid);
         return new SetValue(this.rs, this.symbol); // Return array of un-evaluated symbols for expression purposes
       default:
-        this.rs.defineVar(this.symbol.value);
+        this.rs.defineVar(this.symbol.value, undefined, undefined, evalObj.exec_instance.pid);
         return this.symbol;
 
     }

@@ -60,7 +60,7 @@ class VectorValue extends Value {
     }
 }
 
-module.exports = rs => {
+module.exports = (rs, ei) => {
     Value.typeMap[TYPENAME] = VectorValue;
     types[TYPENAME] = 20;
 
@@ -82,5 +82,5 @@ module.exports = rs => {
             if (args.length < 2) throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid vector size ${args.length}`);
             return new VectorValue(rs, new Vector(args.map(n => n.toPrimitive('complex'))));
         }
-    }, 'Creates a vector. If args is one item, create vector of size {args[0]}. Else, create vector with {args} as elements'));
+    }, 'Creates a vector. If args is one item, create vector of size {args[0]}. Else, create vector with {args} as elements'), ei.pid);
 };

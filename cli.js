@@ -19,20 +19,22 @@ define(rs);
 defineNode(rs);
 defineVars(rs);
 if (opts.defineFuncs) defineFuncs(rs);
-rs.importFiles.push('<interpreter>');
+
+const exec_instance = rs.create_exec_instance(), mainProc = rs.get_process(exec_instance.pid);
+mainProc.imported_files.push('<interpreter>');
 
 // Setup things
 setupIo(rs);
 require("./src/runspace/runspace-createImport");
 
-rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
+rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program', exec_instance.pid);
 
 // Evaluate some input
 async function evaluate(input) {
   let output, err, time, execObj = {};
   try {
     let start = Date.now();
-    output = await rs.execute(input, undefined, execObj);
+    output = await rs.exec(exec_instance, input, undefined, execObj);
     time = Date.now() - start;
     if (output !== undefined) output = output.toString();
   } catch (e) {
@@ -56,6 +58,14 @@ async function evaluate(input) {
   return execObj;
 }
 
+// End
+function end(exitCode) {
+  rs.io.removeAllListeners();
+  rs.io.close();
+  console.log("Process exited with code " + exitCode);
+  rs.terminate_exec_instance(exec_instance);
+}
+
 async function main() {
   if (!process.stdin.isTTY) {
     printError(`TTY Error: CLI requires a text terminal (TTY not available)`, str => process.stdout.write(str));
@@ -66,7 +76,7 @@ async function main() {
   process.stdin.resume();
 
   // Import standard IO library
-  await rs.import("<io>");
+  await rs.import(exec_instance, "<io>");
 
   // Set prompt
   rs.io.setPrompt(opts.prompt);
@@ -99,18 +109,14 @@ async function main() {
       }
 
       if (result.status < 0) {
-        rs.io.removeAllListeners();
-        rs.io.close();
-        console.log("Process exited with code " + result.statusValue);
+        end(result.statusValue);
       } else rs.io.prompt();
     };
   } else {
     rs.onLineHandler = async (io, line) => {
       let result = await evaluate(line);
       if (result.status < 0) {
-        rs.io.removeAllListeners();
-        rs.io.close();
-        console.log("Process exited with code " + result.statusValue);
+        end(result.statusValue);
       } else rs.io.prompt();
     };
   }

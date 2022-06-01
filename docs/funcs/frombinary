@@ -1,0 +1,7 @@
+// Convert a number from binary to a real using the given numeric type (get types using numbertypes())
+
+// Default: float64
+println(frombinary("0100000000001001001000011111101101010100010001000010110100011000")); // 3.14159
+
+// Int64
+println(frombinary("0100000000001001001000011111101101010100010001000010110100011000", "int64")); // 4614256656552046000

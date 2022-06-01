@@ -1,0 +1,13 @@
+// Returns minimum of arguments, or undefined if none
+
+// Array: converts all arguments to a real
+println(min([1, 2, 3])); // => 1
+println(min([1, 2, "Hello"])); // => nan
+println(min({1, 2, 2})); // => 1
+
+// Return key of minimum argument (if cannot compare value, skip)
+println(min({ "a": 1, "b": 2 })); // => b
+println(min({ "a": 1, "b": "Hello" })); // => a (as cannot compare string, b is skipped)
+
+// Return lowest character in string (ASCII wise)
+println(min("Hello")); // H

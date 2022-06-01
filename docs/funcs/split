@@ -1,0 +1,4 @@
+// Split string arg1 by arg2 and return array of pieces
+
+println(split("Hello")); // => [H,e,l,l,o]
+println(split("banana", "a")); // => [b,n,n,]

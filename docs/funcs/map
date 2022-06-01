@@ -1,0 +1,16 @@
+// Transforms input array using given function, returns new array
+
+let arr = 1:6;
+println(arr); // => [0,1,2,3,4,5]
+
+// No arguments: constant value
+println(map(arr, void)); // => [undef,undef,undef,undef,undef]
+
+// 1 argument: value
+println(map(arr, n -> n * n)); // => [0, 1, 4, 9, 16, 25]
+
+// 2 arguments: value, index
+println(map(arr, (n, i) -> n * i)); // => [0,2,6,12,20]
+
+// 3 arguments: value, index, array (original array)
+println(map(arr, (n, i, a) -> n * (a[i + 1] ?? 1))); // => [2,6,12,20,5]

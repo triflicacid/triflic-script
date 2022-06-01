@@ -50,11 +50,8 @@ window.addEventListener("load", async () => {
   document.body.appendChild(btnClear);
   document.body.insertAdjacentHTML("beforeend", "<hr>");
 
-
   // Create runspace instance
   const opts = {
-    strict: false,
-    defineVars: true,
     defineFuncs: true,
     prompt: '>> ',
     intro: true,
@@ -66,14 +63,14 @@ window.addEventListener("load", async () => {
     multiline: true,
     timeExecution: false,
   };
-  opts.app = "web";
+  opts.app = "WEB";
   opts.file = window.location.hostname;
   const rs = new Runspace(opts);
   define(rs);
   defineVars(rs);
   defineFuncs(rs);
-  rs.importFiles.push('<stdin>');
-  rs.deleteVar('import');
+  const exec_instance = rs.create_exec_instance(), mainProc = rs.get_process(exec_instance.pid);
+  mainProc.imported_files.push('<stdin>');
   rs.deleteVar('system');
 
   const iTimeExecution = document.createElement("input");
@@ -84,7 +81,6 @@ window.addEventListener("load", async () => {
   document.body.insertAdjacentHTML("beforeend", "Time execution");
 
   rs.defineVar('argv', new ArrayValue(rs, argv.map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
-  rs.defineVar('VERSION', new NumberValue(rs, Runspace.VERSION), 'Current version of ' + Runspace.LANG_NAME);
 
   // I/O functions
   function print(...text) {
@@ -97,7 +93,7 @@ window.addEventListener("load", async () => {
     let output, err, time, execObj = {};
     try {
       let start = Date.now();
-      output = await rs.execute(input, undefined, execObj);
+      output = await rs.exec(exec_instance, input, undefined, execObj);
       time = Date.now() - start;
       if (output !== undefined) output = output.toString();
     } catch (e) {

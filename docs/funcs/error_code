@@ -1,0 +1,7 @@
+// Returns string description of a given error code
+// Error codes are identifiable in TriflicScript errors as the 4-ish letter code in [...]
+
+/*
+println(no_exit_name); // Error: [ENAME] Name Error: name 'no_exit_name' does not exist
+*/
+println(error_code("ENAME")); // => A name (variable/function) cannot be found

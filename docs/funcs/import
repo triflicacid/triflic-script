@@ -1,0 +1,11 @@
+// Import script from root + "imports/" if surrounded by "<>"
+println(isdefined("fread")); // => false
+import("<fs>");
+println(isdefined("fread")); // => true
+
+// Import script from current directory
+println(isdefined("myvalue")); // => false
+import("import_test");
+println(isdefined("myvalue")); // => true
+
+// See README.md for more details

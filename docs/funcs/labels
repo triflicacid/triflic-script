@@ -1,0 +1,5 @@
+// Return array of defined labels in the current process
+
+label a;
+
+println(labels()); // [a]

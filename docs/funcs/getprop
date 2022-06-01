@@ -1,0 +1,5 @@
+// Get property of argument
+
+println(getprop(headers, "app")); // => FILE
+println(getprop(1:5, 2)); // => 3
+println(getprop("Hello", 1)); // => e

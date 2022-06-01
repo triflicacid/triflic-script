@@ -1,0 +1,15 @@
+// Find given value
+
+// Array-Like: return first index of value, or -1
+let arr = [1, 2, 3];
+println(find(arr, 2)); // => 1
+println(find(arr, 0)); // => -1
+
+let str = "Hello";
+println(find(str, "l")); // => 2
+println(find(str, "!")); // => -1
+
+// Map: return key of found value
+let map = { 'a': 1, 'b': 2, 'c': 3 };
+println(find(map, 2)); // => b
+println(find(map, 0)); // => undef

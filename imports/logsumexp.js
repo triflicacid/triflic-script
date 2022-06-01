@@ -3,7 +3,7 @@ const { NumberValue, ArrayValue } = require("../src/evaluation/values.js");
 const Complex = require("../src/maths/Complex");
 const { sum } = require("../src/utils");
 
-module.exports = rs => {
+module.exports = (rs, ei) => {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'logsumexp', { arr: 'array', w: '?any' }, ({ arr, w }) => {
     arr = arr.toPrimitive('array');
     w = w.castTo("any");
@@ -19,5 +19,5 @@ module.exports = rs => {
     let total = sum(array);
     let log = Complex.log(total);
     return new NumberValue(rs, log);
-  }, 'Calculate the logaithm of the sum of all elements in array raised to e and multiplied by a weight. <w> may be single number or an equal-sized array.'));
+  }, 'Calculate the logaithm of the sum of all elements in array raised to e and multiplied by a weight. <w> may be single number or an equal-sized array.'), ei.pid);
 };

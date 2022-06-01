@@ -1,0 +1,32 @@
+// Copies argument
+
+func without_copy {
+  let arr = 1:5;
+  println(arr); // => [1, 2, 3, 4]
+  
+  let dup = arr; // Dont copy
+  dup[0] = -1;
+  println(arr); // => [-1, 2, 3, 4]
+}
+
+println("--- WITHOUT COPY ---");
+without_copy();
+
+func with_copy {
+  let arr = 1:5;
+  println(arr); // => [1, 2, 3, 4]
+  
+  let dup = copy(arr); // copy
+  dup[0] = -1;
+  println(arr); // => [1, 2, 3, 4]
+}
+
+println("\n--- WITH COPY ---");
+with_copy();
+println();
+
+// Produces a deep-copy
+let arr = [[1], [2]];
+let dup = copy(arr);
+dup[0][0] = -1;
+println(arr); // [[1], [2]]

@@ -1,0 +1,5 @@
+// Generate 2 dimensional array of a given dimension <row>*<col>, filled with a certain argument
+
+println(array2d(3, 2)); // => [[undef,undef],[undef,undef],[undef,undef]]
+println(array2d(3, 2, -1)); // => [[-1,-1],[-1,-1],[-1,-1]]
+println(array2d(3, 2, () -> round(random()))); // => [[1,0],[0,1],[1,1]]

@@ -1,0 +1,14 @@
+// Get (and set?) length of variable
+
+println(len("Hello")); // => 5
+
+let arr = 1:6;
+println("[" + len(arr) + "] " + arr); // => [5] [1,2,3,4,5]
+len(arr, 2); // Set length=2
+println("[" + len(arr) + "] " + arr); // => [2] [1,2]
+
+// Get number of keys
+println(len({"a": 1, "b": 2})); // => 2
+
+// NB set removes suplicates
+println(len({1, 2, 2})); // => 2

@@ -1,0 +1,6 @@
+// Gets/sets current process ID
+// NOTE setting the process ID is undefined behaviour and SHOULD NOT BE DONE
+
+import("<process>");
+
+println("PID = " + pid()); // => 0

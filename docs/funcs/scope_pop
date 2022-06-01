@@ -1,0 +1,14 @@
+// Artifially pop the scope stack
+
+let a = 1;
+
+scope_push();
+
+let b = 2;
+let c = 3;
+
+println(locals()); // [b, c]
+
+scope_pop();
+
+println(locals()); // [..., a]

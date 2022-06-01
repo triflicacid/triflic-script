@@ -1,0 +1,5 @@
+// Return array of directories we are relative to due to importing.
+// When a file is imported, its oath is pushed to the stack. This enabled relative imports.
+// NB that the returned array cannot be edited
+
+println(import_stack()); // => [./funcs]

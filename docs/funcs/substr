@@ -1,0 +1,4 @@
+// Return section of string from index arg1 with th length of arg2
+
+println(substr("Hello World", 2)); // => llo World
+println(substr("Hello World", 2, 5)); // => llo W

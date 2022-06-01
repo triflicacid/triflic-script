@@ -1,0 +1,5 @@
+// Generate 1 dimensional array of a given length, filled with a certain argument
+
+println(array(3)); // => [undef, undef, undef]
+println(array(3, -1)); // => [-1, -1, -1]
+println(array(3, i -> i)); // => [0, 1, 2]

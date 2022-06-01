@@ -1,0 +1,9 @@
+// Attempt to cast argument to given type
+
+let a = "Hello";
+println("a = ({type(a)}) {a}"); // => a = (string) Hello
+a = cast(a, "real");
+println("a = ({type(a)}) {a}"); // => a = (real) nan
+
+// Cannot cast to certain types. See README.md
+cast(a, "undef"); // Error: unknwon type "undef"

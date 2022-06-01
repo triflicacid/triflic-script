@@ -1,3 +1,4 @@
+const { errors } = require("../src/errors");
 const { types, isNumericType, isRealType } = require("../src/evaluation/types");
 const { Value, StringValue, NumberValue, BoolValue, ArrayValue, UndefinedValue } = require("../src/evaluation/values");
 const Complex = require("../src/maths/Complex");
@@ -103,7 +104,7 @@ function isLegal(arr) {
   }
 }
 
-module.exports = rs => {
+module.exports = (rs, ei) => {
   Value.typeMap[TYPE] = MatrixValue;
   types[TYPE] = 13;
 
@@ -111,23 +112,23 @@ module.exports = rs => {
     if (isLegal(o)) {
       return new MatrixValue(o.rs, new Matrix(o.value.map(arr => arr.value.map(x => x.toPrimitive('complex')))));
     } else {
-      throw new Error(`Type Error: array is not a valid matrix - unable to cast to type matrix`);
+      throw new Error(`[${errors.TYPE}] Type Error: array is not a valid matrix - unable to cast to type matrix`);
     }
   };
 
   StringValue.castMap.matrix = o => new MatrixValue(o.rs, Matrix.fromString(o.toString()));
 
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrows', { m: 'matrix' }, ({ m }) => new NumberValue(rs, m.toPrimitive('matrix').rows), 'Matrix: get number of rows'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mcols', { m: 'matrix' }, ({ m }) => new NumberValue(rs, m.toPrimitive('matrix').cols), 'Matrix: get number of cols'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'morder', { m: 'matrix' }, ({ m }) => new ArrayValue(rs, [new NumberValue(rs, m.value.rows), new NumberValue(rs, m.value.cols)]), 'Matrix: return array [rows, cols]'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'midentity', { size: 'real_int' }, ({ size }) => new MatrixValue(rs, Matrix.identity(size.toPrimitive('real_int'))), 'Matrix: create new identity matrix'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrows', { m: 'matrix' }, ({ m }) => new NumberValue(rs, m.toPrimitive('matrix').rows), 'Matrix: get number of rows'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mcols', { m: 'matrix' }, ({ m }) => new NumberValue(rs, m.toPrimitive('matrix').cols), 'Matrix: get number of cols'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'morder', { m: 'matrix' }, ({ m }) => new ArrayValue(rs, [new NumberValue(rs, m.value.rows), new NumberValue(rs, m.value.cols)]), 'Matrix: return array [rows, cols]'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'midentity', { size: 'real_int' }, ({ size }) => new MatrixValue(rs, Matrix.identity(size.toPrimitive('real_int'))), 'Matrix: create new identity matrix'), ei.pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mzeroes', { rows: 'real_int', cols: '?real_int' }, ({ rows, cols }) => {
     rows = rows.toPrimitive("real_int");
     return new MatrixValue(rs, cols === undefined ? Matrix.zeroes(rows, rows) : Matrix.zeroes(rows, cols.toPrimitive("real_int")));
-  }, 'Matrix: create new zero-matrix'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mflatten', { m: 'matrix' }, ({ m }) => new ArrayValue(rs, m.toPrimitive('matrix').flatten().map(n => new NumberValue(rs, n))), 'Matrix: flatten a matrix into 1-D array'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mtrans', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive('matrix').transpose()), 'Matrix: transpose (flip) a matrix'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mdet', { m: 'matrix' }, ({ m }) => new NumberValue(rs, m.toPrimitive('matrix').determinant()), 'Matrix: calculate determinant of given matrix'));
+  }, 'Matrix: create new zero-matrix'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mflatten', { m: 'matrix' }, ({ m }) => new ArrayValue(rs, m.toPrimitive('matrix').flatten().map(n => new NumberValue(rs, n))), 'Matrix: flatten a matrix into 1-D array'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mtrans', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive('matrix').transpose()), 'Matrix: transpose (flip) a matrix'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mdet', { m: 'matrix' }, ({ m }) => new NumberValue(rs, m.toPrimitive('matrix').determinant()), 'Matrix: calculate determinant of given matrix'), ei.pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mminor', { m: 'matrix', row: 'real_int', col: 'real_int' }, ({ m, row, col }) => {
     m = m.toPrimitive('matrix');
     row = row.toPrimitive('real_int');
@@ -135,16 +136,16 @@ module.exports = rs => {
     let at = m.get(row, col);
     if (at === undefined) return new UndefinedValue(rs);
     return new MatrixValue(rs, m.getMinor(row, col));
-  }, 'Matrix: get minor matrix from the current (row, col) position in matrix m'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mminors', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive("matrix").getMinors()), 'Matrix: get matrix of minors from m'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mcheckerboard', { m: 'matrix', startSign: '?real_int' }, ({ m, startSign }) => new MatrixValue(rs, m.toPrimitive("matrix").checkerboard(startSign ? startSign.toPrimitive('real_int') : undefined)), 'Matrix: get checkerboard matrix (multiply by +, -, +, - ... throughout)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mcofac', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive('matrix').cofactors()), 'Matrix: calculate matrix of cofactors'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'minv', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive('matrix').inverse()), 'Matrix: calculate inverse matrix'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mref', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, Matrix.toRowEchelonForm(m.toPrimitive('matrix').toPrimitiveNumbers()).toComplexNumbers()), 'Matrix: transform to Row Echelon Form'));
+  }, 'Matrix: get minor matrix from the current (row, col) position in matrix m'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mminors', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive("matrix").getMinors()), 'Matrix: get matrix of minors from m'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mcheckerboard', { m: 'matrix', startSign: '?real_int' }, ({ m, startSign }) => new MatrixValue(rs, m.toPrimitive("matrix").checkerboard(startSign ? startSign.toPrimitive('real_int') : undefined)), 'Matrix: get checkerboard matrix (multiply by +, -, +, - ... throughout)'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mcofac', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive('matrix').cofactors()), 'Matrix: calculate matrix of cofactors'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'minv', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, m.toPrimitive('matrix').inverse()), 'Matrix: calculate inverse matrix'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mref', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, Matrix.toRowEchelonForm(m.toPrimitive('matrix').toPrimitiveNumbers()).toComplexNumbers()), 'Matrix: transform to Row Echelon Form'), ei.pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrref', { m: 'matrix' }, ({ m }) => new MatrixValue(rs, Matrix.toReducedRowEchelonForm(m.toPrimitive('matrix').toPrimitiveNumbers()).toComplexNumbers()), 'Matrix: transform to Reduced Row Echelon Form'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrneq', { m: 'matrix', value: '?complex' }, ({ m, value }) => new NumberValue(rs, m.toPrimitive('matrix').countNotRows(value ? value.toPrimitive("complex") : 0)), 'Matrix: count rows which do not contain <value> (default = 0)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrank', { m: 'matrix' }, ({ m }) => new NumberValue(rs, m.toPrimitive('matrix').rank()), 'Matrix: return rank of matrix (number of non-zero rows in matrix in RREF)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mdot', { a: 'matrix', b: 'matrix' }, ({ a, b }) => new NumberValue(rs, Matrix.dot(a.toPrimitive("matrix"), b.toPrimitive("matrix"))), 'Matrix: Return dot product of two matrices'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrneq', { m: 'matrix', value: '?complex' }, ({ m, value }) => new NumberValue(rs, m.toPrimitive('matrix').countNotRows(value ? value.toPrimitive("complex") : 0)), 'Matrix: count rows which do not contain <value> (default = 0)'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrank', { m: 'matrix' }, ({ m }) => new NumberValue(rs, m.toPrimitive('matrix').rank()), 'Matrix: return rank of matrix (number of non-zero rows in matrix in RREF)'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mdot', { a: 'matrix', b: 'matrix' }, ({ a, b }) => new NumberValue(rs, Matrix.dot(a.toPrimitive("matrix"), b.toPrimitive("matrix"))), 'Matrix: Return dot product of two matrices'), ei.pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mrand', { rows: 'real_int', cols: 'real_int', rMin: '?real', rMax: '?real' }, ({ rows, cols, rMin, rMax }) => {
     rows = rows.toPrimitive("real_int");
     cols = cols.toPrimitive("real_int");
@@ -158,21 +159,22 @@ module.exports = rs => {
       }
     }
     return new MatrixValue(rs, new Matrix(arr));
-  }, 'Matrix: Return <rows>*<cols> matrix filled with random numbers equivalent to random(<rMin>, <rMax>)'));
+  }, 'Matrix: Return <rows>*<cols> matrix filled with random numbers equivalent to random(<rMin>, <rMax>)'), ei.pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mmap', { m: 'matrix', fn: 'func' }, async ({ m, fn }, evalObj) => {
     m = m.toPrimitive("matrix");
     fn = fn.castTo("func").getFn();
+    if (fn.argMin !== 1 && fn.argMin !== 3) throw new Error(`${errors.ARG_COUNT} Argument Error: expectf fn to take 1 or 3 arguments, got ${fn.signature()}`);
     const mat = m.copy();
     for (let r = 0; r < mat.rows; ++r) {
       const row = new NumberValue(rs, new Complex(r));
       for (let c = 0; c < mat.cols; ++c) {
         const col = new NumberValue(rs, new Complex(c));
-        let ret = await fn.call(evalObj, [row, col, new NumberValue(rs, mat.get(r, c))]);
+        let ret = await fn.call(evalObj, fn.argMin === 1 ? [new NumberValue(rs, mat.get(r, c))] : [row, col, new NumberValue(rs, mat.get(r, c))]);
         mat.set(r, c, ret.toPrimitive('complex'));
       }
     }
     return new MatrixValue(rs, mat);
-  }, 'Matrix: Go through each row/col of matrix and set to <complex>fn(row, col, currentValue)'));
+  }, 'Matrix: Go through each row/col of matrix and set to <complex>fn(currentValue) or <complex>fn(row, col, currentValue)'), ei.pid);
 
-  rs.defineVar('id2', new MatrixValue(rs, Matrix.identity(2)), '2 by 2 identity matrix', true);
+  rs.defineVar('id2', new MatrixValue(rs, Matrix.identity(2)), '2 by 2 identity matrix', ei.pid);
 };

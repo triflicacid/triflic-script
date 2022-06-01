@@ -1,0 +1,11 @@
+// Convert a number to binary of the given numeric type (get types using numbertypes())
+
+// Default: float64
+println(tobinary(pi)); // 0100000000001001001000011111101101010100010001000010110100011000
+
+// As integer ((int)pi = 3)
+println(tobinary(pi, "int8")); // 00000011
+
+println(tobinary(nan)); // 0111111111111000000000000000000000000000000000000000000000000000
+
+println(tobinary(-1, "int16")); // 1111111111111111

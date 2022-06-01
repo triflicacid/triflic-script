@@ -1,0 +1,8 @@
+// Inline if
+
+// 2 args: condition, ifTrue
+println(iif(true, "Yes!")); // => Yes!
+println(iif(false, "Yes!")); // => false (returns false if no ifFalse argument provided)
+
+// 3 args: condition, ifTrue, ifFalse
+println(iif(false, "Yes!", "No.")); // => No.

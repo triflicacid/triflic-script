@@ -1,0 +1,6 @@
+// Get a variable, or returns undef
+
+println(getvar("pi")); // => 3.14159
+let a = 14;
+println(getvar("a")); // => 14
+println(getvar("foobar")); // => undef

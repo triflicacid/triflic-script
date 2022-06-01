@@ -1,0 +1,3 @@
+// Transforms input string to lowercase
+
+println(lcase("Hello")); // => hello

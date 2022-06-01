@@ -75,9 +75,7 @@ println(f(10));
 println(pow(3));
 println(pow(3, 4));
 
-// Definite lambda function
-get_pi -> pi;
-println(get_pi());
+exit(1);
 
 // '...' arguments: compact to array
 func print_array(...items) {
@@ -98,8 +96,6 @@ func multi(a, ...b, c) {
 
 multi(1, 2); // a=1, b=[], c=2
 multi(1, 2, 3); // a=1, b=[2], c=3
-
-// f(5);
 
 // Using '...' to expand arguments
 powargs = [4, 2];

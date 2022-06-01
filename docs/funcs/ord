@@ -1,0 +1,7 @@
+// Convert character to its ASCII code
+
+let char = "A";
+let code = ord(char);
+println("ord({char}) = {code}"); // ord(A) = 65
+
+// Same can be achieved using casting: +'A' => 65

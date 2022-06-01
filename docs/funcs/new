@@ -1,0 +1,11 @@
+// Attempts to initialise argument type
+
+println(new("real")); // => 0
+println(new("complex")); // => 0
+println(new("string")); // => ""
+println(new("char")); // => ''
+println(new("array")); // => []
+println(new("set")); // => {}
+println(new("map")); // => {}
+// println(new("func")); // ERROR: cannot initialise type func
+// println(new("undef")); // ERROR: cannot initialise type undef

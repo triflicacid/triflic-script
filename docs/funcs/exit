@@ -1,0 +1,5 @@
+// Exit program with code 0 (success)
+// exit(0)
+
+// Exit program with code 1 (failiure)
+exit(1);

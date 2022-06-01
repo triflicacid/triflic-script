@@ -10,10 +10,11 @@ var currBlockID = 0;
  * 0 -> No. 1 -> Propagation. 2 -> Direct use.
  */
 class Block {
-  constructor(rs, tokenLines, pos, parent = undefined) {
+  constructor(rs, tokenLines, pos, exec_instance, parent = undefined) {
     this.id = currBlockID++;
     this.rs = rs;
-    this.rs.pushInstanceBlock(this);
+    this.exec_instance = exec_instance;
+    this.rs.push_instance_block(this, exec_instance.ilvl);
     this.tokenLines = tokenLines;
     this.pos = pos;
     this.parent = parent;
@@ -57,27 +58,33 @@ class Block {
       if (obj.action === 0) continue;
       else if (obj.action === 1) {
         // console.log("Break line %d in block %s", l, this.id)
-        if (this.breakable === 1) evalObj.action = 1; // Propagate
-        break; // break action
-      } else if (obj.action === 2) {
+        if (this.breakable === 1) {
+          evalObj.action = 1; // Propagate
+          break; // break action
+        }
+      } else if (obj.action === 2 && this.breakable) {
         // console.log("Coninue line %d in block %s", l, this.id)
-        if (this.breakable === 1) evalObj.action = 2;
-        break;
+        if (this.breakable) {
+          evalObj.action = 2;
+          break;
+        }
       } else if (obj.action === 3) {
         // console.log("Return line %d in block %s", l, this.id)
-        if (this.returnable === 1) evalObj.action = 3;
-        evalObj.actionValue = obj.actionValue;
-        lastVal = obj.actionValue;
-        break;
+        if (this.returnable > 0) {
+          if (this.returnable === 1) evalObj.action = 3; // If === 2, handle directly and dont propagate
+          evalObj.actionValue = obj.actionValue;
+          lastVal = obj.actionValue;
+          break;
+        }
       } else if (obj.action === 5) {
         // console.log("GOTO label '%s'", obj.actionValue);
         const labelInfo = this.seekLabel(obj.actionValue);
         if (labelInfo === undefined) throw new Error(`[${errors.NAME}] Name Error: unbound label '${obj.actionValue}'`);
         const [blockID, lineID] = labelInfo;
-        const block = this.rs.getCurrentInstance().blocks.get(blockID);
+        const block = this.rs.get_instance(this.exec_instance.ilvl).blocks.get(blockID);
         if (!block) throw new Error(`FATAL: block with ID ${blockID} does not exist (label '${obj.actionValue}')`);
         obj = this.createEvalObj(l);
-        await block.preeval(obj);
+        // await block.preeval(obj);
         lastVal = await block.eval(obj, lineID + 1);
         evalObj.action = -2;
         break;
@@ -92,12 +99,12 @@ class Block {
 
   /** Create evaluation object , given a line number*/
   createEvalObj(lineNo) {
-    return createEvalObj(this.id, lineNo);
+    return createEvalObj(this.id, lineNo, this.exec_instance);
   }
 
   /** Create child block */
   createChild(tokenLines, pos) {
-    return new Block(this.rs, tokenLines, pos, this);
+    return new Block(this.rs, tokenLines, pos, this.exec_instance, this);
   }
 
   /** Bind a label */

@@ -131,18 +131,18 @@ class VariableToken extends Token {
     return v.castTo(type);
   }
   toPrimitive(type) {
-    return this.tstr.rs.getVar(this.value).toPrimitive(type);
+    return this.tstr.rs.getVar(this.value, this.tstr.block.exec_instance.pid).toPrimitive(type);
   }
   exists() {
-    return this.tstr.rs.getVar(this.value) !== undefined;
+    return this.tstr.rs.getVar(this.value, this.tstr.block.exec_instance.pid) !== undefined;
   }
   getVar() {
-    const v = this.tstr.rs.getVar(this.value);
+    const v = this.tstr.rs.getVar(this.value, this.tstr.block.exec_instance.pid);
     if (v === undefined) this._throwNameError();
     return v;
   }
   getVarNoError() {
-    return this.tstr.rs.getVar(this.value);
+    return this.tstr.rs.getVar(this.value, this.tstr.block.exec_instance.pid);
   }
   toString() {
     return str(this.getVar()?.value);
@@ -155,10 +155,8 @@ class VariableToken extends Token {
 
   /** function: del() */
   __del__() {
-    const v = this.getVar();
-    if (v.constant) throw new Error(`[${errors.DEL}] Argument Error: Attempt to delete a constant variable ${this.value}`);
-    this.tstr.rs.deleteVar(this.value);
-    return new NumberValue(this.tstr.rs, 0);
+    const ok = this.tstr.rs.deleteVar(this.value, this.tstr.block.exec_instance.pid);
+    return new BoolValue(this.tstr.rs, ok);
   }
 
   /** operator: = */
@@ -169,7 +167,7 @@ class VariableToken extends Token {
       thisVar.refFor.value = value;
       thisVar.value = value;
     } else {
-      this.tstr.rs.defineVar(name, value);
+      this.tstr.rs.defineVar(name, value, undefined, this.tstr.block.exec_instance.pid);
     }
     return value;
   }
@@ -179,7 +177,7 @@ class VariableToken extends Token {
     value = value.castTo("any");
     const name = this.value;
     if (!this.exists()) throw new Error(`[${errors.NULL_REF}] Null Reference: no non-local binding for symbol '${name}'. Did you mean to use '=' ?`);
-    this.tstr.rs.setVar(name, value);
+    this.tstr.rs.setVar(name, value, undefined, this.tstr.block.exec_instance.pid);
     return value;
   }
 
@@ -187,7 +185,7 @@ class VariableToken extends Token {
   __assignAdd__(value) {
     value = this.castTo("any").__add__(value.castTo("any"));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value);
+    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.exec_instance.pid);
     return value;
   }
 
@@ -195,7 +193,7 @@ class VariableToken extends Token {
   __assignSub__(value) {
     value = this.castTo("any").__sub__(value.castTo("any"));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value);
+    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.exec_instance.pid);
     return value;
   }
 
@@ -203,7 +201,7 @@ class VariableToken extends Token {
   __assignMul__(value) {
     value = this.castTo("any").__mul__(value.castTo("any"));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value);
+    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.exec_instance.pid);
     return value;
   }
 
@@ -211,7 +209,7 @@ class VariableToken extends Token {
   __assignDiv__(value) {
     value = this.castTo("any").__div__(value.castTo("any"));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value);
+    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.exec_instance.pid);
     return value;
   }
 
@@ -219,7 +217,7 @@ class VariableToken extends Token {
   __assignMod__(value) {
     value = this.castTo("any").__mod__(value.castTo("any"));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value);
+    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.exec_instance.pid);
     return value;
   }
 }
@@ -253,9 +251,9 @@ class BracketedTokenLines extends Token {
 
   toString() { return this.opening + this.value.toString() + bracketMap[this.opening]; }
 
-  toBlock(opts = []) {
+  toBlock(exec_instance) {
     if (!this.tstr.block) throw new Error(`BracketedTokenLines.toBlock :: this.tstr is not bound to a scope`);
-    return new Block(this.tstr.rs, this.value, this.pos, this.tstr.block, opts);
+    return new Block(this.tstr.rs, this.value, this.pos, exec_instance, this.tstr.block);
   }
 }
 
@@ -344,38 +342,6 @@ class TokenLine {
           }
         }
         this.tokens[i] = this.tokens[i].value; // Remove all ValueToken objects
-      } else if (i === 0 && this.tokens[i] instanceof VariableToken && this.tokens[i + 1] instanceof OperatorToken && this.tokens[i + 1].value === '-' && this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === '>') {
-        //* SHORTHAND LAMBDA WITHOUT PARAMETERS OR RETURN TYPE
-        // Extract function body
-        let name = this.tokens[i].value, body, toSplice = 4;
-        if (this.tokens[i + 3] instanceof Block) {
-          body = this.tokens[i + 3];
-        } else {
-          // Extract everything up to EOL or COMMA
-          let tokens = [], j = i + 3;
-          for (; j < this.tokens.length; j++) {
-            if (this.tokens[j] instanceof EOLToken || (this.tokens[j] instanceof OperatorToken && this.tokens[j].value === ',')) break;
-            tokens.push(this.tokens[j]);
-          }
-          if (tokens.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected following '->', got ${this.tokens[j] ? `${this.tokens[j]} at position ${this.tokens[j].pos}` : `end of input at position ${this.tokens[j - 1].pos}`}`);
-          body = this.block.createChild([new TokenLine(this.rs, undefined, tokens)], this.tokens[i + 5]?.pos);
-          toSplice = j - i;
-        }
-
-        // Prepare
-        body.breakable = 0;
-        body.returnable = 2; // Handle returns directly
-        body.prepare();
-
-        // Create function
-        let fn = new RunspaceUserFunction(this.rs, name, {}, body);
-        let ref = new FunctionRefValue(this.rs, fn);
-
-        // Define function
-        this.rs.defineVar(fn.name, ref);
-
-        // Remove used tokens
-        this.tokens.splice(i, toSplice);
       } else if ((this.tokens[i] instanceof VariableToken || (this.tokens[i] instanceof BracketedTokenLines && this.tokens[i].opening === '(')) && this.tokens[i + 1] instanceof OperatorToken && this.tokens[i + 1].value === '-' && this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === '>') {
         //* SHORTHAND LAMBDA WITHOUT RETURN TYPE
         let structure = new FuncStructure(this.tokens[i].pos, this.rs, {});
@@ -912,7 +878,6 @@ class TokenLine {
     try {
       return await this._eval(evalObj);
     } catch (e) {
-      // throw e;
       throw new Error(`${this.source}: \n${e} `);
     }
   }

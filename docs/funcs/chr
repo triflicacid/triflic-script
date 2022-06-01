@@ -1,0 +1,8 @@
+// Convert ASCII character code into a character
+
+let code = 65;
+let char = chr(code);
+println("chr({code}) = {char}"); // chr(65) = A
+println(type(char)); // char
+
+// Same can be achieved using casting: <char>65 => A

@@ -87,9 +87,9 @@ class RunspaceUserFunction extends RunspaceFunction {
   }
 
   /** Evaluation object & array of Token arguments */
-  async call(evalObj, args) {
+  async call(evalObj, args = []) {
     this.checkArgCount(args);
-    this.rs.pushScope();
+    this.rs.pushScope(evalObj.exec_instance.pid);
     // Set arguments to variables matching definition symbols
     let i = 0;
     for (let [arg, data] of this.args) {
@@ -141,13 +141,13 @@ class RunspaceUserFunction extends RunspaceFunction {
             }
           }
         }
-        this.rs.defineVar(arg, casted);
+        this.rs.defineVar(arg, casted, undefined, evalObj.exec_instance.pid);
       } else if (data.pass === 'ref') {
         if (typeof args[i].getVar !== 'function') {
           throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: expected variable, got ${args[i]?.type()} ${args[i]}`);
         }
         let vobj = args[i].getVar();
-        let varObj = this.rs.defineVar(arg, vobj);
+        let varObj = this.rs.defineVar(arg, vobj, evalObj.exec_instance.pid);
         varObj.refFor = vobj;
       } else {
         throw new Error(`Unknown pass-by value '${data.pass}' for '${args[i]}'`);
@@ -157,7 +157,7 @@ class RunspaceUserFunction extends RunspaceFunction {
 
     let ret = await this.tstr.eval(evalObj);
     ret = ret.castTo(this.returnType);
-    this.rs.popScope();
+    this.rs.popScope(evalObj.exec_instance.pid);
     return ret;
   }
 }
@@ -181,7 +181,7 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
     return new RunspaceBuiltinFunction(this.rs, this.name, this.rargs, this.fn, this.desc);
   }
 
-  async call(evalObj, args) {
+  async call(evalObj, args = []) {
     this.checkArgCount(args);
     const o = {};
     // Assign 'param: value' in o

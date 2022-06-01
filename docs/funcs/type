@@ -1,0 +1,12 @@
+// Return string type of argument
+
+println(type(5)); // => real
+println(type(1 + 2i)); // => complex
+println(type("Hello")); // => string
+println(type('a')); // => char
+println(type(false)); // => bool
+println(type([1, 2])); // => array
+println(type({1, 2})); // => set
+println(type({'a': 1})); // => map
+println(type(println)); // => func
+println(type(undef)); // => undef

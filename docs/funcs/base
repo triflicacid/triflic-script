@@ -1,0 +1,9 @@
+// Convert number between bases
+
+let n = 0xDEAD;
+println("{n=}"); // => n=57005
+
+println(base("DEAD", 16, 10)); // => 57005
+println(base(57005, 10, 16)); // => DEAD
+
+// Base can be > 36, but undefined behaviour

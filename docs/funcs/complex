@@ -1,0 +1,5 @@
+// Create a complex number a + bi from complex(a, b)
+
+let z = complex(3, 4);
+
+println("z = (" + type(z) + ") " + z); // => z = (complex) 3+4i

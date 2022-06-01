@@ -1,0 +1,10 @@
+// Return array of local vars
+let a = 1;
+let b = 2;
+
+func {
+  let c = 3;
+  println(locals()); // => [c]
+} ();
+
+println(locals()); // => [..., a, b]

@@ -1,0 +1,3 @@
+// Return array of all technical numeric types
+
+println(numbertypes()); // => [uint8, int8, ...]

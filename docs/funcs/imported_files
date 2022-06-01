@@ -1,0 +1,4 @@
+// Return array of imported files. This is used to prevent circular imports
+// NB that the returned array cannot be edited
+
+println(imported_files()); // => [./funcs/imported_files]

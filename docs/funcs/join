@@ -1,0 +1,4 @@
+// Join array of items by a given seperator
+
+println(join(1:5)); // => 1234
+println(join(1:5, ", ")); // => 1, 2, 3, 4

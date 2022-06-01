@@ -1,0 +1,6 @@
+// Push (append) to a value
+
+let arr = 1:4;
+println(arr); // => [0, 1, 2, 3]
+push(arr, 100);
+println(arr); // => [0, 1, 2, 3, 100]

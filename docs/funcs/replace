@@ -1,0 +1,6 @@
+// Replace instances of arg2 in arg1 with arg3
+
+println(replace("Hello", "l", "L")); // => HeLLo
+
+// Replace only once
+println(replace("Hello", "l", "L", true)); // => HeLlo

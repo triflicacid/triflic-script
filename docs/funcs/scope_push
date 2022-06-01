@@ -1,0 +1,12 @@
+// Artifially push new scope
+
+let a = 1;
+let b = 2;
+
+println(locals()); // [..., a, b]
+
+scope_push();
+
+let c = 3;
+
+println(locals()); // [c]

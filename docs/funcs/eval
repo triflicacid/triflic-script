@@ -1,0 +1,6 @@
+// Evaluates TriflicScript in the current process and scope
+
+eval("let a = 14");
+println("{a=}"); // => a=14
+
+// May contains any valid TriflicScript code

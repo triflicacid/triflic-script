@@ -1,0 +1,2 @@
+// Returns array of all available types
+println(types()); // => [any, complex, ...]

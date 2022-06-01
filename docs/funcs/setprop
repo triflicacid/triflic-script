@@ -1,0 +1,12 @@
+// Set property of argument
+
+setprop(headers, "app", "DOC");
+println(getprop(headers, "app")); // => DOC
+
+let arr = 1:5;
+setprop(arr, 2, -100);
+println(arr); // => 0,1,-100,3,4
+
+let str = "Hello";
+setprop(str, 1, '£');
+println(str); // => H£llo

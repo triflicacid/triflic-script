@@ -1,0 +1,6 @@
+// Check if the given input variable is defined (as a string)
+
+println(isdefined("pi")); // => true
+println(isdefined("a")); // => false
+let a = 14;
+println(isdefined("a")); // => true

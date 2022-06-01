@@ -1,0 +1,16 @@
+// Fills array
+
+let arr = array(4);
+println(arr); // => [undef,undef,undef,undef]
+
+// Given constant
+fill(arr, -1);
+println(arr); // => [-1,-1,-1,-1]
+
+// Given function with no arguments
+fill(arr, () -> round(random()));
+println(arr); // => [0,1,0,0]
+
+// Given function with argument: index
+fill(arr, i -> i + 1);
+println(arr); // => [1,2,3,4]

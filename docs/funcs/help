@@ -1,0 +1,7 @@
+println(help()); // Get generic help
+println();
+println(help(pi)); // Get help about a variable
+println();
+println(help(sin)); // Get help on a function
+println();
+println(help("+")); // Get help on an operator

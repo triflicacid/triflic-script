@@ -338,10 +338,10 @@ class StringValue extends Value {
   __copy__() { return new StringValue(this.rs, this.value); }
 
   /** min() function */
-  __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.min(...this.value.split('').map(chr => chr.charCodeAt(0)))); }
+  __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new CharValue(this.rs, Math.min(...this.value.split('').map(chr => chr.charCodeAt(0)))); }
 
   /** max() function */
-  __max__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.max(...this.value.split('').map(chr => chr.charCodeAt(0)))); }
+  __max__() { return this.value.length === 0 ? this.rs.UNDEFINED : new CharValue(this.rs, Math.max(...this.value.split('').map(chr => chr.charCodeAt(0)))); }
 
   __iter__() {
     return this.value.split('');
@@ -613,7 +613,7 @@ class ArrayValue extends Value {
   __len__(newLength) {
     if (newLength !== undefined) {
       if (newLength > this.value.length) while (newLength > this.value.length) this.value.push(this.rs.UNDEFINED);
-      else this.value.splice(this.value.length - newLength);
+      else this.value.length = newLength;
     }
     return this.value.length;
   }
@@ -625,10 +625,10 @@ class ArrayValue extends Value {
   __toJson__() { return new "[" + this.value.map(v => toJson(v)).join(',') + "]"; }
 
   /** min() function */
-  __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.min(...this.value.map(v => v.toPrimitive('real')))); }
+  __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new NumberValue(this.rs, Math.min(...this.value.map(v => v.toPrimitive('real')))); }
 
   /** max() function */
-  __max__() { return this.value.length === 0 ? this.rs.UNDEFINED : new StringValue(this.rs, Math.max(...this.value.map(v => v.toPrimitive('real')))); }
+  __max__() { return this.value.length === 0 ? this.rs.UNDEFINED : new NumberValue(this.rs, Math.max(...this.value.map(v => v.toPrimitive('real')))); }
 
   /** get() function */
   __get__(i) {
@@ -895,27 +895,27 @@ class MapValue extends Value {
   /** min() function */
   __min__() {
     if (this.value.size === 0) return this.rs.UNDEFINED;
-    let minKey, minVal = new NumberValue(this.rs, -Infinity);
+    let minKey, minVal = new NumberValue(this.rs, Infinity);
     this.value.forEach((val, key) => {
-      if (val.__gt__(minVal)) {
+      if (val.__lt__?.(minVal).toPrimitive("bool")) {
         minKey = key;
         minVal = val;
       }
     });
-    return minKey;
+    return minKey ? new StringValue(this.rs, minKey) : minKey;
   }
 
   /** max() function */
   __max__() {
     if (this.value.size === 0) return this.rs.UNDEFINED;
-    let maxKey, maxVal = new NumberValue(this.rs, Infinity);
+    let maxKey, maxVal = new NumberValue(this.rs, -Infinity);
     this.value.forEach((val, key) => {
-      if (val.__lt__(maxVal)) {
+      if (val.__gt__?.(maxVal).toPrimitive("bool")) {
         maxKey = key;
         maxVal = val;
       }
     });
-    return maxKey;
+    return maxKey ? new StringValue(this.rs, maxKey) : maxKey;
   }
 
   /** get() function */
@@ -1090,6 +1090,7 @@ NumberValue.castMap = {
   string: o => {
     let s;
     if (isNaN(o.value.a) || isNaN(o.value.b)) s = 'nan';
+    else if (o.value.b === 0 && !isFinite(o.value.a)) s = o.value.a < 0 ? "-inf" : "inf";
     else if (!isFinite(o.value.a) || !isFinite(o.value.b)) s = 'inf';
     else s = str(o.value);
     return new StringValue(o.rs, s);

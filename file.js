@@ -9,7 +9,7 @@ const { define, defineVars, defineFuncs } = require("./src/init/def");
 const defineNode = require("./src/init/def-node");
 const Runspace = require("./src/runspace/Runspace");
 const { printError } = require("./src/utils");
-const { ArrayValue, primitiveToValueClass, NumberValue } = require("./src/evaluation/values");
+const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
 const setupIo = require("./src/runspace/setup-io");
 
 async function main() {
@@ -34,28 +34,30 @@ async function main() {
     opts.file = file;
     opts.root = __dirname;
     const rs = new Runspace(opts);
+    rs.root = __dirname;
     define(rs);
     defineNode(rs);
     defineVars(rs);
     if (opts.defineFuncs) defineFuncs(rs);
-    rs.importFiles.push(file);
+
+    const exec_instance = rs.create_exec_instance(), mainProc = rs.get_process(exec_instance.pid);
+
+    mainProc.imported_files.push(file);
     // Setup things
     setupIo(rs);
     require("./src/runspace/runspace-createImport");
-    rs.root = __dirname;
 
-    await rs.import("<io>");
-
+    await rs.import(exec_instance, "<io>");
 
     rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
 
     let start = Date.now(), ret, error, time, evalObj = {};
     try {
-      rs.importStack.push(path.dirname(file));
-      ret = await rs.execute(source, undefined, evalObj);
+      mainProc.import_stack.push(path.dirname(file));
+      ret = await rs.exec(exec_instance, source, undefined, evalObj);
       exitCode = evalObj.statusValue?.toString() ?? 0;
       time = Date.now() - start;
-      rs.importStack.pop();
+      mainProc.import_stack.pop();
     } catch (e) {
       error = e;
     }
@@ -74,11 +76,10 @@ async function main() {
 
     rs.io.close(); // Close IO stream
     rs.io.removeAllListeners();
+    rs.terminate_exec_instance(exec_instance, exitCode);
 
     return exitCode;
   }
-
-  return 0;
 }
 
 (async function () {

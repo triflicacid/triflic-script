@@ -1,5 +1,4 @@
-const {Fraction, Fractions} = require("./src/maths/Fraction");
-const { LCF } = require("./src/maths/functions");
+const { int_to_base, base_to_int } = require("./src/utils");
 
-// console.log(Fractions.ToFraction(0.33333333333));
-console.log(LCF(33333333333, 100000000000));
+console.log(int_to_base(57005, 16));
+console.log(base_to_int("DEAD", 16));
