@@ -1,11 +1,32 @@
 const Runspace = require("./src/runspace/Runspace");
 const { define, defineVars, defineFuncs } = require("./src/init/def");
-const { primitiveToValueClass, ArrayValue, NumberValue, StringValue } = require("./src/evaluation/values");
+const createDefaultArgs = require("./src/init/args-default");
+const { StringValue } = require("./src/evaluation/values");
 const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 
-const argv = []; // string[]
-
 window.addEventListener("load", async () => {
+  function startEventLoop(rs) {
+    return new Promise((res) => {
+      const loop = () => {
+        for (let [pid, proc] of rs._procs) {
+          // console.log(`PROCESS CALLBACK: PID=${pid}; STATE=${proc.state}; VAL=${proc.stateValue}`);
+          // Destroy (remove) process if: killed, or finished first execution cycle
+          if (proc.state === 3) rs.destroy_process(pid);
+          else if (proc.state === 0 && proc.stateValue && !proc.persistent) {
+            rs.destroy_process(pid);
+          } else if (proc.state === 2) { // Error. Print to STDOUT
+            stdwrite(proc.stateValue.toString() + '\n');
+            rs.terminate_process(pid, 1, true);
+          }
+        }
+        if (rs._procs.size > 0) setTimeout(loop, 1); // Iterate again if more processes
+        else res(true); // If no processes, exit event loop as DONE
+      };
+
+      loop();
+    });
+  }
+
   document.title = `${Runspace.LANG_NAME} v${Runspace.VERSION}`;
 
   // Build webpage
@@ -51,25 +72,16 @@ window.addEventListener("load", async () => {
   document.body.insertAdjacentHTML("beforeend", "<hr>");
 
   // Create runspace instance
-  const opts = {
-    defineFuncs: true,
-    prompt: '>> ',
-    intro: true,
-    niceErrors: true,
-    imag: "i",
-    bidmas: true,
-    multiline: true,
-    timeExecution: false,
-  };
+  const opts = createDefaultArgs();
   opts.app = "WEB";
   opts.file = window.location.hostname;
   const rs = new Runspace(opts);
   define(rs);
   defineVars(rs);
   defineFuncs(rs);
-  const exec_instance = rs.create_exec_instance(), mainProc = rs.get_process(exec_instance.pid);
-  mainProc.imported_files.push('<stdin>');
-  rs.deleteVar('system');
+  const pid = rs.create_process(), mainProc = rs.get_process(pid);
+  mainProc.persistent = true;
+  mainProc.imported_files.push('<textarea>');
 
   const iTimeExecution = document.createElement("input");
   iTimeExecution.type = "checkbox";
@@ -78,41 +90,28 @@ window.addEventListener("load", async () => {
   iTimeExecution.addEventListener('click', () => opts.timeExecution = !opts.timeExecution);
   document.body.insertAdjacentHTML("beforeend", "Time execution");
 
-  rs.defineVar('argv', new ArrayValue(rs, argv.map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
+  rs.defineVar('argv', rs.generateArray(), 'Arguments provided to the program');
 
   // I/O functions
-  function print(...text) {
+  function stdwrite(...text) {
     stdout.value += text.join(' ');
     stdout.scrollTop = stdout.scrollHeight;
   }
 
   // Evaluate some input
   async function evaluate(input) {
-    let output, err, time, execObj = {};
-    try {
-      let start = Date.now();
-      output = await rs.exec(exec_instance, input, undefined, execObj);
-      time = Date.now() - start;
-      if (output !== undefined) output = output.toString();
-    } catch (e) {
-      err = e;
-    }
-
-    if (err) {
-      if (opts.niceErrors) {
-        print(err.toString() + '\n');
+    await rs.exec(pid, input);
+    if (mainProc.state === 0) {
+      if (mainProc.stateValue.status < 0) {
+        stdwrite("Process exited with code " + mainProc.stateValue.statusValue + "\n");
+        rs.terminate_process(pid, 0, true);
       } else {
-        console.trace(err);
-      }
-    } else {
-      if (output !== undefined) {
-        print(output + '\n');
-      }
-      if (opts.timeExecution) {
-        print(`** Took ${time} ms (${execObj.parse} ms parsing, ${execObj.exec} ms execution)\n`);
+        stdwrite(mainProc.stateValue.ret.toString() + "\n");
+        if (opts.timeExecution) {
+          stdwrite(`** Took ${time} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
+        }
       }
     }
-    return execObj.status;
   }
 
   // Basic I/O functions
@@ -122,11 +121,11 @@ window.addEventListener("load", async () => {
     return c;
   }, 'Exit the current session'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'print', { o: 'any' }, ({ o }) => {
-    print(o.toString());
+    stdwrite(o.toString());
     return rs.UNDEFINED;
   }, 'Prints object to stdout'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'println', { o: '?any' }, ({ o }) => {
-    print((o ? o.toString() : '') + '\n');
+    stdwrite((o ? o.toString() : '') + '\n');
     return rs.UNDEFINED;
   }, 'prints object to stdout followed by a newline'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'input', { prompt_: '?string', default_: '?string' }, async ({ prompt_, default_ }) => {
@@ -154,6 +153,8 @@ window.addEventListener("load", async () => {
       stdin.focus();
     }
   });
+
+  await startEventLoop(rs);
 });
 
 /** Read a file as text */

@@ -13,16 +13,13 @@ For more help, see `docs/` for more documentation, `programs/` for example progr
   - `\n`, assuming not inside a bracketed group `[]` or `()`
   - At the end of a block
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
-- Add `process` concept. **IN PROGRESS**
-  - ~~allowing multiple programs to be run in one `Runspace` ~~
-  - allow the creation of child processes - basically, so not every function is awaited and code can run 'simultaneously'
 - Add `docs/funcs/` which describes and contains usage of every core-defined function **IN PROGRESS**
   - All core functions done, now functions defined in `defineFuncs`
-- `src/evaluation/types.js` - `Set` of types, rather than object mapping to type codes, as codes are never used anyway.
 
 ## Bugs
 - Negative numbers after block is a syntax error e.g. `func() { if (0) {...} -1; }`
   - As there is something before `-`, it isn't parsed as a unary operator
+- `discord.js` and `docs/syntax/test.js` need changing to latest version
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments. `<io>` is imported.

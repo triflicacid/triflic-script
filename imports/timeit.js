@@ -1,7 +1,7 @@
 const { RunspaceBuiltinFunction } = require("../src/runspace/Function");
 const { NumberValue } = require('../src/evaluation/values');
 
-module.exports = (rs, ei) => {
+module.exports = (rs, pid) => {
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'timeit', { fn: 'func', args: '?array', iterations: '?real_int' }, async ({ fn, args, iterations }, evalObj) => {
         iterations = iterations ? iterations.toPrimitive('real_int') : 1;
         fn = fn.castTo("any").getFn();
@@ -10,5 +10,5 @@ module.exports = (rs, ei) => {
             await fn.call(evalObj, args ? args.toPrimitive('array').map(t => t.castTo('any')) : []);
         }
         return new NumberValue(rs, Date.now() - start);
-    }, 'Time the excution of function <fn> given arguments <args> for <iterations=1> iterations'), ei.pid);
+    }, 'Time the excution of function <fn> given arguments <args> for <iterations=1> iterations'), pid);
 };

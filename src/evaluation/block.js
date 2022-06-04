@@ -10,11 +10,11 @@ var currBlockID = 0;
  * 0 -> No. 1 -> Propagation. 2 -> Direct use.
  */
 class Block {
-  constructor(rs, tokenLines, pos, exec_instance, parent = undefined) {
+  constructor(rs, tokenLines, pos, pid, parent = undefined) {
     this.id = currBlockID++;
     this.rs = rs;
-    this.exec_instance = exec_instance;
-    this.rs.push_instance_block(this, exec_instance.ilvl);
+    this.pid = pid;
+    rs.get_process(pid).blocks.set(this.id, this); // Register Block as valid code object
     this.tokenLines = tokenLines;
     this.pos = pos;
     this.parent = parent;
@@ -35,12 +35,14 @@ class Block {
   async preeval(evalObj) {
     for (let l = 0; l < this.tokenLines.length; l++) {
       let obj = this.createEvalObj(l);
+      obj.pid = evalObj.pid;
       await this.tokenLines[l].preeval(obj);
       if (obj.action !== 0) {
         if (obj.action === 4) {
           // console.log("Bind label '%s' to block %d", obj.actionValue, this.id)
           this.bindLabel(obj.actionValue, this.id, l);
           obj = this.createEvalObj(l);
+          obj.pid = evalObj.pid;
         } else {
           propagateEvalObj(obj, evalObj);
           break;
@@ -50,12 +52,21 @@ class Block {
   }
 
   async eval(evalObj, start = 0) {
-    let lastVal;
+    let lastVal, proc = this.rs.get_process(this.pid);
     for (let l = start; l < this.tokenLines.length; l++) {
       let obj = this.createEvalObj(l);
+      obj.pid = evalObj.pid;
       lastVal = await this.tokenLines[l].eval(obj);
 
-      if (obj.action === 0) continue;
+      if (proc.state === 3) { // SIGKILL
+        evalObj.action = -1;
+        evalObj.actionValue = proc.stateValue;
+        break;
+      } else if (proc.state === 2) { // Error
+        evalObj.action = -1;
+        break;
+      }
+      else if (obj.action === 0) continue;
       else if (obj.action === 1) {
         // console.log("Break line %d in block %s", l, this.id)
         if (this.breakable === 1) {
@@ -81,15 +92,15 @@ class Block {
         const labelInfo = this.seekLabel(obj.actionValue);
         if (labelInfo === undefined) throw new Error(`[${errors.NAME}] Name Error: unbound label '${obj.actionValue}'`);
         const [blockID, lineID] = labelInfo;
-        const block = this.rs.get_instance(this.exec_instance.ilvl).blocks.get(blockID);
+        const block = this.rs.get_process(this.pid).blocks.get(blockID);
         if (!block) throw new Error(`FATAL: block with ID ${blockID} does not exist (label '${obj.actionValue}')`);
         obj = this.createEvalObj(l);
+        obj.pid = evalObj.pid;
         // await block.preeval(obj);
         lastVal = await block.eval(obj, lineID + 1);
         evalObj.action = -2;
         break;
       } else { // Any other exit code: break and propagate
-        // throw new Error(`FATAL: Unknown signal '${obj.action}' in block ${obj.blockID}, line ${obj.lineID}`);
         propagateEvalObj(obj, evalObj);
         break;
       }
@@ -99,12 +110,12 @@ class Block {
 
   /** Create evaluation object , given a line number*/
   createEvalObj(lineNo) {
-    return createEvalObj(this.id, lineNo, this.exec_instance);
+    return createEvalObj(this.id, lineNo, this.pid);
   }
 
   /** Create child block */
   createChild(tokenLines, pos) {
-    return new Block(this.rs, tokenLines, pos, this.exec_instance, this);
+    return new Block(this.rs, tokenLines, pos, this.pid, this);
   }
 
   /** Bind a label */

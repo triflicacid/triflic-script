@@ -1,6 +1,6 @@
 const readline = require("readline");
 
-module.exports = function (rs) {
+function setupIO(rs) {
   rs.io = readline.createInterface({
     input: rs.stdin,
     output: rs.stdout,
@@ -9,4 +9,11 @@ module.exports = function (rs) {
   rs.stdin.on('data', async key => {
     if (rs.onDataHandler) await rs.onDataHandler(rs.io, key);
   });
-};
+}
+
+function destroyIO(rs) {
+  rs.io.removeAllListeners();
+  rs.io.close();
+}
+
+module.exports = { setupIO, destroyIO };

@@ -4,7 +4,8 @@ const { expectedSyntaxError, peek, createEvalObj, propagateEvalObj, equal } = re
 const { FunctionRefValue, ArrayValue, SetValue, MapValue } = require("./values");
 
 class Structure {
-  constructor(name, pos) {
+  constructor(rs, name, pos) {
+    this.rs = rs;
     this.name = name;
     this.pos = pos;
   }
@@ -18,8 +19,7 @@ class Structure {
 /** Structure to build an array */
 class ArrayStructure extends Structure {
   constructor(rs, elements, pos) {
-    super("ARRAY", pos);
-    this.rs = rs;
+    super(rs, "ARRAY", pos);
     this.elements = elements;
     this.assignment = false; // Is array being used in an assignment expression?
   }
@@ -47,8 +47,7 @@ class ArrayStructure extends Structure {
 /** Structure to build a Map */
 class MapStructure extends Structure {
   constructor(rs, pos) {
-    super("MAP", pos);
-    this.rs = rs;
+    super(rs, "MAP", pos);
     this.keys = [];
     this.values = [];
   }
@@ -76,8 +75,7 @@ class MapStructure extends Structure {
 /** Structure to build a set */
 class SetStructure extends Structure {
   constructor(rs, elements, pos) {
-    super("SET", pos);
-    this.rs = rs;
+    super(rs, "SET", pos);
     this.elements = elements;
     this.assignment = false; // Is array being used in an assignment expression?
   }
@@ -106,8 +104,8 @@ class IfStructure extends Structure {
    * @param conditionals - array of [condition: BracketedTokenLines, body: Block]
    * @param thenBlock - else block (Block)
    */
-  constructor(pos, conditionals = [], thenBlock = undefined) {
-    super("IF", pos);
+  constructor(rs, pos, conditionals = [], thenBlock = undefined) {
+    super(rs, "IF", pos);
     this.conditionals = conditionals;
     this.thenBlock = thenBlock;
   }
@@ -134,7 +132,7 @@ class IfStructure extends Structure {
 
   async eval(evalObj) {
     // Loop through conditionals...
-    let foundTruthy = false, value;
+    let foundTruthy = false, value, proc = this.rs.get_process(evalObj.pid);
     for (const [condition, block] of this.conditionals) {
       let cond = await condition.eval(evalObj);
       if (cond.toPrimitive("bool")) { // If conditon is truthy...
@@ -142,6 +140,7 @@ class IfStructure extends Structure {
         value = await block.eval(evalObj); // Evaluate code block
         break;
       }
+      if (proc.state !== 1) return;
     }
     if (!foundTruthy && this.thenBlock) { // If no condition was truthy and there is an else block...
       value = await this.thenBlock.eval(evalObj);
@@ -150,8 +149,8 @@ class IfStructure extends Structure {
 }
 
 class WhileStructure extends Structure {
-  constructor(pos, condition = undefined, body = undefined, thenBlock = undefined) {
-    super("WHILE", pos);
+  constructor(rs, pos, condition = undefined, body = undefined, thenBlock = undefined) {
+    super(rs, "WHILE", pos);
     this.condition = condition;
     this.body = body;
     this.thenBlock = thenBlock;
@@ -168,7 +167,7 @@ class WhileStructure extends Structure {
   }
 
   async eval(evalObj) {
-    let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    let obj = createEvalObj(evalObj.blockID, evalObj.lineID, evalObj.pid), proc = this.rs.get_process(evalObj.pid);
     while (true) {
       let bool = await this.condition.eval(obj);
       if (!bool.toPrimitive("bool")) {
@@ -178,7 +177,7 @@ class WhileStructure extends Structure {
       }
       await this.body.eval(obj);
 
-      if (obj.action === 1) break;
+      if (obj.action === 1 || proc.state !== 1) break;
       else if (obj.action === 2) {
         obj.action = 0;
       } else if (obj.action === 3) {
@@ -190,8 +189,8 @@ class WhileStructure extends Structure {
 }
 
 class DoWhileStructure extends Structure {
-  constructor(pos, condition = undefined, body = undefined, thenBlock = undefined) {
-    super("DOWHILE", pos);
+  constructor(rs, pos, condition = undefined, body = undefined, thenBlock = undefined) {
+    super(rs, "DOWHILE", pos);
     this.condition = condition;
     this.body = body;
     this.thenBlock = thenBlock;
@@ -208,11 +207,11 @@ class DoWhileStructure extends Structure {
   }
 
   async eval(evalObj) {
-    let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    let obj = createEvalObj(evalObj.blockID, evalObj.lineID, evalObj.pid), proc = this.rs.get_process(evalObj.pid);
     while (true) {
       await this.body.eval(obj);
 
-      if (obj.action === 1) break;
+      if (obj.action === 1 || proc.state !== 1) break;
       else if (obj.action === 2) {
         obj.action = 0;
       } else if (obj.action === 3) {
@@ -231,8 +230,8 @@ class DoWhileStructure extends Structure {
 }
 
 class UntilStructure extends Structure {
-  constructor(pos, condition = undefined, body = undefined, thenBlock = undefined) {
-    super("UNTIL", pos);
+  constructor(rs, pos, condition = undefined, body = undefined, thenBlock = undefined) {
+    super(rs, "UNTIL", pos);
     this.condition = condition;
     this.body = body;
     this.thenBlock = thenBlock;
@@ -249,7 +248,7 @@ class UntilStructure extends Structure {
   }
 
   async eval(evalObj) {
-    let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    let obj = createEvalObj(evalObj.blockID, evalObj.lineID, evalObj.pid), proc = this.rs.get_process(evalObj.pid);
     while (true) {
       let bool = await this.condition.eval(obj);
       if (bool.toPrimitive("bool")) {
@@ -259,7 +258,7 @@ class UntilStructure extends Structure {
       }
       await this.body.eval(obj);
 
-      if (obj.action === 1) break;
+      if (obj.action === 1 || proc.state !== 1) break;
       else if (obj.action === 2) {
         obj.action = 0;
       } else if (obj.action === 3) {
@@ -271,8 +270,8 @@ class UntilStructure extends Structure {
 }
 
 class DoUntilStructure extends Structure {
-  constructor(pos, condition = undefined, body = undefined, thenBlock = undefined) {
-    super("DOUNTIL", pos);
+  constructor(rs, pos, condition = undefined, body = undefined, thenBlock = undefined) {
+    super(rs, "DOUNTIL", pos);
     this.condition = condition;
     this.body = body;
     this.thenBlock = thenBlock;
@@ -289,11 +288,11 @@ class DoUntilStructure extends Structure {
   }
 
   async eval(evalObj) {
-    let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    let obj = createEvalObj(evalObj.blockID, evalObj.lineID, evalObj.pid), proc = this.rs.get_process(evalObj.pid);
     while (true) {
       await this.body.eval(obj);
 
-      if (obj.action === 1) break;
+      if (obj.action === 1 || proc.state !== 1) break;
       else if (obj.action === 2) {
         obj.action = 0;
       } else if (obj.action === 3) {
@@ -312,8 +311,8 @@ class DoUntilStructure extends Structure {
 }
 
 class ForStructure extends Structure {
-  constructor(pos, loop, body, thenBlock = undefined) {
-    super("FOR", pos);
+  constructor(rs, pos, loop, body, thenBlock = undefined) {
+    super(rs, "FOR", pos);
     this.loop = loop;
     this.body = body;
     this.thenBlock = thenBlock;
@@ -331,13 +330,13 @@ class ForStructure extends Structure {
   }
 
   async eval(evalObj) {
-    let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    let obj = createEvalObj(evalObj.blockID, evalObj.lineID, evalObj.pid), proc = this.rs.get_process(evalObj.pid);
     await this.loop.value[0].eval(obj);
     if (this.loop.value[1].tokens.length <= 1) { // If empty (contains only ';') - infinite loop
       while (true) {
         await this.body.eval(obj);
 
-        if (obj.action === 1) break;
+        if (obj.action === 1 || proc.state !== 1) break;
         else if (obj.action === 2) {
           obj.action = 0;
         } else if (obj.action === 3) {
@@ -373,8 +372,8 @@ class ForStructure extends Structure {
 
 class ForInStructure extends Structure {
   /** for (<vars> in <iter>) {<body>}. iter is a TokenLine. */
-  constructor(pos, vars, iter, body) {
-    super("FORIN", pos);
+  constructor(rs, pos, vars, iter, body) {
+    super(rs, "FORIN", pos);
     this.vars = vars;
     this.iter = iter;
     this.body = body;
@@ -389,7 +388,7 @@ class ForInStructure extends Structure {
   }
 
   async eval(evalObj) {
-    let iter, obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    let iter, obj = createEvalObj(evalObj.blockID, evalObj.lineID, evalObj.pid), proc = this.rs.get_process(evalObj.pid);
     try {
       iter = await this.iter.eval(obj);
       iter = iter.castTo("any");
@@ -410,10 +409,10 @@ class ForInStructure extends Structure {
             break;
           }
 
-          this.body.rs.defineVar(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]), undefined, evalObj.exec_instance.pid);
+          this.body.rs.defineVar(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]), undefined, evalObj.pid);
           await this.body.eval(obj);
 
-          if (obj.action === 1) break;
+          if (obj.action === 1 || proc.state !== 1) break;
           else if (obj.action === 2) {
             obj.action = 0;
           } else if (obj.action === 3) {
@@ -434,11 +433,11 @@ class ForInStructure extends Structure {
           }
 
           for (let a = 0; a < this.vars.length; a++) {
-            this.body.rs.defineVar(this.vars[a].value, collection[i][a], undefined, evalObj.exec_instance.pid);
+            this.body.rs.defineVar(this.vars[a].value, collection[i][a], undefined, evalObj.pid);
           }
           await this.body.eval(obj);
 
-          if (obj.action === 1) break;
+          if (obj.action === 1 || proc.state !== 1) break;
           else if (obj.action === 2) {
             obj.action = 0;
           } else if (obj.action === 3) {
@@ -460,10 +459,10 @@ class ForInStructure extends Structure {
           break;
         }
 
-        this.body.rs.defineVar(this.vars[0].value, collection[i], undefined, evalObj.exec_instance.pid);
+        this.body.rs.defineVar(this.vars[0].value, collection[i], undefined, evalObj.pid);
         await this.body.eval(obj);
 
-        if (obj.action === 1) break;
+        if (obj.action === 1 || proc.state !== 1) break;
         else if (obj.action === 2) {
           obj.action = 0;
         } else if (obj.action === 3) {
@@ -480,8 +479,7 @@ class ForInStructure extends Structure {
 class FuncStructure extends Structure {
   /** args - { [arg: string]: string }. body = Block */
   constructor(pos, rs, args, body, name = undefined) {
-    super("FUNC", pos);
-    this.rs = rs;
+    super(rs, "FUNC", pos);
     this.name = name;
     this.args = args ?? {};
     this.body = body;
@@ -500,7 +498,7 @@ class FuncStructure extends Structure {
     let ret;
 
     if (this.name) { // Not anonymous - define function
-      this.rs.defineVar(fn.name, ref, undefined, evalObj.exec_instance.pid);
+      this.rs.defineVar(fn.name, ref, undefined, evalObj.pid);
     } else {
       ref.func = fn; // Bind to reference
       ret = ref; // Return reference
@@ -510,8 +508,8 @@ class FuncStructure extends Structure {
 }
 
 class LoopStructure extends Structure {
-  constructor(pos, body) {
-    super("LOOP", pos);
+  constructor(rs, pos, body) {
+    super(rs, "LOOP", pos);
     this.body = body;
   }
 
@@ -521,12 +519,12 @@ class LoopStructure extends Structure {
   }
 
   async eval(evalObj) {
-    const obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    const obj = createEvalObj(evalObj.blockID, evalObj.lineID, evalObj.pid), proc = this.rs.get_process(evalObj.pid);
 
     while (true) {
       await this.body.eval(obj);
 
-      if (obj.action === 1) break;
+      if (obj.action === 1 || proc.state !== 1) break;
       else if (obj.action === 2) {
         obj.action = 0;
       } else if (obj.action === 3) {
@@ -573,7 +571,7 @@ class ReturnStructure extends Structure {
   }
 
   async eval(evalObj) {
-    let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    let obj = createEvalObj(evalObj.blockID, evalObj.lineID, evalObj.pid);
     evalObj.action = 3; // Action for RETURN
     evalObj.actionValue = await this.expr.eval(obj);
   }
@@ -585,8 +583,8 @@ class SwitchStructure extends Structure {
    * @param cases - array of [cases: BracketedTokenLines[], body: Block]
    * @param elseBlock - else block (Block)
    */
-  constructor(pos, query, cases = [], elseBlock = undefined) {
-    super("SWITCH", pos);
+  constructor(rs, pos, query, cases = [], elseBlock = undefined) {
+    super(rs, "SWITCH", pos);
     this.query = query;
     this.cases = cases;
     this.elseBlock = elseBlock;
@@ -619,9 +617,9 @@ class SwitchStructure extends Structure {
   }
 
   async eval(evalObj) {
-    let query = await this.query.eval(evalObj);
+    let query = await this.query.eval(evalObj), proc = this.rs.get_process(evalObj.pid);
     let enteredCase = false;
-    let obj = createEvalObj(evalObj.blockID, evalObj.lineID);
+    let obj = createEvalObj(evalObj.blockID, evalObj.lineID, evalObj.pid);
     let lastVal;
 
     for (const [conditions, block] of this.cases) {
@@ -632,7 +630,7 @@ class SwitchStructure extends Structure {
           enteredCase = true;
         }
 
-        if (enteredCase || obj.action === 1) break;
+        if (enteredCase || obj.action === 1 || proc.state !== 1) break;
         else if (obj.action === 2) {
           obj.action = 0;
         } else if (obj.action === 3) {
@@ -704,13 +702,13 @@ class LetStructure extends Structure {
   async eval(evalObj) {
     switch (this.variation) {
       case "array":
-        for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value, undefined, undefined, evalObj.exec_instance.pid);
+        for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value, undefined, undefined, evalObj.pid);
         return new ArrayValue(this.rs, this.symbol, false); // Return array of un-evaluated symbols for expression purposes
       case "set":
-        for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value, undefined, undefined, evalObj.exec_instance.pid);
+        for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value, undefined, undefined, evalObj.pid);
         return new SetValue(this.rs, this.symbol); // Return array of un-evaluated symbols for expression purposes
       default:
-        this.rs.defineVar(this.symbol.value, undefined, undefined, evalObj.exec_instance.pid);
+        this.rs.defineVar(this.symbol.value, undefined, undefined, evalObj.pid);
         return this.symbol;
 
     }

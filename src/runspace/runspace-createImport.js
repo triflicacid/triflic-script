@@ -4,8 +4,8 @@ const path = require("path");
 const { errors } = require("../errors");
 
 /** Attempt to import a file. Throws error of returns Value instance. */
-Runspace.prototype.import = async function (exec_instance, file) {
-  let fpath, proc = this.get_process(exec_instance.pid);
+Runspace.prototype.import = async function (pid, file) {
+  let fpath, proc = this.get_process(pid);
   if (file[0] === '<' && file[file.length - 1] === '>') {
     fpath = path.join(this.root, "imports/", file.substring(1, file.length - 1) + '.js');
   } else {
@@ -47,7 +47,7 @@ Runspace.prototype.import = async function (exec_instance, file) {
       if (typeof fn !== 'function') throw new Error(`[${errors.BAD_IMPORT}] Import Error: .js: expected module.exports to be a function, got ${typeof fn} (full path: ${fpath})`);
       let resp;
       try {
-        resp = await fn(this, exec_instance);
+        resp = await fn(this, pid);
       } catch (e) {
         restore();
         console.error(e);
@@ -67,7 +67,7 @@ Runspace.prototype.import = async function (exec_instance, file) {
 
       let ret;
       try {
-        ret = await this.exec(exec_instance, text);
+        ret = await this.exec(pid, text);
       } catch (e) {
         restore();
         throw new Error(`[${errors.BAD_IMPORT}] Import Error: ${ext}: Error whilst interpreting file (full path: ${fpath}):\n${e}`);

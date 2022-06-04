@@ -5,7 +5,8 @@ const { consoleColours, printError } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
 const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
-const setupIo = require("./src/runspace/setup-io");
+const { setupIO, destroyIO } = require("./src/runspace/setup-io");
+const startEventLoop = require("./src/runspace/event-loop");
 
 // PARSE ARGV, SETUP RUNSPACE
 const opts = parseArgString(process.argv, true);
@@ -20,51 +21,19 @@ defineNode(rs);
 defineVars(rs);
 if (opts.defineFuncs) defineFuncs(rs);
 
-const exec_instance = rs.create_exec_instance(), mainProc = rs.get_process(exec_instance.pid);
+const mpid = rs.create_process(), mainProc = rs.get_process(mpid);
+mainProc.dieonerr = false;
 mainProc.imported_files.push('<interpreter>');
 
+process.on('SIGINT', () => {
+  rs._procs.forEach(proc => rs.terminate_process(proc.pid, -1, true));
+});
+
 // Setup things
-setupIo(rs);
+setupIO(rs);
 require("./src/runspace/runspace-createImport");
 
-rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program', exec_instance.pid);
-
-// Evaluate some input
-async function evaluate(input) {
-  let output, err, time, execObj = {};
-  try {
-    let start = Date.now();
-    output = await rs.exec(exec_instance, input, undefined, execObj);
-    time = Date.now() - start;
-    if (output !== undefined) output = output.toString();
-  } catch (e) {
-    err = e;
-  }
-
-  if (err) {
-    if (opts.niceErrors) {
-      printError(err, str => rs.io.output.write(str));
-    } else {
-      console.trace(err);
-    }
-  } else {
-    if (output !== undefined) {
-      rs.io.output.write(output + '\n');
-    }
-    if (opts.timeExecution) {
-      rs.io.output.write(`** Took ${time} ms (${execObj.parse} ms parsing, ${execObj.exec} ms execution)\n`);
-    }
-  }
-  return execObj;
-}
-
-// End
-function end(exitCode) {
-  rs.io.removeAllListeners();
-  rs.io.close();
-  console.log("Process exited with code " + exitCode);
-  rs.terminate_exec_instance(exec_instance);
-}
+rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program', mpid);
 
 async function main() {
   if (!process.stdin.isTTY) {
@@ -76,7 +45,7 @@ async function main() {
   process.stdin.resume();
 
   // Import standard IO library
-  await rs.import(exec_instance, "<io>");
+  await rs.import(mpid, "<io>");
 
   // Set prompt
   rs.io.setPrompt(opts.prompt);
@@ -96,32 +65,49 @@ async function main() {
   if (opts.multiline) {
     const lines = []; // Line buffer
     rs.onLineHandler = async (io, line) => {
-      let result;
       if (line.length === 0) {
         const input = lines.join('\n');
         lines.length = 0;
-        result = await evaluate(input);
         io.setPrompt(opts.prompt);
+        rs.exec(mpid, input);
       } else {
         lines.push(line);
         io.setPrompt('.'.repeat(opts.prompt.length - 1) + ' ');
+        rs.io.prompt();
       }
-
-      if (result.status < 0) {
-        end(result.statusValue);
-      } else rs.io.prompt();
     };
   } else {
-    rs.onLineHandler = async (io, line) => {
-      let result = await evaluate(line);
-      if (result.status < 0) {
-        end(result.statusValue);
-      } else rs.io.prompt();
-    };
+    rs.onLineHandler = (io, line) => rs.exec(mpid, line);
   }
 
   // Initialialise prompt
   rs.io.prompt();
+
+  await startEventLoop(rs, handler);
+
+  destroyIO(rs);
+}
+
+function handler(proc) {
+  if (proc.pid !== mpid) return; // Only handle main process
+  if (mainProc.state === 0) {
+    if (mainProc.stateValue) {
+      if (mainProc.stateValue.status < 0) {
+        rs.io.output.write("Process exited with code " + mainProc.stateValue.statusValue + "\n");
+        rs.terminate_process(mpid, 0, true);
+      } else {
+        rs.io.output.write(mainProc.stateValue.ret.toString() + "\n");
+        if (opts.timeExecution) {
+          rs.io.output.write(`** Took ${time} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
+        }
+        rs.io.setPrompt(rs.opts.value.get("prompt"));
+        rs.io.prompt();
+      }
+    } else {
+      rs.io.setPrompt(rs.opts.value.get("prompt"));
+      rs.io.prompt();
+    }
+  }
 }
 
 main();

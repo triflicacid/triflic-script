@@ -3,4 +3,4 @@
 
 import("<process>");
 
-println("PID = " + pid()); // => 0
+println("PID = " + getpid()); // => 0

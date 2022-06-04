@@ -1,0 +1,14 @@
+import("<process>");
+
+func action() {
+  printf("Hello from process {getpid()}\n");
+}
+
+child = pcreate(); // Create another process
+padopt(getpid(), child); // Make <child> a child of the current process
+
+pcall(child, action);
+// pexec(child, "action()");
+
+call(action);
+// action();

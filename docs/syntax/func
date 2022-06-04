@@ -34,7 +34,7 @@ greet("Joe");
 
 // Pass by reference
 func swap(x: ref any, y: ref any) {
-  tmp = x;
+  let tmp = x;
   x = y;
   y = tmp;
 }

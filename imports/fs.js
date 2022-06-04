@@ -37,25 +37,25 @@ function fwrite(filepath, data, offset, length) {
   });
 }
 
-function main(rs, ei) {
+function main(rs, pid) {
   errors.EFILE = 'EFILE';
   errorDesc[errors.EFILE] = 'Unable to complete file action';
 
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fexists', { filepath: 'string' }, async ({ filepath }) => new BoolValue(rs, await fexists(filepath.toString())), 'does the given file exist?'), ei.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fexists', { filepath: 'string' }, async ({ filepath }) => new BoolValue(rs, await fexists(filepath.toString())), 'does the given file exist?'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fread', { filepath: 'string' }, async ({ filepath }) => {
     filepath = filepath.toString();
     if (!(await fexists(filepath))) throw new Error(`[${errors.EFILE}] Unable to read file: file '${filepath}' does not exist`);
     return new StringValue(rs, await fread(filepath));
-  }, 'reads a file'), ei.pid);
+  }, 'reads a file'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fwrite', { filepath: 'string', data: 'string' }, async ({ filepath, data }) => {
     filepath = filepath.toString();
     data = data.toString();
     return new NumberValue(rs, await fwrite(filepath, data));
-  }, 'write to a file (creates is not exist)'), ei.pid);
+  }, 'write to a file (creates is not exist)'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fdelete', { filepath: 'string' }, async ({ filepath }) => {
     filepath = filepath.toString();
     return new BoolValue(rs, await fdelete(filepath));
-  }, 'deletes (unlinks) a file'), ei.pid);
+  }, 'deletes (unlinks) a file'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mkdir', { path: 'string' }, async ({ path }) => {
     path = path.toString();
     return await new Promise(resolve => {
@@ -63,7 +63,7 @@ function main(rs, ei) {
         resolve(new BoolValue(rs, !err));
       });
     });
-  }, 'creates a directory'), ei.pid);
+  }, 'creates a directory'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isdir', { path: 'string' }, async ({ path }) => {
     path = path.toString();
     if (!(await fexists(path))) return false;
@@ -73,7 +73,7 @@ function main(rs, ei) {
         else resolve(stats.isDirectory());
       });
     }));
-  }, 'is the given path a directory'), ei.pid);
+  }, 'is the given path a directory'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'lsdir', { path: 'string' }, async ({ path }) => {
     path = path.toString();
     if (!(await fexists(path))) throw new Error(`[${errors.BAD_ARG}] Unable to list directory '${path}' as it does not not exist`);
@@ -83,7 +83,7 @@ function main(rs, ei) {
         resolve(files.map(file => new StringValue(rs, file.name)));
       });
     }));
-  }, 'list files/directories in a directory'), ei.pid);
+  }, 'list files/directories in a directory'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'rmdir', { path: 'string', recurse: '?bool' }, async ({ path, recurse }) => {
     recurse = recurse ? recurse.toPrimitive('bool') : false;
     path = path.toString();
@@ -92,7 +92,7 @@ function main(rs, ei) {
         resolve(new BoolValue(rs, !err));
       });
     });
-  }, 'deleted a directory (recursive?)'), ei.pid);
+  }, 'deleted a directory (recursive?)'), pid);
 }
 
 module.exports = main;

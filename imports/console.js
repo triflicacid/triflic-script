@@ -3,35 +3,35 @@ const { StringValue } = require('../src/evaluation/values');
 const { consoleColours } = require("../src/utils");
 const { errors } = require("../src/errors");
 
-module.exports = (rs, ei) => {
+module.exports = (rs, pid) => {
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'c_reset', {}, () => {
         rs.io.output.write(consoleColours.Reset);
         return rs.UNDEFINED;
-    }, 'Console: reset styling'), ei.pid);
+    }, 'Console: reset styling'), pid);
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'c_reverse', {}, () => {
         rs.io.output.write(consoleColours.Reverse);
         return rs.UNDEFINED;
-    }, 'Console: reverse foreground and background colours'), ei.pid);
+    }, 'Console: reverse foreground and background colours'), pid);
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'c_bright', {}, () => {
         rs.io.output.write(consoleColours.Bright);
         return rs.UNDEFINED;
-    }, 'Console: set styling to bright'), ei.pid);
+    }, 'Console: set styling to bright'), pid);
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'c_dim', {}, () => {
         rs.io.output.write(consoleColours.Dim);
         return rs.UNDEFINED;
-    }, 'Console: set styling to dim'), ei.pid);
+    }, 'Console: set styling to dim'), pid);
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'c_underscore', {}, () => {
         rs.io.output.write(consoleColours.Underscore);
         return rs.UNDEFINED;
-    }, 'Console: set styling to underscore'), ei.pid);
+    }, 'Console: set styling to underscore'), pid);
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'c_blink', {}, () => {
         rs.io.output.write(consoleColours.Blink);
         return rs.UNDEFINED;
-    }, 'Console: set styling to blink'), ei.pid);
+    }, 'Console: set styling to blink'), pid);
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'c_hidden', {}, () => {
         rs.io.output.write(consoleColours.Hidden);
         return rs.UNDEFINED;
-    }, 'Console: set styling to hidden'), ei.pid);
+    }, 'Console: set styling to hidden'), pid);
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'c_fg', { col: 'string' }, ({ col }) => {
         col = col.toPrimitive("string");
         let code;
@@ -49,7 +49,7 @@ module.exports = (rs, ei) => {
         }
         rs.io.output.write(code);
         return rs.UNDEFINED;
-    }, 'Console: set foreground colour'), ei.pid);
+    }, 'Console: set foreground colour'), pid);
     rs.defineFunc(new RunspaceBuiltinFunction(rs, 'c_bg', { col: 'string' }, ({ col }) => {
         col = col.toPrimitive("string");
         let code;
@@ -67,5 +67,5 @@ module.exports = (rs, ei) => {
         }
         rs.io.output.write(code);
         return rs.UNDEFINED;
-    }, 'Console: set foreground colour'), ei.pid);
+    }, 'Console: set foreground colour'), pid);
 };

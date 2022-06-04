@@ -88,8 +88,9 @@ class RunspaceUserFunction extends RunspaceFunction {
 
   /** Evaluation object & array of Token arguments */
   async call(evalObj, args = []) {
+    // console.log(`RUF: CALL ${this.name} IN PID=${evalObj.pid}`);
     this.checkArgCount(args);
-    this.rs.pushScope(evalObj.exec_instance.pid);
+    this.rs.pushScope(evalObj.pid);
     // Set arguments to variables matching definition symbols
     let i = 0;
     for (let [arg, data] of this.args) {
@@ -129,7 +130,6 @@ class RunspaceUserFunction extends RunspaceFunction {
           // Cast and copy value
           if (castncopy) {
             try {
-              // console.log(casted, data)
               casted = casted.castTo(data.type);
             } catch (e) {
               throw new Error(`[${errors.CAST_ERROR}] Type Error: while casting argument ${arg} from type ${args[i].type()} to ${data.type} (function ${this.name}):\n${e}`);
@@ -141,13 +141,13 @@ class RunspaceUserFunction extends RunspaceFunction {
             }
           }
         }
-        this.rs.defineVar(arg, casted, undefined, evalObj.exec_instance.pid);
+        this.rs.defineVar(arg, casted, undefined, evalObj.pid);
       } else if (data.pass === 'ref') {
         if (typeof args[i].getVar !== 'function') {
           throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: expected variable, got ${args[i]?.type()} ${args[i]}`);
         }
         let vobj = args[i].getVar();
-        let varObj = this.rs.defineVar(arg, vobj, evalObj.exec_instance.pid);
+        let varObj = this.rs.defineVar(arg, vobj, undefined, evalObj.pid);
         varObj.refFor = vobj;
       } else {
         throw new Error(`Unknown pass-by value '${data.pass}' for '${args[i]}'`);
@@ -157,7 +157,7 @@ class RunspaceUserFunction extends RunspaceFunction {
 
     let ret = await this.tstr.eval(evalObj);
     ret = ret.castTo(this.returnType);
-    this.rs.popScope(evalObj.exec_instance.pid);
+    this.rs.popScope(evalObj.pid);
     return ret;
   }
 }
@@ -174,7 +174,6 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
   constructor(rs, name, args, fn, desc = '[built-in function]') {
     super(rs, name, args, desc);
     this.fn = fn;
-    this.constant = true;
   }
 
   clone() {
@@ -182,6 +181,7 @@ class RunspaceBuiltinFunction extends RunspaceFunction {
   }
 
   async call(evalObj, args = []) {
+    // console.log(`RBF: CALL ${this.name} IN PID=${evalObj.pid}`);
     this.checkArgCount(args);
     const o = {};
     // Assign 'param: value' in o

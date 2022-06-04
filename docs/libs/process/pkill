@@ -1,0 +1,20 @@
+import("<process>");
+
+func doloop {
+  loop {
+    println("I am in a loop!");
+    // sleep(1); // <-- Need this*
+    pause();
+  }
+}
+
+child = pcreate();
+padopt(getpid(), child);
+
+println("Entering loop...");
+pcall(child, doloop);
+
+sleep(5);
+pkill(child);
+
+/** * without this, the function would be blocking code which would prevent the main code from every reaching pkill */

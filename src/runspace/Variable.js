@@ -8,6 +8,7 @@ class RunspaceVariable {
   castTo(type) { return this.value.castTo(type); }
   toPrimitive(type) { return this.value.toPrimitive(type); }
   copy() { return new RunspaceVariable(this.name, this.value, this.desc); }
+  deepCopy() { return new RunspaceVariable(this.name, this.value.__copy__(), this.desc); }
 }
 
 module.exports = RunspaceVariable;

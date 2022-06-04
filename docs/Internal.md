@@ -4,7 +4,9 @@ This document will describe the inner workings of TriflicScript
 
 # Basic Model
 
-Everything is contains in a `Runspace` environment. It contains so-called super-globals which can be accessed by every process and are constant, as well as instances which contains every block in the current executing instance. It also contains processes, which allow multiple programs with unique scopes to run in the same Runspace. Each process has a unique process ID (PID) and instance level (ILVL), as well as unique import stacks and variable scopes. Scoping is done by pushing and popping hash tables to the process's variable stack (see `../README.md`).
+Everything is contains in a `Runspace` environment. It contains so-called super-globals which can be accessed by every process and are constant. It contains processes, which allow multiple programs with unique scopes to run in the same Runspace. Each process has a unique process ID (PID) and contains code, variables etc... for the current process. Scoping is done by pushing and popping hash tables to the process's variable stack (see `../README.md`).
+
+For processes, see `<process>` stdlib and files in `docs/libs/process/`
 
 Every line of code is `await`d when executed in `Runspace`
 

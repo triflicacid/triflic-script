@@ -253,8 +253,7 @@ class NumberValue extends Value {
 class StringValue extends Value {
   constructor(runspace, string = '', interpolations = {}) {
     super(runspace, str(string));
-    this.interpolations = interpolations; // Map position:TokenLine
-    this.raw = this.value;
+    this.intpls = interpolations; // Map position: TokenLine
   }
 
   type() { return "string"; }
@@ -264,25 +263,26 @@ class StringValue extends Value {
     return "\"" + this.value.replace(/[\\$'"]/g, "\\$&") + "\"";
   }
 
-  /** Interpolate if necessary... */
+  /** Interpolate if necessary... Returns new StringValue object if interpolation */
   async eval(evalObj) {
-    this.value = this.raw;
+    if (Object.keys(this.intpls).length === 0) return this;
+    let cpy = new StringValue(this.rs, this.value);
     let offset = 0;
-    for (let pos in this.interpolations) {
-      if (this.interpolations.hasOwnProperty(pos)) {
+    for (let pos in this.intpls) {
+      if (this.intpls.hasOwnProperty(pos)) {
         try {
-          const idata = this.interpolations[pos];
+          const idata = this.intpls[pos];
           let value = await idata.val.eval(evalObj), insert = value.toString();
           if (idata.eq) insert = idata.src + insert;
           let index = +pos + offset;
-          this.value = this.value.substr(0, index) + insert + this.value.substr(index);
+          cpy.value = cpy.value.substr(0, index) + insert + cpy.value.substr(index);
           offset += insert.length;
         } catch (e) {
           throw new Error(`[${errors.GENERAL}] Error whilst interpolating string (index ${pos}):\n${e}`);
         }
       }
     }
-    return this;
+    return cpy;
   }
 
   /** len() function */

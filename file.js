@@ -8,9 +8,9 @@ const Complex = require("./src/maths/Complex");
 const { define, defineVars, defineFuncs } = require("./src/init/def");
 const defineNode = require("./src/init/def-node");
 const Runspace = require("./src/runspace/Runspace");
-const { printError } = require("./src/utils");
 const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
-const setupIo = require("./src/runspace/setup-io");
+const { setupIO, destroyIO } = require("./src/runspace/setup-io");
+const startEventLoop = require("./src/runspace/event-loop");
 
 async function main() {
   if (process.argv.length < 3 || process.argv.includes("--help")) {
@@ -40,43 +40,32 @@ async function main() {
     defineVars(rs);
     if (opts.defineFuncs) defineFuncs(rs);
 
-    const exec_instance = rs.create_exec_instance(), mainProc = rs.get_process(exec_instance.pid);
-
+    const mpid = rs.create_process(), mainProc = rs.get_process(mpid);
     mainProc.imported_files.push(file);
     // Setup things
-    setupIo(rs);
+    setupIO(rs);
     require("./src/runspace/runspace-createImport");
-
-    await rs.import(exec_instance, "<io>");
+    await rs.import(mpid, "<io>");
 
     rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(3).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the program');
 
-    let start = Date.now(), ret, error, time, evalObj = {};
-    try {
-      mainProc.import_stack.push(path.dirname(file));
-      ret = await rs.exec(exec_instance, source, undefined, evalObj);
-      exitCode = evalObj.statusValue?.toString() ?? 0;
-      time = Date.now() - start;
-      mainProc.import_stack.pop();
-    } catch (e) {
-      error = e;
-    }
+    mainProc.import_stack.push(path.dirname(file));
 
-    rs.io.output.write(`${'-'.repeat(25)}\nExecution terminated with code ${exitCode} in ${time} ms\n`);
-    if (opts.timeExecution) rs.io.output.write(`Timings: Took ${time} ms (${evalObj.parse} ms parsing, ${evalObj.exec} ms execution)\n`);
-    if (error) {
-      if (opts.niceErrors) {
-        printError(error, x => rs.io.output.write(x));
-      } else {
-        console.trace(error);
+    rs.exec(mpid, source);
+
+    await startEventLoop(rs, proc => {
+      if (proc.pid === mpid && rs.process_isfinished(proc.pid)) {
+        proc.import_stack.pop();
+        exitCode = proc.state === 0 ? proc.stateValue.status : -1;
+        rs.io.output.write(`${'-'.repeat(24)}\nExecution terminated with code ${exitCode} in ${proc.stateValue.parse + proc.stateValue.exec} ms (${proc.stateValue.parse} ms parsing, ${proc.stateValue.exec} ms execution)\n`);
+        if (proc.state === 0) {
+          rs.io.output.write(`Value returned: ${proc.stateValue.ret.toString()}`);
+        }
+
+        rs.terminate_process(proc.pid, -1, true);
       }
-    } else {
-      rs.io.output.write(`Value returned: ${ret}`);
-    }
-
-    rs.io.close(); // Close IO stream
-    rs.io.removeAllListeners();
-    rs.terminate_exec_instance(exec_instance, exitCode);
+    });
+    destroyIO(rs);
 
     return exitCode;
   }

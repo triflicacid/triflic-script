@@ -2,6 +2,8 @@
 
 This document contains basic descriptions of every library available **by default** in `imports/`. Code in this folder may be imported by using `<>` brackets surrounding the name e.g. `import("<io>")` imports `imports/io.js`
 
+Library test scripts will be in `./libs/`
+
 ## `<console>`
 
 Defines functions which manipulate STDOUT (doesn't work in certain consoles), such as changing background/foreground colours.

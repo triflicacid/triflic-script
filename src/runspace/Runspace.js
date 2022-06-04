@@ -16,20 +16,20 @@ class Runspace {
     this._cpid = 0; // Next process PID
     this._globals = new Map(); // GLobal vars which are inserted when a MAIN process stats (in exec)
 
-    this.opts = opts;
+    // Finish setup of opts -> headers
     opts.version = Runspace.VERSION;
-    this.opts.name = Runspace.LANG_NAME;
+    opts.name = Runspace.LANG_NAME;
     opts.time = Date.now();
+    const map = new MapValue(this);
+    Object.entries(opts).forEach(([k, v]) => map.value.set(k, primitiveToValueClass(this, v)));
+    this.defineVar('headers', map, 'Config headers of current runspace [readonly]', undefined);
+    this.opts = map;
+
     this.root = ""; // MUST BE SET EXTERNALLY
 
-    this.importStack = [this.root]; // Stack of import directories
-
-    this.defineHeaderVar(); // Define variable 'headers' which contains this.opts
 
     this.stdin = process.stdin;
     this.stdout = process.stdout;
-    this._instances = new Map();
-    this._cilvl = 0;
 
     this.onLineHandler = undefined;
     this.onDataHandler = undefined;
@@ -41,7 +41,7 @@ class Runspace {
   get FALSE() { return new BoolValue(this, false); }
 
   /** Create ArrayValue */
-  generateArray(items) {
+  generateArray(items = []) {
     return new ArrayValue(this, items);
   }
 
@@ -61,13 +61,6 @@ class Runspace {
       vars[vars.length - 1].set(name, obj); // Insert into top-level scope
     }
     return obj;
-  }
-
-  /** Define variable 'headers' from this.opts */
-  defineHeaderVar() {
-    const map = new MapValue(this);
-    Object.entries(this.opts).forEach(([k, v]) => map.value.set(k, primitiveToValueClass(this, v)));
-    return this.defineVar('headers', map, 'Config headers of current runspace [readonly]', undefined);
   }
 
   /** Set a variable to a value. Return Variable object or false. */
@@ -152,32 +145,6 @@ class Runspace {
     return false;
   }
 
-  /** Create new execution instance, return object */
-  create_instance() {
-    let ilvl = this._cilvl++;
-    const obj = {
-      ilvl,
-      global: undefined, // GLOBAL block
-      blocks: new Map(), // Other blocks
-    };
-    this._instances.set(ilvl, obj);
-    return obj;
-  }
-
-  get_instance(ilvl) {
-    return this._instances.get(ilvl);
-  }
-
-  /** Remove instance */
-  remove_instance(ilvl) {
-    this._instances.delete(ilvl);
-  }
-
-  /** Push a new block to given execution instance */
-  push_instance_block(block, ilvl) {
-    this._instances.get(ilvl).blocks.set(block.id, block);
-  }
-
   /** Push new variable scope */
   pushScope(pid = 0) {
     this._procs.get(pid).vars.push(new Map());
@@ -185,7 +152,7 @@ class Runspace {
 
   /** Pop variable scope */
   popScope(pid = 0) {
-    this._procs.get(pid).vars.pop();
+    if (this._procs.has(pid)) this._procs.get(pid).vars.pop();
   }
 
   /** Define a function - defines a variable with a reference to the function */
@@ -194,87 +161,155 @@ class Runspace {
   }
 
   /** Add process. Return process ID */
-  create_process(evalObj, ilvl) {
+  create_process() {
     let pid = this._cpid++;
     this._procs.set(pid, {
       pid,
-      evalObj,
-      ilvl, // Instance level
+      dieonerr: true,
+      state: 0, // 0 -> dormant. 1 -> running. 2 -> error. 3 -> killed
+      stateValue: undefined, // state: =0 -> state of last execution. =1 -> {started,Promise}. =2 -> Error object. =3 -> exit code
       vars: [new Map()], // Arrays represents different scopes.
+
+      // Hierarchy
+      parent: null, // PID of parent
       children: [], // Array of child processes
+
+      // Handle imports
       imported_files: [],
-      import_stack: [],
+      import_stack: [this.root],
+
+      // Handle code blocks
+      blocks: new Map(), // Other blocks
+
+      elhandled: null, // For eventloop; records for which state this was handled for
     });
     this.defineVar('ans', this.UNDEFINED, 'Store result of last execution', pid); // Define ans
     return pid;
+  }
+
+  /** Process: create parent-child relationship */
+  process_adopt(parentPID, childPID) {
+    let parent = this._procs.get(parentPID), child = this._procs.get(childPID);
+    if (parent === undefined) throw new Error(`[${errors.NAME}] Name Error: no process with PID=${parentPID}`);
+    if (child === undefined) throw new Error(`[${errors.NAME}] Name Error: no process with PID=${childPID}`);
+    if (child.parent !== null) return false; // Already has a parent
+    if (parent.children.indexOf(childPID) === -1) {
+      parent.children.push(childPID);
+      child.parent = parentPID;
+
+      // Clone variable stack of parent into child
+      let vmap = new Map();
+      for (let i = parent.vars.length - 1; i >= 0; i--) {
+        for (let [name, obj] of parent.vars[i]) {
+          vmap.set(name, obj.deepCopy());
+        }
+      }
+      if (child.vars.length === 0) child.vars.push(vmap);
+      else child.vars[0] = new Map([...vmap, ...child.vars[0]]);
+    }
+    return true;
+  }
+
+  /** Process: remove child */
+  process_unadopt(parentPID, childPID) {
+    let parent = this._procs.get(parentPID), child = this._procs.get(childPID);
+    if (parent === undefined) throw new Error(`[${errors.NAME}] Name Error: no process with PID=${parentPID}`);
+    if (child === undefined) throw new Error(`[${errors.NAME}] Name Error: no process with PID=${childPID}`);
+    if (child.parent !== parentPID) return false; // Not our child
+    let i = parent.children.indexOf(childPID);
+    if (i !== -1) parent.children.splice(i, 1);
+    child.parent = null;
+    return true;
   }
 
   get_process(pid) {
     return this._procs.get(pid);
   }
 
-  /** Terminate process and children (do not terminate if have children, unless sudo) */
-  terminate_process(pid, sudo, exit_code = 0) {
+  /** NB also destroys children (CALL terminate_process first!) */
+  destroy_process(pid) {
+    let proc = this._procs.get(pid);
+    for (let cpid of proc.children) this.destroy_process(cpid);
+    return this._procs.delete(pid);
+  }
+
+  /** Terminate process and children (do not terminate if have children, unless sudo. Does not actually remove the process) */
+  terminate_process(pid, exit_code = 0, sudo = false) {
     const proc = this._procs.get(pid);
     if (!proc || (!sudo && proc.children.length !== 0)) return false;
     let ok = true;
     for (let i = proc.children.length - 1; i >= 0; --i) {
-      let child_ok = this.terminate_process(proc.chilren[i], sudo);
+      let child_ok = this.terminate_process(proc.children[i], sudo);
       if (child_ok) proc.children.splice(i, 1);
       ok = ok && child_ok;
     }
     if (ok) {
-      proc.evalObj.action = -1;
-      proc.evalObj.actionValue = exit_code;
+      proc.stateValue?.promise?.reject?.();
+      proc.state = 3;
+      proc.stateValue = exit_code;
     }
     return ok;
   }
 
-  /** Create an execution instance */
-  create_exec_instance() {
-    const instance = this.create_instance();
-    const obj = createEvalObj(null, null);
-    const pid = this.create_process(obj, instance.ilvl);
-    obj.pid = pid;
-
-    return { ilvl: instance.ilvl, pid };
-  }
-
-  terminate_exec_instance(exec_instance, exit_code = undefined) {
-    this.remove_instance(exec_instance.ilvl);
-    this.terminate_process(exec_instance.pid, true, exit_code);
-  }
-
   /** Execute source code inside of an instance. If there is an error, terminate the process */
-  async exec(exec_instance, source, singleStatement = false, data = {}) {
-    const instance = this._instances.get(exec_instance.ilvl);
-    const mainProc = this._procs.get(exec_instance.pid);
-    try {
-      let start = Date.now(), value;
-      let lines = tokenify(this, source, singleStatement);
-      instance.global = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN, exec_instance, undefined);
-      instance.global.prepare();
-      let obj = createEvalObj(null, null);
-      obj.exec_instance = exec_instance; // Reference the current execution instance
-      data.parse = Date.now() - start;
+  async exec(pid, source, singleStatement = false) {
+    if (!this._procs.has(pid)) throw new Error(`FATAL: cannot execute code in an unexistant process (PID=${pid})`);
+    const mainProc = this._procs.get(pid);
+    if (mainProc.state === 0 || mainProc.state === 1) {
+      try {
+        mainProc.elhandled = null;
+        mainProc.state = 1; // RUNNING
+        let data = {}, value, started = Date.now();
+        mainProc.stateValue = { started };
 
-      start = Date.now();
-      for (let [blockID, block] of instance.blocks) await block.preeval(obj); // Pre-evaluation
-      value = await instance.global.eval(obj); // Evaluate program
-      data.exec = Date.now() - start;
+        let lines = tokenify(this, source, singleStatement);
+        const globalBlock = new Block(this, lines, lines[0]?.[0]?.pos ?? NaN, pid, undefined);
+        globalBlock.prepare();
+        let obj = createEvalObj(null, null, pid);
+        data.parse = Date.now() - mainProc.stateValue.started;
 
-      data.status = obj.action;
-      data.statusValue = obj.actionValue;
+        started = Date.now();
+        for (let [blockID, block] of mainProc.blocks) await block.preeval(obj); // Pre-evaluation
+        mainProc.stateValue.promise = globalBlock.eval(obj); // Evaluate program
+        value = await mainProc.stateValue.promise;
+        data.exec = Date.now() - started;
 
-      value = value.castTo('any');
-      return value;
-    } catch (e) {
-      throw new Error(`In file '${mainProc.imported_files}':\n${e}`);
+        value = value ? value.castTo('any') : this.UNDEFINED;
+        data.ret = value;
+        data.status = obj.action;
+        data.statusValue = obj.actionValue;
+
+        // Artificial error?
+        if (mainProc.state === 1) {
+          mainProc.state = 0;
+          mainProc.stateValue = data;
+        }
+      } catch (e) {
+        const err = new Error(`Process ${pid} in '${mainProc.imported_files[mainProc.imported_files.length - 1]}':\n${e}`);
+        mainProc.state = 2;
+        mainProc.stateValue = err;
+      }
+    } else {
+      throw new Error(`FATAL: cannot execute code on process PID=${pid} as it is not dormant (STATE=${mainProc.state})`);
+    }
+  }
+
+  /** Check if process is COMPLETELY finished (check children aswell) */
+  process_isfinished(pid) {
+    let proc = this._procs.get(pid);
+    if (proc.state === 1) {
+      return false;
+    } else { // Awesome! Check if any children are still running though...
+      if (proc.children.length === 0) return true;
+      let fin = true;
+      for (let i = 0; i < proc.children.length; ++i) fin = fin && this.process_isfinished(proc.children[i]);
+      if (fin) proc.elhandled = null; // Update again
+      return fin;
     }
   }
 }
 
 Runspace.LANG_NAME = "TriflicScript";
-Runspace.VERSION = 1.101;
+Runspace.VERSION = 1.11;
 
 module.exports = Runspace;

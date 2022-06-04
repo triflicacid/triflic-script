@@ -6,6 +6,7 @@ const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
 const { parseArgString } = require("./src/init/args");
 const Complex = require("./src/maths/Complex");
 const { UndefinedValue, ArrayValue, primitiveToValueClass, NumberValue } = require("./src/evaluation/values");
+const startEventLoop = require("./src/runspace/event-loop");
 
 // CHECK FOR REQUIRED ENV VARIABLES
 if (!process.env.BOT_TOKEN) throw new Error(`Setup Error: missing BOT_TOKEN environment variable`);
@@ -24,7 +25,7 @@ async function createRunspace(argString = '') {
   define(rs);
   defineVars(rs);
   if (opts.defineFuncs) defineFuncs(rs);
-  const exec_instance = rs.create_exec_instance(), mainProc = rs.get_process(exec_instance.pid);
+  const pid = rs.create_process(), mainProc = rs.get_process(pid);
   mainProc.imported_files.push('<discord>');
 
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
@@ -66,14 +67,31 @@ client.on('message', async msg => {
       } else {
         if (envSessions[msg.author.id]) {
           envSessions[msg.author.id].discordLatestMsg = msg;
+          await envSessions[msg.author.id].exec(pid, msg.content);
+
           try {
             let timeObj = {};
-            let out = await envSessions[msg.author.id].exec(exec_instance, msg.content, undefined, timeObj);
             if (out !== undefined) await msg.reply('`' + out.toString() + '`');
             if (envSessions[msg.author.id]?.opts.timeExecution) await msg.reply(`Timings: ${timeObj.parse} ms parsing, ${timeObj.exec} ms execution`);
           } catch (e) {
             let error = e.toString().split('\n').map(l => `\`⚠ ${l}\``).join('\n');
             await msg.reply(error);
+          }
+
+          if (mainProc.state === 0) {
+            if (mainProc.stateValue.status < 0) {
+              await msg.reply("Process exited with code " + mainProc.stateValue.statusValue + "\n");
+              rs.terminate_process(mpid, 0, true);
+            } else {
+              await msg.reply(mainProc.stateValue.ret.toString() + "\n");
+              if (opts.timeExecution) {
+                msg.reply(`** Took ${time} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
+              }
+            }
+          } else if (mainProc.state === 2) {
+            let error = mainProc.stateValue.toString().split('\n').map(l => `\`⚠ ${l}\``).join('\n');
+            await msg.reply(error);
+            mainProc.state = 0;
           }
         }
       }

@@ -70,12 +70,12 @@ function define(rs) {
     return new NumberValue(rs, evalObj.action);
   }, 'Get/set current evaluation signal'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'locals', {}, (_, evalObj) => {
-    const scopes = rs.get_process(evalObj.exec_instance.pid).vars;
+    const scopes = rs.get_process(evalObj.pid).vars;
     const vars = Array.from(scopes[scopes.length - 1].keys()).map(n => new StringValue(rs, n));
     return new ArrayValue(rs, vars);
   }, 'list all variables in the current scope (local variables)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', {}, (_, evalObj) => {
-    const vars = new Set(), scopes = rs.get_process(evalObj.exec_instance.pid).vars;;
+    const vars = new Set(), scopes = rs.get_process(evalObj.pid).vars;;
     for (let i = scopes.length - 1; i >= 0; i--) {
       scopes[i].forEach((variable, name) => {
         if (!vars.has(variable)) vars.add(name);
@@ -88,17 +88,17 @@ function define(rs) {
     return new ArrayValue(rs, vars);
   }, 'list all variables in the global scope. These cannot be deleted.'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'labels', {}, (_, evalObj) => {
-    const lmap = rs.get_instance(evalObj.exec_instance.ilvl).blocks.get(evalObj.blockID).getAllLabels();
+    const lmap = rs.get_process(evalObj.pid).blocks.get(evalObj.blockID).getAllLabels();
     return new ArrayValue(rs, Array.from(lmap.keys()).map(l => new StringValue(rs, l)));
   }, 'list all addressable labels'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_push', {}, (_, evalObj) => {
-    rs.pushScope(evalObj.exec_instance.pid);
-    return new NumberValue(rs, rs.get_process(evalObj.exec_instance.pid).vars.length);
+    rs.pushScope(evalObj.pid);
+    return new NumberValue(rs, rs.get_process(evalObj.pid).vars.length);
   }, 'Force a creation of a new lexical scope'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_pop', {}, (_, evalObj) => {
-    const len = rs.get_process(evalObj.exec_instance.pid).vars.length;
+    const len = rs.get_process(evalObj.pid).vars.length;
     if (len > 1) {
-      rs.popScope(evalObj.exec_instance.pid);
+      rs.popScope(evalObj.pid);
       return new NumberValue(rs, len - 1);
     } else {
       return new NumberValue(rs, len);
@@ -151,17 +151,17 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new CharValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ord', { chr: 'string' }, ({ chr }) => new NumberValue(rs, chr.toString().charCodeAt(0)), 'return character code of <chr>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isdefined', { name: 'string' }, ({ name }, evalObj) => {
-    let value = rs.getVar(name.toString(), evalObj.exec_instance.pid);
+    let value = rs.getVar(name.toString(), evalObj.pid);
     return new BoolValue(rs, value);
   }, 'returns boolean indicating if name <name> is defined and accessable'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'getvar', { name: 'string' }, ({ name }, evalObj) => {
-    const obj = rs.getVar(name.toString(), evalObj.exec_instance.pid)
+    const obj = rs.getVar(name.toString(), evalObj.pid);
     return obj ? obj.castTo("any") : rs.UNDEFINED;
   }, 'get variable with name <name> (or undef)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'setvar', { name: 'string', value: '?any' }, ({ name, value }, evalObj) => {
     name = name.toString();
     value = value.castTo('any');
-    rs.defineVar(name, value, undefined, evalObj.exec_instance.pid);
+    rs.defineVar(name, value, undefined, evalObj.pid);
     return value;
   }, 'sets/defines local variable with name <name>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'range', { a: 'real', b: '?real', c: '?real' }, ({ a, b, c }) => {
@@ -319,11 +319,20 @@ function define(rs) {
     to = to.toPrimitive('real_int');
     return new StringValue(rs, int_to_base(base_to_int(arg.toString(), from), to));
   }, 'Convert <arg> from base <from> to base <to>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string' }, async ({ str }, evalObj) => await rs.exec(evalObj.exec_instance, str.toString()), 'evaluate an input'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'eval', { str: 'string', pid: '?real_int' }, async ({ str, pid }, evalObj) => {
+    pid = pid === undefined ? evalObj.pid : pid.toPrimitive("real_int");
+    let proc = rs.get_process(pid);
+    if (proc === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot execute code on unexistant process PID=${pid}`);
+    proc.imported_files.push('<eval>');
+    await rs.exec(pid, str.toString());
+    proc.imported_files.pop();
+    if (proc.state === 2) throw proc.stateValue;
+    return proc.stateValue.ret ?? rs.UNDEFINED;
+  }, 'evaluate an input'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'iif', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'Inline IF: If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, async ({ file }, evalObj) => await rs.import(evalObj.exec_instance, file.toString()), 'Import <file> - see README.md for more details'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import_stack', {}, (_, evalObj) => rs.generateArray(rs.get_process(evalObj.exec_instance.pid).import_stack.map(f => new StringValue(rs, f))), 'Return import stack'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'imported_files', {}, (_, evalObj) => rs.generateArray(rs.get_process(evalObj.exec_instance.pid).imported_files.map(f => new StringValue(rs, f))), 'Return imported files in current import chain'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, async ({ file }, evalObj) => await rs.import(evalObj.pid, file.toString()), 'Import <file> - see README.md for more details'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import_stack', {}, (_, evalObj) => rs.generateArray(rs.get_process(evalObj.pid).import_stack.map(f => new StringValue(rs, f))), 'Return import stack'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'imported_files', {}, (_, evalObj) => rs.generateArray(rs.get_process(evalObj.pid).imported_files.map(f => new StringValue(rs, f))), 'Return imported files in current import chain'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'error_code', { code: 'string' }, ({ code }) => {
     code = code.toPrimitive("string");
     if (code in errorDesc) {
@@ -456,7 +465,8 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'bernoulli', { n: 'real' }, ({ n }) => new NumberValue(rs, bernoulli(n.toPrimitive('real'))), 'return the nth Bernoulli number'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'stirling', { z: 'complex' }, ({ z }) => new NumberValue(rs, stirling(z.toPrimitive('complex'))), 'Return Stirling\'s Approximation at z'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nextNearest', { n: 'real', next: 'real' }, ({ n, next }) => new NumberValue(rs, nextNearest(n.toPrimitive('real'), next.toPrimitive('real'))), 'Return the next representable double from value <n> towards <next>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sleep', { ms: 'real_int' }, async ({ ms }) => new Promise((resolve) => setTimeout(() => resolve(ms), ms.toPrimitive('real_int'))), 'Suspend execution for <ms> milliseconds (1000ms = 1s)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'sleep', { ms: 'real_int' }, ({ ms }) => new Promise((resolve) => setTimeout(() => resolve(ms), ms.toPrimitive('real_int'))), 'Suspend execution for <ms> milliseconds (1000ms = 1s)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'pause', {}, () => new Promise((resolve) => setImmediate(() => resolve(rs.UNDEFINED))), 'Suspend execution until next event loop cycle'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'ref', { a: 'any', b: 'any' }, ({ a, b }) => {
     if (!(a instanceof VariableToken)) throw new Error(`[${errors.BAD_ARG}] Argument Error: a: expected symbol, got ${a.type()}`);
     if (!(b instanceof VariableToken)) throw new Error(`[${errors.BAD_ARG}] Argument Error: b: expected symbol, got ${b.type()}`);

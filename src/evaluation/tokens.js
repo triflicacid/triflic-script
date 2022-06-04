@@ -131,18 +131,18 @@ class VariableToken extends Token {
     return v.castTo(type);
   }
   toPrimitive(type) {
-    return this.tstr.rs.getVar(this.value, this.tstr.block.exec_instance.pid).toPrimitive(type);
+    return this.tstr.rs.getVar(this.value, this.tstr.block.pid).toPrimitive(type);
   }
   exists() {
-    return this.tstr.rs.getVar(this.value, this.tstr.block.exec_instance.pid) !== undefined;
+    return this.tstr.rs.getVar(this.value, this.tstr.block.pid) !== undefined;
   }
   getVar() {
-    const v = this.tstr.rs.getVar(this.value, this.tstr.block.exec_instance.pid);
+    const v = this.tstr.rs.getVar(this.value, this.tstr.block.pid);
     if (v === undefined) this._throwNameError();
     return v;
   }
   getVarNoError() {
-    return this.tstr.rs.getVar(this.value, this.tstr.block.exec_instance.pid);
+    return this.tstr.rs.getVar(this.value, this.tstr.block.pid);
   }
   toString() {
     return str(this.getVar()?.value);
@@ -155,7 +155,7 @@ class VariableToken extends Token {
 
   /** function: del() */
   __del__() {
-    const ok = this.tstr.rs.deleteVar(this.value, this.tstr.block.exec_instance.pid);
+    const ok = this.tstr.rs.deleteVar(this.value, this.tstr.block.pid);
     return new BoolValue(this.tstr.rs, ok);
   }
 
@@ -167,7 +167,7 @@ class VariableToken extends Token {
       thisVar.refFor.value = value;
       thisVar.value = value;
     } else {
-      this.tstr.rs.defineVar(name, value, undefined, this.tstr.block.exec_instance.pid);
+      this.tstr.rs.defineVar(name, value, undefined, this.tstr.block.pid);
     }
     return value;
   }
@@ -177,7 +177,7 @@ class VariableToken extends Token {
     value = value.castTo("any");
     const name = this.value;
     if (!this.exists()) throw new Error(`[${errors.NULL_REF}] Null Reference: no non-local binding for symbol '${name}'. Did you mean to use '=' ?`);
-    this.tstr.rs.setVar(name, value, undefined, this.tstr.block.exec_instance.pid);
+    this.tstr.rs.setVar(name, value, undefined, this.tstr.block.pid);
     return value;
   }
 
@@ -185,7 +185,7 @@ class VariableToken extends Token {
   __assignAdd__(value) {
     value = this.castTo("any").__add__(value.castTo("any"));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.exec_instance.pid);
+    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
   }
 
@@ -193,7 +193,7 @@ class VariableToken extends Token {
   __assignSub__(value) {
     value = this.castTo("any").__sub__(value.castTo("any"));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.exec_instance.pid);
+    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
   }
 
@@ -201,7 +201,7 @@ class VariableToken extends Token {
   __assignMul__(value) {
     value = this.castTo("any").__mul__(value.castTo("any"));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.exec_instance.pid);
+    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
   }
 
@@ -209,7 +209,7 @@ class VariableToken extends Token {
   __assignDiv__(value) {
     value = this.castTo("any").__div__(value.castTo("any"));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.exec_instance.pid);
+    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
   }
 
@@ -217,7 +217,7 @@ class VariableToken extends Token {
   __assignMod__(value) {
     value = this.castTo("any").__mod__(value.castTo("any"));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.exec_instance.pid);
+    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
   }
 }
@@ -251,9 +251,9 @@ class BracketedTokenLines extends Token {
 
   toString() { return this.opening + this.value.toString() + bracketMap[this.opening]; }
 
-  toBlock(exec_instance) {
+  toBlock(pid) {
     if (!this.tstr.block) throw new Error(`BracketedTokenLines.toBlock :: this.tstr is not bound to a scope`);
-    return new Block(this.tstr.rs, this.value, this.pos, exec_instance, this.tstr.block);
+    return new Block(this.tstr.rs, this.value, this.pos, pid, this.tstr.block);
   }
 }
 
@@ -330,11 +330,11 @@ class TokenLine {
       if (this.tokens[i] instanceof ValueToken) {
         if (this.tokens[i].value instanceof StringValue) {
           let tstr = this.tokens[i].value;
-          for (let ipos in tstr.interpolations) {
-            if (tstr.interpolations.hasOwnProperty(ipos)) {
+          for (let ipos in tstr.intpls) {
+            if (tstr.intpls.hasOwnProperty(ipos)) {
               try {
-                tstr.interpolations[ipos].val.setBlock(this.block);
-                tstr.interpolations[ipos].val.prepare();
+                tstr.intpls[ipos].val.setBlock(this.block);
+                tstr.intpls[ipos].val.prepare();
               } catch (e) {
                 throw new Error(`[${errors.GENERAL}] Error in interpolated string at ${this.tokens[i].pos} at string index ${ipos}:\n${e}`);
               }
@@ -477,7 +477,7 @@ class TokenLine {
           case "if": {
             if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === "(") {
               if (this.tokens[i + 2] instanceof Block) {
-                const structure = new IfStructure(this.tokens[i].pos);
+                const structure = new IfStructure(this.rs, this.tokens[i].pos);
 
                 structure.addBranch(this.tokens[i + 1], this.tokens[i + 2]);
                 this.tokens.splice(i, 3); // Remove "if" "(...)" "{...}"
@@ -531,7 +531,7 @@ class TokenLine {
             if (this.tokens[i - 1] instanceof Block && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
               // ! DO-WHILE
               let removeCount = 3;
-              structure = new DoWhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
+              structure = new DoWhileStructure(this.rs, this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
 
               if (this.tokens[i + 2] instanceof KeywordToken && this.tokens[i + 2].value === 'then') {
                 if (this.tokens[i + 3] instanceof Block) {
@@ -547,7 +547,7 @@ class TokenLine {
             else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
               // ! WHILE
               let removeCount = 3;
-              structure = new WhileStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
+              structure = new WhileStructure(this.rs, this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
               if (this.tokens[i + 3] instanceof KeywordToken && this.tokens[i + 3].value === 'then') {
                 if (this.tokens[i + 4] instanceof Block) {
                   structure.thenBlock = this.tokens[i + 4];
@@ -568,7 +568,7 @@ class TokenLine {
             if (this.tokens[i - 1] instanceof Block && this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
               // ! DO-UNTIL
               let removeCount = 3;
-              structure = new DoUntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
+              structure = new DoUntilStructure(this.rs, this.tokens[i].pos, this.tokens[i + 1], this.tokens[i - 1]);
 
               if (this.tokens[i + 2] instanceof KeywordToken && this.tokens[i + 2].value === 'then') {
                 if (this.tokens[i + 3] instanceof Block) {
@@ -584,7 +584,7 @@ class TokenLine {
             else if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(' && this.tokens[i + 2] instanceof Block) {
               // ! UNTIL
               let removeCount = 3;
-              structure = new UntilStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
+              structure = new UntilStructure(this.rs, this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
 
               if (this.tokens[i + 3] instanceof KeywordToken && this.tokens[i + 3].value === 'then') {
                 if (this.tokens[i + 4] instanceof Block) {
@@ -624,10 +624,10 @@ class TokenLine {
                 } else break;
               }
               if (isForIn) {
-                structure = new ForInStructure(this.tokens[i].pos, vars, rest, this.tokens[i + 2]);
+                structure = new ForInStructure(this.rs, this.tokens[i].pos, vars, rest, this.tokens[i + 2]);
               } else {
                 // General for loop
-                structure = new ForStructure(this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
+                structure = new ForStructure(this.rs, this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
               }
 
               // Else block?
@@ -700,7 +700,7 @@ class TokenLine {
           }
           case "loop": {
             if (this.tokens[i + 1] instanceof Block) {
-              let structure = new LoopStructure(this.tokens[i].pos, this.tokens[i + 1]);
+              let structure = new LoopStructure(this.rs, this.tokens[i].pos, this.tokens[i + 1]);
               structure.validate();
               this.tokens.splice(i, 2, structure); // Remove "loop" "{...}" and add structure
             } else {
@@ -736,7 +736,7 @@ class TokenLine {
           case "switch": {
             if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === "(") {
               if (this.tokens[i + 2] instanceof Block) {
-                const structure = new SwitchStructure(this.tokens[i].pos, this.tokens[i + 1]);
+                const structure = new SwitchStructure(this.rs, this.tokens[i].pos, this.tokens[i + 1]);
                 const switchBlock = this.tokens[i + 2];
 
                 this.tokens.splice(i, 3); // Remove "switch" "(...)" "{...}"
@@ -898,8 +898,7 @@ class TokenLine {
     for (let i = 0; i < T.length; i++) {
       const cT = T[i];
       if (cT instanceof Value || cT instanceof VariableToken) {
-        if (cT.eval) await cT.eval(evalObj);
-        stack.push(cT);
+        stack.push(cT.eval ? await cT.eval(evalObj) : cT);
       } else if (cT instanceof OperatorToken) {
         const info = cT.info();
         if (stack.length < info.args) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${cT.value}' at position ${cT.pos} - stack underflow (expects ${info.args} values, got ${stack.length})`);
@@ -931,7 +930,7 @@ class TokenLine {
       throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax ${items.join(', ')}. Did you miss an EOL token ${EOLToken.symbol} (${EOLToken.symbol.charCodeAt(0)}) ?\n(evaluation failed to reduce expression to single value)`);
     }
     // Update 'ans' var with latest value
-    this.rs.setVar('ans', stack[0].castTo('any'), undefined, evalObj.exec_instance.pid);
+    this.rs.setVar('ans', stack[0].castTo('any'), undefined, evalObj.pid);
     return stack[0];
   }
 
