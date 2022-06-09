@@ -247,7 +247,7 @@ class NumberValue extends Value {
 
   /** Return JSON representation */
   __toJson__() {
-    if (Complex.isNaN(this.value) || !Complex.isFinite(this.value)) return new "null";
+    if (Complex.isNaN(this.value) || !Complex.isFinite(this.value)) return "null";
     if (isRealType(this.type())) {
       return this.toPrimitive('real').toString();
     }
@@ -626,7 +626,7 @@ class ArrayValue extends Value {
   __abs__() { return this.value.length; }
 
   /** Return JSON representation*/
-  __toJson__() { return new "[" + this.value.map(v => toJson(v)).join(',') + "]"; }
+  __toJson__() { return "[" + this.value.map(v => toJson(v)).join(',') + "]"; }
 
   /** min() function */
   __min__() { return this.value.length === 0 ? this.rs.UNDEFINED : new NumberValue(this.rs, Math.min(...this.value.map(v => v.toPrimitive('real')))); }
@@ -865,7 +865,7 @@ class SetValue extends Value {
   }
 
   __assign__(other) {
-    return this.__assignTemplate(other, "__assign__")
+    return this.__assignTemplate(other, "__assign__");
   }
 
   __nonlocalAssign__(other) {
@@ -921,7 +921,7 @@ class MapValue extends Value {
   /** len() function */
   __len__(newLength) {
     if (newLength !== undefined) {
-      if (newLength !== 0) throw new Error(`[${errors.TYPE_ERROR}] Type Error: cannot set non-zero len() of type ${this.type()}`)
+      if (newLength !== 0) throw new Error(`[${errors.TYPE_ERROR}] Type Error: cannot set non-zero len() of type ${this.type()}`);
       this.value.clear();
     }
     return this.value.size;

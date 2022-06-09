@@ -55,14 +55,13 @@ async function main() {
     rs.io.output.write(`-- ${Runspace.LANG_NAME} v${Runspace.VERSION} --\nType help(), copyright() for more information.\n`);
     let notes = [];
     if (!opts.bidmas) notes.push("BIDMAS is being ignored");
-    if (!opts.niceErrors) notes.push("nice error messages are disabled");
     if (!opts.defineFuncs) notes.push("pre-defined functions were not defined");
     notes.forEach(note => rs.io.output.write(`${consoleColours.Bright}${consoleColours.FgWhite}${consoleColours.Reverse}Note${consoleColours.Reset} ${note}\n`));
     rs.io.output.write('\n');
   }
 
   // Set input event handlers
-  if (opts.multiline) {
+  if (rs.opts.value.get("multiline").toPrimitive("bool")) {
     const lines = []; // Line buffer
     rs.onLineHandler = async (io, line) => {
       if (line.length === 0) {
@@ -98,7 +97,7 @@ function handler(proc) {
       } else {
         rs.io.output.write(mainProc.stateValue.ret.toString() + "\n");
         if (opts.timeExecution) {
-          rs.io.output.write(`** Took ${time} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
+          rs.io.output.write(`** Took ${mainProc.stateValue.parse + mainProc.stateValue.exec} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
         }
         rs.io.setPrompt(rs.opts.value.get("prompt"));
         rs.io.prompt();

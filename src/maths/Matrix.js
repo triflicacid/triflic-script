@@ -76,7 +76,7 @@ class Matrix {
   /** raise to integer power */
   pow(exp) {
     if (!this.isSquare()) throw E_SQUARE;
-    if (exp === 0) return Matrix.identity(this.rows) // 0 -> identity matrix
+    if (exp === 0) return Matrix.identity(this.rows); // 0 -> identity matrix
     if (exp === 1) return this.copy(); // 1 -> same
     if (exp === -1) return this.inverse(); // -1 -> inverse
     let inter = this;
@@ -394,8 +394,8 @@ Matrix.toRowEchelonForm = matrix => {
         r++;
       }
       if (repeat) continue;
-      
-      for (;r < nr - p; ++r) {
+
+      for (; r < nr - p; ++r) {
         if (matrix.get(p + r, p) !== 0) {
           const x = -matrix.get(p + r, p) / matrix.get(p, p);
           for (let c = p; c < nc; ++c) {

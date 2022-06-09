@@ -40,11 +40,10 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 ### Arguments
 Not every argument is used in every execution method.
 
-- `bidmas` : `boolean`. Should expressions obey BIDMAS (order of operations)?
+- `bidmas` : `boolean`. Should expressions obey BIDMAS (order of operations)? *May be changed via headers.bidmas*
 - `define-funcs` : `boolean`. Whether or not to define in-built functions such as `sin` and `summation`. Note that core functions such as `exit` are still defined.
-- `prompt` : `string`. What prompt to display for input.
+- `prompt` : `string`. What prompt to display for input. *May be changed via headers.bidmas*
 - `intro` : `boolean`. Whether or not to print welcome prompt.
-- `nice-errors` : `boolean`. Whether or not to catch errors and prinpt nicely to the screen, or to crash the program.
 - `imag` : `character`. What character to use to represent the imaginary component in complex numbers. Set `--imag " "` to essentially disable complex numbers.
 - `multiline` : `boolean`. Does the CLI allow multiline input?
 - `time` : `boolean`. CLI times each line of execution and displays it.

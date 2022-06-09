@@ -20,8 +20,8 @@ async function createRunspace(argString = '') {
   const opts = parseArgString(argString, false);
   if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter; // Change imaginary unit
   opts.app = 'DISCORD';
-  rs.root = __dirname;
   const rs = new Runspace(opts); // Create object
+  rs.root = __dirname;
   define(rs);
   defineVars(rs);
   if (opts.defineFuncs) defineFuncs(rs);

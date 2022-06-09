@@ -10,7 +10,7 @@ async function main() {
   setupIO(rs);
 
   process.on('SIGINT', function () {
-    console.log("Recieved SIGINT")
+    console.log("Recieved SIGINT");
     rs._procs.forEach(proc => rs.terminate_process(proc.pid, -1, true));
   });
 

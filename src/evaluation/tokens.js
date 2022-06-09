@@ -671,7 +671,7 @@ class TokenLine {
             let argGroup;
             if (this.tokens[i + 1] instanceof BracketedTokenLines && this.tokens[i + 1].opening === '(') {
               argGroup = this.tokens[i + 1];
-              removeCount = 3
+              removeCount = 3;
               offset = 2;
             } else {
               removeCount = 2;
@@ -948,7 +948,7 @@ class TokenLine {
 
   /** Return array of tokens of this tokenString RPNd */
   toRPN() {
-    return this._toRPN(this.tokens, this.rs.opts?.bidmas);
+    return this._toRPN(this.tokens, this.rs.opts.value.get("bidmas").toPrimitive("bool"));
   }
 
   /** Token array from infix to postfix */

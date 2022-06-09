@@ -75,7 +75,7 @@ function define(rs) {
     return new ArrayValue(rs, vars);
   }, 'list all variables in the current scope (local variables)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'vars', {}, (_, evalObj) => {
-    const vars = new Set(), scopes = rs.get_process(evalObj.pid).vars;;
+    const vars = new Set(), scopes = rs.get_process(evalObj.pid).vars;
     for (let i = scopes.length - 1; i >= 0; i--) {
       scopes[i].forEach((variable, name) => {
         if (!vars.has(variable)) vars.add(name);
@@ -115,8 +115,7 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
     t = t.castTo('any');
     if (t instanceof MapValue) {
-      const value = t.createInstance();
-      return value;
+      return t.createInstance();
     } else {
       t = t.toString();
       const value = Value.__new__?.(rs, t);
@@ -131,18 +130,14 @@ function define(rs) {
     let b = (o instanceof MapValue && t instanceof MapValue) ? o.isInstanceOf(t) : o.type() === t.type();
     return new BoolValue(rs, b);
   }, 'return if <o> is an instance of, or inherits from, <t>. If <o> and <t> are not maps, compares types. If only one argument provided, returns if <o> is an instance of anything.'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'inherit', { inheritor: 'map', types: { type: 'map', optional: true, ellipse: true } }, ({ inheritor, types }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'inherit', { inheritor: 'map', types: { type: 'map', ellipse: true } }, ({ inheritor, types }) => {
     inheritor = inheritor.castTo('any');
     if (!(inheritor instanceof MapValue)) throw new Error(`[${errors.BAD_ARG}] Argument Error: expected inheritor to be of type map, got type ${inheritor.type()}`);
-    if (types === undefined) {
-      return new SetValue(rs, inheritor.instanceOf ? Array.from(inheritor.instanceOf.inheritFrom) : []);
-    } else {
-      types = types.toPrimitive('array').map(o => o.castTo('any'));
-      for (let o of types) if (!(o instanceof MapValue)) throw new Error(`[${errors.BAD_ARG}] Argument Error: expected types to be array of maps, got type ${o.type()}`);
-      for (let o of types) inheritor.inheritFrom.add(o);
-      return inheritor;
-    }
-  }, '<inheritor> now inherits from <types>. If <types> is not provided, returns set of maps <inheritor> is inherited from'));
+    types = types.toPrimitive('array').map(o => o.castTo('any'));
+    for (let o of types) if (!(o instanceof MapValue)) throw new Error(`[${errors.BAD_ARG}] Argument Error: expected types to be array of maps, got type ${o.type()}`);
+    for (let o of types) inheritor.inheritFrom.add(o);
+    return inheritor;
+  }, '<inheritor> now inherits from <types>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'array', { len: '?real_int', val: '?any' }, async ({ len, val }, evalObj) => {
     if (len === undefined) return new ArrayValue(rs);
     if (val === undefined) return new ArrayValue(rs, Array.from({ length: len.toPrimitive('real_int') }).fill(rs.UNDEFINED));
@@ -571,7 +566,7 @@ function defineFuncs(rs) {
   }, 'Returns array of roots for z**n = r'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'pascal', { r: 'real_int' }, ({ r }) => {
     r = parseInt(r.toPrimitive('real'));
-    let row = Array.from({ length: r - 1 }).map((_, i, a) => factorialReal(a.length) / (factorialReal(i) * factorialReal(a.length - i))).map(n => isFinite(n) ? n : 1).concat([1])
+    let row = Array.from({ length: r - 1 }).map((_, i, a) => factorialReal(a.length) / (factorialReal(i) * factorialReal(a.length - i))).map(n => isFinite(n) ? n : 1).concat([1]);
     return new ArrayValue(rs, row.map(n => new NumberValue(rs, Math.round(n))));
   }, 'Return array of Pascal coefficients for <r>th for of Pascal\'s Triangle'));
 }

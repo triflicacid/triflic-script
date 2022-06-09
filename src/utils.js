@@ -248,8 +248,8 @@ function decodeEscapeSequence(string, pos) {
 
 // Convert given number in base 10 to the provided base
 function int_to_base(n, b) {
-  if (b < 2) return str;
   let str = "";
+  if (b < 2) return str;
   while (n > 0.1) {
     let rem = n % b;
     n /= b;

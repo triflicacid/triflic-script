@@ -20,7 +20,7 @@ class Fraction {
 		// Already in fraction form
 		else if (x.toString().match(/\//) != null) {
 			let arg = x.toString(), coeff = null;
-			
+
 			// Check for big number in front
 			if (arg.match(/\s/) && !isNaN(Number(arg[0]))) {
 				let parts = arg.split(/\s/);
@@ -28,7 +28,7 @@ class Fraction {
 				arg = parts[1];
 			}
 			let parts = arg.split("/");
-			
+
 			// Simplify each part
 			if (simplify) {
 				let num = +parts[0],
@@ -40,7 +40,7 @@ class Fraction {
 				this.numerator = +parts[0];
 				this.denominator = +parts[1];
 			}
-			
+
 			if (coeff != null) {
 				for (let i = 0; i < coeff; ++i) {
 					this.numerator += this.denominator;
@@ -54,9 +54,9 @@ class Fraction {
 			this.numerator = parts[0];
 			this.denominator = parts[1];
 		}
-		
+
 		if (isNaN(this.numerator) || isNaN(this.denominator)) throw new Error(`Fraction: invalid fraction "${x}"`);
-		
+
 		// If denominator is negative, swap it to the numerator
 		if (this.denominator < 0) {
 			this.denominator = Math.abs(this.denominator);
@@ -70,7 +70,7 @@ class Fraction {
 	toNumber() {
 		return this.numerator / this.denominator;
 	}
-	
+
 	/**
 		@returns fraction in string form
 		@param returnImproper return proper or improper fraction?
@@ -95,7 +95,7 @@ class Fraction {
 		this.denominator /= common;
 		return this;
 	}
-	
+
 	/**
 		@returns reciprocal of fraction (mutates)
 	*/
@@ -105,14 +105,14 @@ class Fraction {
 		this.denominator = tmp;
 		return this;
 	}
-	
+
 	/**
 		@returns negative reciprocal
 	*/
 	negativeReciprocal() {
 		this.reciprocal();
 		this.numerator = -Number(this.numerator);
-		
+
 		// If both numbers are negative...
 		if (this.numerator < 0 && this.denominator < 0) {
 			this.numerator = Math.abs(this.numerator);
@@ -120,14 +120,14 @@ class Fraction {
 		}
 		return this;
 	}
-	
+
 	/*!
 		@returns copy of this fraction
 	*/
 	copy() {
 		return new Fraction(this.numerator + "/" + this.denominator);
 	}
-	
+
 	/*!
 		@about makes fraction negative
 		e.g. "1/3" -> "-1/3"
@@ -137,14 +137,14 @@ class Fraction {
 		this.numerator = -this.numerator;
 		return this;
 	}
-	
+
 	/**
 		@returns is fraction negative?
 	*/
 	isNegative() {
 		return this.numerator < 0;
 	}
-	
+
 	/**
 		@about makes fraction positive
 	*/
@@ -152,7 +152,7 @@ class Fraction {
 		this.numerator = Math.abs(this.numerator);
 		return this;
 	}
-	
+
 	/**
 		@about is this > that?
 	*/
@@ -160,7 +160,7 @@ class Fraction {
 		let fracts = Fractions.MakeDenominatorsEqual(this, than);
 		return fracts[0].numerator > fracts[1].numerator;
 	}
-	
+
 	/*!
 		@about is this = to?
 	*/
@@ -168,7 +168,7 @@ class Fraction {
 		let fracts = Fractions.MakeDenominatorsEqual(this, to);
 		return fracts[0].numerator == fracts[1].numerator;
 	}
-	
+
 	/**
 		@about raises fraction to power
 		@param power -> any POSITIVE INTEGER
@@ -177,7 +177,7 @@ class Fraction {
 		power = power instanceof Fraction ? power.toNumber() : +power;
 		return new Fraction(Fractions.ToFraction(this.toNumber() ** power));
 	}
-	
+
 	/*!
 		@about find square root of fraction
 	*/
@@ -207,14 +207,14 @@ class Fractions {
 				denominator = Math.pow(10, len),
 				numerator = float * denominator,
 				divisor = LCF(numerator, denominator);
-				
+
 			numerator /= divisor;
 			denominator /= divisor;
-			
+
 			return [Math.floor(numerator), Math.floor(denominator)];
 		}
-	};
-	
+	}
+
 	/*!
 		@about makes fraction denominators equal
 		@param a -> Fraction / string
@@ -224,17 +224,17 @@ class Fractions {
 	static MakeDenominatorsEqual(a, b) {
 		if (!(a instanceof Fraction)) a = new Fraction(a);
 		if (!(b instanceof Fraction)) b = new Fraction(b);
-		
+
 		// Check if denominators are equal already
 		if (a.denominator == b.denominator) return [a, b];
-		
+
 		let aNumerator = a.numerator * b.denominator,
 			denominator = a.denominator * b.denominator,
 			bNumerator = b.numerator * a.denominator;
-			
-		return [new Fraction(aNumerator+'/'+denominator, false), new Fraction(bNumerator+'/'+denominator, false)];
-	};
-	
+
+		return [new Fraction(aNumerator + '/' + denominator, false), new Fraction(bNumerator + '/' + denominator, false)];
+	}
+
 	/*!
 		@about Adds two fractions a + b
 		@param a -> Fraction / string
@@ -244,19 +244,19 @@ class Fractions {
 	static Add(a, b) {
 		if (!(a instanceof Fraction)) a = new Fraction(a);
 		if (!(b instanceof Fraction)) b = new Fraction(b);
-		
+
 		// Check if denominators are equal
 		if (a.denominator == b.denominator) {
-			return new Fraction((a.numerator + b.numerator)+"/"+a.denominator);
+			return new Fraction((a.numerator + b.numerator) + "/" + a.denominator);
 		} else {
 			let aNumerator = a.numerator * b.denominator,
 				denominator = a.denominator * b.denominator,
 				bNumerator = b.numerator * a.denominator;
-				
-			return new Fraction((aNumerator + bNumerator)+"/"+denominator);
+
+			return new Fraction((aNumerator + bNumerator) + "/" + denominator);
 		}
-	};
-	
+	}
+
 	/*!
 		@about Subtracts two fractions a - b
 		@param a -> Fraction / string
@@ -266,19 +266,19 @@ class Fractions {
 	static Subtract(a, b) {
 		if (!(a instanceof Fraction)) a = new Fraction(a);
 		if (!(b instanceof Fraction)) b = new Fraction(b);
-		
+
 		// Check if denominators are equal
 		if (a.denominator == b.denominator) {
-			return new Fraction((a.numerator - b.numerator)+"/"+a.denominator);
+			return new Fraction((a.numerator - b.numerator) + "/" + a.denominator);
 		} else {
 			let aNumerator = a.numerator * b.denominator,
 				denominator = a.denominator * b.denominator,
 				bNumerator = b.numerator * a.denominator;
-				
-			return new Fraction((aNumerator - bNumerator)+"/"+denominator);
+
+			return new Fraction((aNumerator - bNumerator) + "/" + denominator);
 		}
-	};
-	
+	}
+
 	/*!
 		@about Multiplies two fractions a * b
 		@param a -> Fraction / string
@@ -288,13 +288,13 @@ class Fractions {
 	static Multiply(a, b) {
 		if (!(a instanceof Fraction)) a = new Fraction(a);
 		if (!(b instanceof Fraction)) b = new Fraction(b);
-		
+
 		if (a.numerator == 0 || a.denominator == 0) return a;
 		if (b.numerator == 0 || b.denominator == 0) return b;
-		
-		return new Fraction((a.numerator*b.numerator)+"/"+(a.denominator*b.denominator));
-	};
-	
+
+		return new Fraction((a.numerator * b.numerator) + "/" + (a.denominator * b.denominator));
+	}
+
 	/*!
 		@about Divides two fractions a / b
 		@param a -> Fraction / string
@@ -304,13 +304,13 @@ class Fractions {
 	static Divide(a, b) {
 		if (!(a instanceof Fraction)) a = new Fraction(a);
 		if (!(b instanceof Fraction)) b = new Fraction(b);
-		
+
 		// Flip b
 		b = b.copy();
 		b.reciprocal();
-		
+
 		// Multiply
-		return new Fraction((a.numerator*b.numerator)+"/"+(a.denominator*b.denominator));
+		return new Fraction((a.numerator * b.numerator) + "/" + (a.denominator * b.denominator));
 	}
 }
 

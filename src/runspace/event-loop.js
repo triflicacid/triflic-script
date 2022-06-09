@@ -13,8 +13,8 @@ function start(rs, finishOKcallback) {
           else if (proc.state === 0 && proc.stateValue) {
             if (finishOKcallback) finishOKcallback(proc);
           } else if (proc.state === 2) { // Error. Print to STDOUT
-            if (rs.opts.value.get("niceErrors").toPrimitive("bool")) printError(proc.stateValue, rs.io ? (str => rs.io.output.write(str)) : (str => console.log(str)));
-            else console.trace(proc.stateValue);
+            printError(proc.stateValue, rs.io ? (str => rs.io.output.write(str)) : (str => console.log(str)));
+            // console.trace(proc.stateValue);
             if (proc.dieonerr) {
               rs.terminate_process(pid, 1, true);
             } else {

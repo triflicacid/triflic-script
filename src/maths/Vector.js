@@ -40,7 +40,7 @@ Vector.create = function (size = 2) {
 /** CHeck that vectors are the same size */
 Vector.checkSize = function (v1, v2) {
     if (v1.size() !== v2.size()) throw new Error(`[${errors.BAD_ARG}] Vectors must be the same size`);
-}
+};
 
 /** Add two vectors together: v1 + v2 */
 Vector.add = function (v1, v2) {

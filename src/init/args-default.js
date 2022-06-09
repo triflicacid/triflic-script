@@ -4,7 +4,6 @@ module.exports = () => {
     defineFuncs: true,
     prompt: '>> ',
     intro: true,
-    niceErrors: true,
     imag: "i",
     bidmas: true,
     multiline: true,
