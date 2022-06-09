@@ -1,0 +1,31 @@
+let Thing = {
+  "_Construct": (self: ref map, species: string) -> {
+    self.species = species;
+  },
+  "printSpecies": self -> "<SPECIES: \"{self.species}\">"
+};
+
+let Gender = {
+  "_Construct": (self: ref map, gender: string) -> {
+    self.gender = gender;
+  },
+  "printGender": self -> "<GENDER: \"{self.gender}\">"
+};
+
+let Person = {
+  "_Construct": (self: ref map, gender: string, name: string, age: real_int) -> {
+    self.species = "Human";
+    self.gender = gender;
+    self.name = name;
+    self.age = age;
+  },
+  "about": self -> "Hello, I am a {self.gender} {self.species} called {self.name} and am {self.age} years old",
+};
+
+// Person inherite Thing, Gender
+inherit(Person, Thing, Gender);
+
+let joe = Person("male", "Joe", 37);
+println(joe.printSpecies());
+println(joe.printGender());
+println(joe.about());

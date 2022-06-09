@@ -1,0 +1,27 @@
+// In this example, we create a map which inherits from another
+
+let Animal = {
+  "_Construct": (self: ref map, species: string) -> {
+    self.species = species;
+  },
+  "getSpecies": self -> "<SPECIES: \"{self.species}\">"
+};
+
+let Person = {
+  "_Construct": (self: ref map, name: string, age: real_int) -> {
+    Animal._Construct(self, "Human");
+    self.name = name;
+    self.age = age;
+  },
+  "about": self -> "Hello, I am a {self.species} called {self.name} and I am {self.age} years old",
+};
+
+// Create inherital link : Person inherits from Animal
+inherit(Person, Animal);
+
+// Create new instance by calling the map
+let joe = Person("Joe", 37);
+
+// Call native method
+println(joe.getSpecies());
+println(joe.about());

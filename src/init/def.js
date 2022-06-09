@@ -113,11 +113,36 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'void', { o: 'any' }, ({ o }) => new UndefinedValue(rs), 'throws away given argument - returns undefined'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
-    t = t.toString();
-    const value = Value.__new__?.(rs, t);
-    if (value === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: Type ${t} cannot be initialised`);
-    return value;
-  }, 'create new value of type <t>'));
+    t = t.castTo('any');
+    if (t instanceof MapValue) {
+      const value = t.createInstance();
+      return value;
+    } else {
+      t = t.toString();
+      const value = Value.__new__?.(rs, t);
+      if (value === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: Type ${t} cannot be initialised`);
+      return value;
+    }
+  }, 'create new value of type <t>. If <t> is a map, creates new instance (doesn\'t call _Construct)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isinstance', { o: 'any', t: '?any' }, ({ o, t }) => {
+    o = o.castTo('any');
+    if (t === undefined) return new BoolValue(rs, o instanceof MapValue && o.instanceOf !== undefined);
+    t = t.castTo('any');
+    let b = (o instanceof MapValue && t instanceof MapValue) ? o.isInstanceOf(t) : o.type() === t.type();
+    return new BoolValue(rs, b);
+  }, 'return if <o> is an instance of, or inherits from, <t>. If <o> and <t> are not maps, compares types. If only one argument provided, returns if <o> is an instance of anything.'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'inherit', { inheritor: 'map', types: { type: 'map', optional: true, ellipse: true } }, ({ inheritor, types }) => {
+    inheritor = inheritor.castTo('any');
+    if (!(inheritor instanceof MapValue)) throw new Error(`[${errors.BAD_ARG}] Argument Error: expected inheritor to be of type map, got type ${inheritor.type()}`);
+    if (types === undefined) {
+      return new SetValue(rs, inheritor.instanceOf ? Array.from(inheritor.instanceOf.inheritFrom) : []);
+    } else {
+      types = types.toPrimitive('array').map(o => o.castTo('any'));
+      for (let o of types) if (!(o instanceof MapValue)) throw new Error(`[${errors.BAD_ARG}] Argument Error: expected types to be array of maps, got type ${o.type()}`);
+      for (let o of types) inheritor.inheritFrom.add(o);
+      return inheritor;
+    }
+  }, '<inheritor> now inherits from <types>. If <types> is not provided, returns set of maps <inheritor> is inherited from'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'array', { len: '?real_int', val: '?any' }, async ({ len, val }, evalObj) => {
     if (len === undefined) return new ArrayValue(rs);
     if (val === undefined) return new ArrayValue(rs, Array.from({ length: len.toPrimitive('real_int') }).fill(rs.UNDEFINED));

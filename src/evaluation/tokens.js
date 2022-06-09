@@ -123,7 +123,9 @@ class VariableToken extends Token {
     super(tstring, vname, pos);
   }
   type() {
-    return this.exists() ? str(this.getVar().value.type()) : `symbol`;
+    let val = this.getVarNoError();
+    if (val === undefined) return "symbol";
+    return typeof val.type === "function" ? val.type() : val.value.type();
   }
   castTo(type) {
     let v = this.getVar();
@@ -350,7 +352,10 @@ class TokenLine {
         // Extract function body
         if (this.tokens[i + 3] instanceof Block) {
           structure.body = this.tokens[i + 3];
-          this.tokens.splice(i, 3, structure);
+          this.tokens.splice(i, 4, structure);
+        } else if (this.tokens[i + 3] instanceof BracketedTokenLines && this.tokens[i + 3].opening === '{') {
+          structure.body = this.tokens[i + 3].toBlock(this.block.pid);
+          this.tokens.splice(i, 4, structure);
         } else {
           // Extract everything up to EOL or COMMA
           let tokens = [], j = i + 3;
@@ -373,7 +378,10 @@ class TokenLine {
         // Extract function body
         if (this.tokens[i + 5] instanceof Block) {
           structure.body = this.tokens[i + 5];
-          this.tokens.splice(i, 5, structure);
+          this.tokens.splice(i, 6, structure);
+        } else if (this.tokens[i + 5] instanceof BracketedTokenLines && this.tokens[i + 3].opening === '{') {
+          structure.body = this.tokens[i + 3].toBlock(this.block.pid);
+          this.tokens.splice(i, 6, structure);
         } else {
           // Extract everything up to EOL or COMMA
           let tokens = [], j = i + 5;
@@ -443,6 +451,7 @@ class TokenLine {
               structure = new MapStructure(this.rs, this.tokens[i].pos);
 
               for (const pair of elements) {
+                if (pair.tokens.length === 0) continue;
                 if (pair.tokens[1] instanceof OperatorToken && pair.tokens[1].value === ':') {
                   structure.addPair(pair.tokens[0], new TokenLine(this.rs, this.block, pair.tokens.slice(2)));
                 } else {
@@ -816,7 +825,6 @@ class TokenLine {
               structure.validate();
               this.tokens.splice(i, 2, structure);
             } else {
-              console.log(this.tokens[i + 1]);
               throw new Error(`[${errors.SYNTAX}] Syntax Error: expected symbol, got ${this.tokens[i + 1] ?? 'end of input'} at ${this.tokens[i].pos} in 'let' expression`);
             }
             break;

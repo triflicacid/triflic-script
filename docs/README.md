@@ -3,6 +3,7 @@
 This directoty contains information about TriflicScript
 
 - `funcs/` - demonstrations of core functions
+- `inherit/` - demonstrations of `map` inheritance
 - `libs/` - test programs for libraries
 - `syntax/` - demonstrations of TriflicScript syntax and control structures
 - `General.md` - more general documentation

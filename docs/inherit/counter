@@ -1,0 +1,15 @@
+let counter = {
+    "n": 0,
+    "get": self -> self.n,
+    // "inc": self -> self.n += 1, // NOTE calling this would update the local copy of self, it would not update the original `self`
+    "inc": (self: ref map) -> self.n += 1, // <- This would work as expected, as self is being passed as a refence to the original
+    "dec": (self: ref map) -> self.n -= 1,
+};
+
+let x = new(counter);
+
+println(x.get());
+x.inc();
+println(x.get());
+x.n = 11;
+println(x.get());

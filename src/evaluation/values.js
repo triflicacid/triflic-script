@@ -113,6 +113,10 @@ class UndefinedValue extends Value {
     return new BoolValue(this.rs, v instanceof UndefinedValue);
   }
 
+  __copy__() {
+    return new UndefinedValue(this.rs);
+  }
+
   /** Return JS string of JSON */
   __toJson__() {
     return "null";
@@ -873,9 +877,46 @@ class MapValue extends Value {
   constructor(runspace, map = undefined) {
     super(runspace, null);
     this.value = map === undefined ? new Map() : map;
+    this.inheritFrom = new Set(); // Collection of MapValues we inherit from
+    this.instanceOf = undefined; // Reference to MapValue we are an instance of
   }
 
   type() { return "map"; }
+
+  /** Create and return new MapValue which is an instance of this */
+  createInstance() {
+    let map = new Map();
+    this._passCreateInstanceValues(map);
+    let mapValue = new MapValue(this.rs, map);
+    mapValue.instanceOf = this;
+    return mapValue;
+  }
+
+  /** Copy values to be passed in as instance creation */
+  _passCreateInstanceValues(map) {
+    // Copy all non-function values
+    this.value.forEach((value, key) => {
+      value = value.castTo("any");
+      if (!(value instanceof FunctionRefValue)) {
+        map.set(key, value.__copy__());
+      }
+    });
+    this.inheritFrom.forEach(x => x._passCreateInstanceValues(map));
+    return map;
+  }
+
+  /** Check if this is an instance of the argument (argument is of type `map`) */
+  isInstanceOf(map) {
+    // Check if instance
+    if (this.instanceOf === map) return true;
+    // Check top-level of inheritance tree
+    for (let x of this.inheritFrom) if (x === map) return true;
+    if (this.instanceOf) for (let x of this.instanceOf.inheritFrom) if (x === map) return true;
+    // Check inheritance tree
+    for (let x of this.inheritFrom) if (x.isInstanceOf(map)) return true;
+    if (this.instanceOf) for (let x of this.instanceOf.inheritFrom) if (x.isInstanceOf(map)) return true;
+    return false;
+  }
 
   /** len() function */
   __len__(newLength) {
@@ -918,10 +959,31 @@ class MapValue extends Value {
     return maxKey ? new StringValue(this.rs, maxKey) : maxKey;
   }
 
+  /** Get raw value (key must be JS string) */
+  __getRaw(key) {
+    let val = this.value.has(key) ? this.value.get(key) : undefined;
+    // Check InstanceOf map
+    if (!val && this.instanceOf) {
+      val = this.instanceOf.__getRaw(key); // Search parent as well
+      if (val instanceof FunctionRefValue) {
+        val = val.__copy__();
+        val.prependArgs.push(this);
+      }
+    }
+    // Check maps we inherit from
+    if (!val) {
+      for (let i of this.inheritFrom) {
+        val = i.__getRaw(key);
+        if (val) break;
+      }
+    }
+    return val;
+  }
+
   /** get() function */
   __get__(key) {
     key = key.toString();
-    const val = this.value.has(key) ? this.value.get(key) : new UndefinedValue(this.rs), map = this.value;
+    let val = this.__getRaw(key) ?? new UndefinedValue(this.rs);
     val.onAssign = value => this.__set__(key, value);
     val.getAssignVal = () => this.value.get(key);
     return val;
@@ -964,6 +1026,27 @@ class MapValue extends Value {
     return map;
   }
 
+  /** Construct */
+  async __call__(evalObj, args) {
+    let obj = this.createInstance();
+    if (this.value.has("_Construct")) {
+      let construct = this.value.get("_Construct").castTo("any"), ret;
+      construct = construct.getFn ? construct.getFn() : construct;
+      if (construct instanceof RunspaceFunction) {
+        let firstArg = Object.keys(construct.rargs)[0], data = firstArg ? construct.args.get(firstArg) : undefined;
+        if (!data || data.pass !== 'ref' || data.type !== 'map' || data.optional !== false || data.ellipse !== false) throw new Error(`[${errors.BAD_ARG}] Argument Error: First argument of _Construct should match '${firstArg ?? 'obj'}: ref map', got '${firstArg ? construct.argumentSignature(firstArg) : ''}'`);
+        try {
+          ret = await construct.call(evalObj, [obj, ...args]);
+        } catch (e) {
+          throw new Error(`[${errors.GENERAL}] _Construct ${construct.signature()}:\n${e}`);
+        }
+      } else {
+        throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected _Construct to be a function, got ${construct.type()}`);
+      }
+    }
+    return obj;
+  }
+
   __iter__() {
     return Array.from(this.value.entries()).map(([k, v]) => ([new StringValue(this.rs, k), v]));
   }
@@ -985,6 +1068,7 @@ class MapValue extends Value {
 class FunctionRefValue extends Value {
   constructor(runspace, fn = undefined) {
     super(runspace, fn);
+    this.prependArgs = [];
   }
 
   type() { return "func"; }
@@ -1004,6 +1088,7 @@ class FunctionRefValue extends Value {
   /** When this is called. Takes array of Value classes as arguments */
   async __call__(evalObj, args) {
     const fn = this.getFn();
+    if (this.prependArgs.length > 0) args = [...this.prependArgs, ...args];
     if (fn) {
       try {
         return await fn.call(evalObj, args);

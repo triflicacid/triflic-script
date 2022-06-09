@@ -61,17 +61,26 @@ class RunspaceFunction {
   }
 
   /** Check arg count */
-  checkArgCount(args) {
-    if (args.length < this.argMin) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects at least ${this.argMin} argument${this.argMin == 1 ? '' : 's'} {${Array.from(this.args.values()).filter(obj => !(obj.optional || obj.ellipse)).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()} "${a}"`).join(', ')}}`);
-    if (args.length > this.argMax) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects at most ${this.argMax} argument${this.argMax == 1 ? '' : 's'} {${Array.from(this.args.values()).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()} "${a}"`).join(', ')}}`);
+  checkArgCount(args, ignoreCount = 0) {
+    let min = this.argMin - ignoreCount, max = this.argMax - ignoreCount;
+    if (args.length < min) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects at least ${min} argument${min == 1 ? '' : 's'} {${Array.from(this.args.values()).filter(obj => !(obj.optional || obj.ellipse)).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()}`).join(', ')}}`);
+    if (args.length > max) throw new Error(`[${errors.ARG_COUNT}] Argument Error: function '${this.name}' expects at most ${max} argument${max == 1 ? '' : 's'} {${Array.from(this.args.values()).map(data => data.type).join(', ')}}, got ${args.length} {${args.map(a => `${a.type()}`).join(', ')}}`);
   }
 
   about() {
     return this.desc;
   }
 
+  /** Get signature of function */
   signature() {
-    return `${this.name}(${Array.from(this.args.entries()).map(([name, data]) => `${data.ellipse ? '...' : ''}${name}: ${data.pass ? (data.pass + ' ') : ''}${data.optional ? '?' : ''}${data.type}`).join(', ')})`;
+    return `${this.name}(${Array.from(this.args.keys()).map((name) => this.argumentSignature(name)).join(', ')})`;
+  }
+
+  /** Get signature of an argument */
+  argumentSignature(arg) {
+    let data = this.args.get(arg);
+    if (!data) return '';
+    return `${data.ellipse ? '...' : ''}${data.optional ? '?' : ''}${arg}: ${data.pass} ${data.type}`;
   }
 
   /** Return whether the given functions' signature matches this */
@@ -105,7 +114,7 @@ class RunspaceUserFunction extends RunspaceFunction {
     // console.log(`RUF: CALL ${this.name} IN PID=${evalObj.pid}`);
     this.checkArgCount(args);
     this.rs.pushScope(evalObj.pid);
-    this.rs.defineVar("args", this.rs.generateArray(args), 'Array of values passed to function', evalObj.pid)
+    this.rs.defineVar("args", this.rs.generateArray(args), 'Array of values passed to function', evalObj.pid);
     // Set arguments to variables matching definition symbols
     let i = 0;
     for (let [arg, data] of this.args) {
@@ -158,12 +167,16 @@ class RunspaceUserFunction extends RunspaceFunction {
         }
         this.rs.defineVar(arg, casted, undefined, evalObj.pid);
       } else if (data.pass === 'ref') {
-        if (typeof args[i].getVar !== 'function') {
-          throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: expected variable, got ${args[i]?.type()} ${args[i]}`);
+        if (typeof args[i].getVar === 'function') {
+          let vobj = args[i].getVar();
+          let varObj = this.rs.defineVar(arg, vobj, undefined, evalObj.pid);
+          varObj.refFor = vobj;
+        } else if (args[i].value instanceof Map) {
+          this.rs.defineVar(arg, undefined, undefined, evalObj.pid);
+          this.rs.setVarObj(arg, args[i], undefined, evalObj.pid);
+        } else {
+          throw new Error(`[${errors.BAD_ARG}] Argument Error: Invalid pass-by-reference: type ${args[i]?.type()} ${args[i]}`);
         }
-        let vobj = args[i].getVar();
-        let varObj = this.rs.defineVar(arg, vobj, undefined, evalObj.pid);
-        varObj.refFor = vobj;
       } else {
         throw new Error(`Unknown pass-by value '${data.pass}' for '${args[i]}'`);
       }

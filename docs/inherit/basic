@@ -1,0 +1,17 @@
+// In this example, we create a Map and instantiate it
+
+// Create template map
+let Person = {
+  "about": self -> "Hello, my name is {self.name} and I am {self.age} years old",
+};
+
+// Create new instance
+// Note, all properties which are not functions are copied to an instance
+let joe = new(Person);
+
+// Initialise properties
+joe.name = "Joe";
+joe.age = 37;
+
+// Call native method
+println(joe.about());

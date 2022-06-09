@@ -512,3 +512,29 @@ The assignation operator `=` assigns a value to a symbol **is the current scope*
 The assignation operator `=>` assigns a value to a symbol **which is not in the current scope**. It assigns the value to the next available binding to that symbol and, if non is found, an error is thrown.
 
 See the programs in `programs/tests/scope` and compare the two functions.
+
+## Inheritance
+TriflicScript supports a an extremely simple inheritance, wherein `map` types may be an instance of, and inherit from other `map` types. Inheritance links `map`s together and allows inherited maps to use parent `map`s properties and methods.
+
+When instantiated, the inheritance tree if traversed. Any property which is not a function will be deep copied into the newly created `map`.
+When a map is instantiated, it There are multiple ways be instantiate a map (i.e. create a copy from a template):
+- Use the `new` function. Calling `call($map)` will instantiate `$map` and return it.
+- `$map(...args)` has two cases. If `$map._Construct` is not defined, `$map` is instantiated and returned. If it is defined, `$map._Construct(...args)` will be called, with a reference to the newly instantiated `$map` being passed as the first argument.
+  - `_Construct` must have at least one argument
+  - The first argument must have the following signature: `[name]: ref map`
+  - `_Construct` must not return a value (the returned value is ignored)
+
+Call `isinstance(A, B)` to test if `A` is an instance of `B`
+
+To inherit from a `map`, use the built-in `inherit()` function. For example, if `B` is to inherit from `A`, define and bind `A` and `B`, then call `inherit(A, B)`.
+Call `inherit(A)` to return a `set` of `map`s that `A` is inherited from.
+
+When instantiating a `map` which is inherited from other `map`s, nothing happens behind the scenes. The programmer must include calls to the appropriate constructors in `_Construct`. Continuing the example above, in `B`s constructor there would be `A._Construct(self, ...)` (**not** `A(self, ...)`).
+
+When calling a method (function) on a map instance, the map will be automatically passed as the first argument.
+- Any methods designed to be called by instances must take at least one argument
+- For a method to be able to modify the passed instance, it must be a `ref map` argument
+
+* Note, TriflicScripts inheritance model uses the maps themselves. The bound name does not matter; the name could be changed, or the symbol deleted entirely, and any inheriting maps would continue to work*
+
+See `docs/inherit/`
