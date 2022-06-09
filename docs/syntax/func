@@ -26,7 +26,7 @@ x = tostring(x);
 println("x = {type(x)} {x}");
 
 // Optional arguments
-func greet(name: ?string) {
+func greet(?name: string) {
   println("Hello, " + (name ?? "Unknown"));
 }
 greet();

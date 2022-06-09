@@ -1,5 +1,5 @@
 const { errors } = require("../src/errors");
-const { types, isNumericType, isRealType } = require("../src/evaluation/types");
+const { isNumericType, isRealType, addType } = require("../src/evaluation/types");
 const { Value, StringValue, NumberValue, BoolValue, ArrayValue, UndefinedValue } = require("../src/evaluation/values");
 const Complex = require("../src/maths/Complex");
 const { random } = require("../src/maths/functions");
@@ -106,7 +106,7 @@ function isLegal(arr) {
 
 module.exports = (rs, pid) => {
   Value.typeMap[TYPE] = MatrixValue;
-  types.add(TYPE);
+  addType(TYPE);
 
   ArrayValue.castMap.matrix = o => {
     if (isLegal(o)) {

@@ -1,0 +1,10 @@
+func a(a: complex, b: complex) {
+  println("Called 'a' : {args}");
+}
+
+func b(a: real, b: real) {
+  println("Called 'b' : {args}");
+}
+
+println(fnsigmatch(a, b));
+println(fnsigmatch(b, a));

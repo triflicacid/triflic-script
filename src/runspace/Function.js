@@ -1,5 +1,5 @@
 const { errors } = require("../errors");
-const { types } = require("../evaluation/types");
+const { types, isTypeOverlap } = require("../evaluation/types");
 
 class RunspaceFunction {
   /**
@@ -32,15 +32,19 @@ class RunspaceFunction {
           data.type = string;
         } else {
           data.pass = args[arg].pass;
-          data.type = args[arg].type ?? 'any';
+          data.type = args[arg].type;
           data.optional = !!args[arg].optional;
           data.default = args[arg].default;
-          if (data.type[0] === '?') {
+          if (data.type && data.type[0] === '?') {
             data.optional = true;
             data.type = data.type.substr(1);
           }
           data.ellipse = !!args[arg].ellipse;
         }
+        if (data.pass === undefined) data.pass = 'val';
+        if (data.type === undefined) data.type = 'any';
+        if (data.optional === undefined) data.optional = false;
+        if (data.ellipse === undefined) data.ellipse = false;
 
         if (!types.has(data.type)) throw new Error(`[${errors.TYPE_ERROR}] Type Error: argument '${arg}: ${data.type}': invalid type '${data.type}' (function: ${name})`);
 
@@ -69,6 +73,16 @@ class RunspaceFunction {
   signature() {
     return `${this.name}(${Array.from(this.args.entries()).map(([name, data]) => `${data.ellipse ? '...' : ''}${name}: ${data.pass ? (data.pass + ' ') : ''}${data.optional ? '?' : ''}${data.type}`).join(', ')})`;
   }
+
+  /** Return whether the given functions' signature matches this */
+  signatureMatch(fn) {
+    if (fn.argMax < this.argMin) return false; // Not enough arguments
+    let targs = Array.from(this.args), fargs = Array.from(fn.args);
+    for (let i = 0; i < targs.length; ++i) {
+      if (targs[i][1].pass !== fargs[i][1].pass || !isTypeOverlap(targs[i][1].type, fargs[i][1].type)) return false;
+    }
+    return true;
+  }
 }
 
 /** User defined function using a TokenList */
@@ -91,6 +105,7 @@ class RunspaceUserFunction extends RunspaceFunction {
     // console.log(`RUF: CALL ${this.name} IN PID=${evalObj.pid}`);
     this.checkArgCount(args);
     this.rs.pushScope(evalObj.pid);
+    this.rs.defineVar("args", this.rs.generateArray(args), 'Array of values passed to function', evalObj.pid)
     // Set arguments to variables matching definition symbols
     let i = 0;
     for (let [arg, data] of this.args) {

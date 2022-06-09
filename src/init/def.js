@@ -3,8 +3,8 @@ const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli, random } = require("../maths/functions");
 const { sort, numberTypes, toBinary, fromBinary, int_to_base, base_to_int } = require("../utils");
-const { types } = require("../evaluation/types");
-const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue, CharValue } = require("../evaluation/values");
+const { types, isTypeOverlap } = require("../evaluation/types");
+const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue, CharValue, MapValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
 const { errors, errorDesc } = require("../errors");
@@ -109,6 +109,7 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Array.from(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.castTo(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, o.type()), 'returns the type of object <o>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'type_overlap', { t1: 'string', t2: 'string' }, ({ t1, t2 }) => new BoolValue(rs, isTypeOverlap(t1.toString(), t2.toString())), 'does type t1 overlap with type t2?'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'void', { o: 'any' }, ({ o }) => new UndefinedValue(rs), 'throws away given argument - returns undefined'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
@@ -365,6 +366,30 @@ function define(rs) {
     let n = fromBinary(bin, t);
     return new NumberValue(rs, n);
   }, 'Given binary, return number representation as type <t> (default: float64. See numbertypes() for list of numerical types)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fnanal', { fn: 'func' }, ({ fn }) => {
+    fn = fn.getVar().value.value;
+    let map = new MapValue(rs);
+    map.value.set("name", new StringValue(rs, fn.name));
+    map.value.set("argMin", new NumberValue(rs, fn.argMin));
+    map.value.set("argMax", new NumberValue(rs, fn.argMax));
+    const args = [];
+    for (let [param, data] of fn.args) {
+      let pmap = new MapValue(rs);
+      pmap.value.set("name", new StringValue(rs, param));
+      pmap.value.set("pass", new StringValue(rs, data.pass));
+      pmap.value.set("type", new StringValue(rs, data.type));
+      pmap.value.set("optional", new BoolValue(rs, data.optional));
+      pmap.value.set("ellipse", new BoolValue(rs, data.ellipse));
+      args.push(pmap);
+    }
+    map.value.set("args", new ArrayValue(rs, args));
+    return map;
+  }, 'Return map analysis of provided function'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fnsigmatch', { a: 'func', b: 'func' }, ({ a, b }) => {
+    a = a.getVar().value.value;
+    b = b.getVar().value.value;
+    return new BoolValue(rs, a.signatureMatch(b));
+  }, 'Return whether <a> matches <b>s signature'));
 
   return rs;
 }

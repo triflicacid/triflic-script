@@ -357,7 +357,7 @@ This defines a function. `name` is optional.
 
 i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };` achieve the same result.
 
-- `<args>` is a comma-seperated list of identifiers. Syntax: `[...]<arg>[: ["val"|"ref"] [?]<type>][= <value>]`. If ommited, the function takes no parameters
+- `<args>` is a comma-seperated list of identifiers. Syntax: `[...][?]<arg>[: ["val"|"ref"] [?]<type>][= <value>]`. If ommited, the function takes no parameters
   - `<arg>` - argument name
   - `[...]` - marks parameter as compact.
     - Must only be one parameter
@@ -368,12 +368,13 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
     - `f(1,2)` -> `a=1, b=[], c=2`
     - `f(1,2,3)` -> `a=1, b=[2], c=3`
     - `f(1,2,3,4,5)` -> `a=1, b=[2,3,4], c=5`
+  - `[?]`: A question marke prefixing the type marks if the parameter is optional or not. If optional and a value is not provided, `undef` is passed as the parameter's value.
   - `[:]` - marks that the following information is describing the argument
   - `["val"|"ref"]`: pass-by method of the argument. Is not present, default is `val`.
     - `val`: pass-by-value. The value provided for this argument is **copied** into a new local variable upon calling.
     - `ref`: pass-by-reference. The value provided for this argument is **transfered** into a new local variable upon calling (i.e. changing argument will change variable). This is suggested when the value will not be changed inside the function (as this will save copying the value and therefore speed and memory space).
-  - `[?]`: A question marke prefixing the type marks if the parameter is optional or not. If optional and a value is not provided, `undef` is passed as the parameter's value.
   - `<type>`: The type of the argument.
+  - `[?]`: Supported for legacy reasons. Syntax error is previous `?` was encountered before parameter name.
   - `=`: marks following as default value if parameter is omitted
   - `<value>`: default value of the parameter if ommited (may only be a single token e.g. can't be '1 + 2' but may be `(1 + 2)`)
 

@@ -1262,12 +1262,18 @@ function parseAsFunctionArgs(argGroup) {
         foundEllipse = true;
         i++;
       }
+      // Optional?
+      if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === '?') {
+        data.optional = true;
+        i++;
+      }
 
       // Parameter name
       if (arg.tokens[i] === undefined || !(arg.tokens[i] instanceof VariableToken)) throw new Error(`[${errors.SYNTAX}] Syntax Error: expected parameter name, got ${arg.tokens[i]} at position ${arg.tokens[i]?.pos}`);
       else {
         param = arg.tokens[i];
         if (param.value in argObj) throw new Error(`[${errors.NAME}] Name Error: Duplicate parameter name '${param.value}' at position ${param.pos}`);
+        if (data.optional) lastOptional = param.value;
         i++;
       }
 
@@ -1275,18 +1281,21 @@ function parseAsFunctionArgs(argGroup) {
       if (arg.tokens[i] instanceof OperatorToken && arg.tokens[i].value === ':') {
         i++;
 
+        // Pass-by type
         if (arg.tokens[i] instanceof VariableToken && (arg.tokens[i + 1] instanceof VariableToken || arg.tokens[i + 1] instanceof KeywordToken || (arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '?'))) {
           if (arg.tokens[i].value === 'val' || arg.tokens[i].value === 'ref') {
             data.pass = arg.tokens[i].value;
             i++;
           } else ok = false;
         }
+        // Optional?
         if (ok && arg.tokens[i] instanceof OperatorToken) {
           if (arg.tokens[i].value === '?') {
-            if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': pass-by-reference parameter '${param}' cannot be optional`);
+            if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': pass-by-reference parameter '${param.value}' cannot be optional (position ${arg.tokens[i].pos})`);
+            if (data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': parameter '${param.value}' already marked as optional (position ${arg.tokens[i].pos})`);
             if (foundEllipse) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': optional parameter cannot follow a collapse parameter (param '${param.value}')`);
             data.optional = true;
-            lastOptional = arg.tokens[0].value;
+            lastOptional = param.value;
             i++;
           } else {
             ok = false;
@@ -1323,7 +1332,6 @@ function parseAsFunctionArgs(argGroup) {
       if (lastOptional && !data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: required argument '${param.value}' cannot precede optional argument '${lastOptional}' (position ${param.pos})`);
       if (data.ellipse) {
         foundEllipse = true;
-        if (data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: '...' parameter '${param.value}' at ${param.pos} may not be optional`);
         if (!(data.pass === undefined || data.pass === 'val')) throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid pass-by type for '...' parameter '${param.value}' at ${param.pos}: ${data.pass}`);
       }
       argObj[param.value] = data;

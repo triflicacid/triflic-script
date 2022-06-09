@@ -1,5 +1,5 @@
 const { errors } = require("../src/errors");
-const { types, isNumericType } = require("../src/evaluation/types");
+const { types, isNumericType, addType, typeOverlap } = require("../src/evaluation/types");
 const { Value, ArrayValue, StringValue, NumberValue, BoolValue, UndefinedValue } = require("../src/evaluation/values");
 const Vector = require("../src/maths/Vector");
 const { RunspaceBuiltinFunction } = require("../src/runspace/Function");
@@ -62,9 +62,10 @@ class VectorValue extends Value {
 
 module.exports = (rs, pid) => {
     Value.typeMap[TYPENAME] = VectorValue;
-    types.add(TYPENAME);
+    addType(TYPENAME, ['array']);
+    typeOverlap.get("array").add(TYPENAME);
 
-    ArrayValue.castMap.vector = o => new VectorValue(o.rs, new Vector(...o.toPrimitive('array')));
+    ArrayValue.castMap.vector = o => new VectorValue(o.rs, new Vector(o.toPrimitive('array').map(z => z.value)));
     VectorValue.castMap = {
         string: o => new StringValue(o.rs, o.value.toString()),
         array: o => new ArrayValue(o.rs, o.__iter__().map(n => new NumberValue(o.rs, n))),
