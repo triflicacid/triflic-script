@@ -15,9 +15,6 @@ For more help, see `docs/` for more documentation, `programs/` for example progr
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
 - Add `docs/funcs/` which describes and contains usage of every core-defined function **IN PROGRESS**
   - All core functions done, now functions defined in `defineFuncs`
-- Seperate non-core distribution methods into seperate directories with their own `node_modules` to avoid contaminating the main `node_modules` folder and tidy up the root directory.
-  - `discord.js` - modules `discord.js`, `dotenv`
-  - `web.js` - modules `webpack`, `webpack-cli`
 - Remove dependency of core functionality on node modules (`yargs`, `readline`)
 
 ## Bugs
@@ -27,11 +24,9 @@ For more help, see `docs/` for more documentation, `programs/` for example progr
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments. `<io>` is imported.
-- `discord.js` - connect to a discord bot and listens on a particular channel (defined as `BOT_TOKEN` and `CHANNEL` in `.env`)
-  Type `!start` to start the maths environment. Everything after this point will be fed into the engine. Type `!close` to close session.
-  `<io>` is imported.
 - `file.js` - takes a filename to execute. `<io>` is imported.
-- `web.js` - compiled and may be executed on a webpage. Run `npm run build-web` to compile. Run code in `web/` at `index.html`.
+
+See `dist/` for other execution methods
 
 ## Interpreter Arguments
 All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. They are all optional.

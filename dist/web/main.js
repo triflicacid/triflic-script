@@ -1,8 +1,8 @@
-const Runspace = require("./src/runspace/Runspace");
-const { define, defineVars, defineFuncs } = require("./src/init/def");
-const createDefaultArgs = require("./src/init/args-default");
-const { StringValue } = require("./src/evaluation/values");
-const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
+const Runspace = require("../../src/runspace/Runspace");
+const { define, defineVars, defineFuncs } = require("../../src/init/def");
+const createDefaultArgs = require("../../src/init/args-default");
+const { StringValue } = require("../../src/evaluation/values");
+const { RunspaceBuiltinFunction } = require("../../src/runspace/Function");
 
 window.addEventListener("load", async () => {
   function startEventLoop(rs) {

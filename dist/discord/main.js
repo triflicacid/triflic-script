@@ -1,12 +1,12 @@
 require("dotenv").config();
 const Discord = require("discord.js");
-const { define, defineVars, defineFuncs } = require("./src/init/def");
-const Runspace = require("./src/runspace/Runspace");
-const { RunspaceBuiltinFunction } = require("./src/runspace/Function");
-const { parseArgString } = require("./src/init/args");
-const Complex = require("./src/maths/Complex");
-const { UndefinedValue, ArrayValue, primitiveToValueClass, NumberValue } = require("./src/evaluation/values");
-const startEventLoop = require("./src/runspace/event-loop");
+const { define, defineVars, defineFuncs } = require("../../src/init/def");
+const Runspace = require("../../src/runspace/Runspace");
+const { RunspaceBuiltinFunction } = require("../../src/runspace/Function");
+const { parseArgString } = require("../../src/init/args");
+const Complex = require("../../src/maths/Complex");
+const { UndefinedValue, ArrayValue, primitiveToValueClass, NumberValue } = require("../../src/evaluation/values");
+const startEventLoop = require("../../src/runspace/event-loop");
 
 // CHECK FOR REQUIRED ENV VARIABLES
 if (!process.env.BOT_TOKEN) throw new Error(`Setup Error: missing BOT_TOKEN environment variable`);

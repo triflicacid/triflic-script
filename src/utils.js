@@ -1,5 +1,4 @@
 const Complex = require("./maths/Complex");
-const crypto = require("crypto");
 const { errors } = require("./errors");
 
 /** Print */
@@ -317,13 +316,6 @@ function returnTypedArray(ntype, size) {
   }
 }
 
-// https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
-function uuidv4() {
-  return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
-    (c ^ crypto.randomFillSync(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-  );
-}
-
 /** Return JSON representation of a Value (returns StringValue) */
 function toJson(value) {
   if (typeof value === "string") return value;
@@ -340,5 +332,5 @@ function toJson(value) {
 
 module.exports = {
   print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence,
-  toBinary, fromBinary, numberTypes, uuidv4, toJson, int_to_base, base_to_int, returnTypedArray
+  toBinary, fromBinary, numberTypes, toJson, int_to_base, base_to_int, returnTypedArray
 };

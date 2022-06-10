@@ -2,14 +2,13 @@ const Complex = require("../maths/Complex");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
 const { VariableToken, KeywordToken } = require("../evaluation/tokens");
 const { lambertw, isPrime, LCF, primeFactors, factorialReal, factorial, generatePrimes, mean, variance, PMCC, gamma, wrightomega, nextNearest, stirling, zeta, bernoulli, random } = require("../maths/functions");
-const { sort, numberTypes, toBinary, fromBinary, int_to_base, base_to_int, returnTypedArray, uuidv4 } = require("../utils");
+const { sort, numberTypes, toBinary, fromBinary, int_to_base, base_to_int } = require("../utils");
 const { types, isTypeOverlap } = require("../evaluation/types");
 const { FunctionRefValue, StringValue, Value, ArrayValue, NumberValue, SetValue, BoolValue, UndefinedValue, CharValue, MapValue } = require("../evaluation/values");
 const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants");
 const operators = require("../evaluation/operators");
 const { errors, errorDesc } = require("../errors");
 const { Fraction } = require("../maths/Fraction");
-const crypto = require("crypto");
 
 /** Core definitions !REQUIRED! */
 function define(rs) {
@@ -480,19 +479,6 @@ function defineFuncs(rs) {
     if (b !== undefined) b = b.toPrimitive('real');
     return new NumberValue(rs, random(a, b));
   }, 'return a pseudo-random decimal number. Range: 0 arguments: 0-1. 1 argument: 0-a. 2 arguments: a-b'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'crandom', { ntype: '?string', size: '?real_int' }, ({ ntype, size }) => {
-    ntype = ntype ? ntype.toPrimitive("string") : "float64";
-    if (!numberTypes.includes(ntype)) throw new Error(`[${errors.BAD_ARG}] Argument Error: ${ntype} is not a valid numerical type`);
-    if (ntype === "int64" || ntype === "uint64") throw new Error(`[${errors.BAD_ARG}] Argument Error: numeric type ${ntype} is not supported`);
-    size = size ? size.toPrimitive("real_int") : 1;
-    if (size < 1 || isNaN(size) || !isFinite(size)) size = 1;
-    let array = returnTypedArray(ntype, size);
-    crypto.randomFillSync(array);
-    return new ArrayValue(rs, Array.from(array).map(n => new NumberValue(rs, n)));
-  }, 'return array of random numbers of given type (more secure than random())'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'uuid', {}, () => {
-    return new StringValue(rs, uuidv4());
-  }, 'create and return a UUIDv4'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nPr', { n: 'real_int', r: 'real_int' }, ({ n, r }) => {
     n = n.toPrimitive('real');
     r = r.toPrimitive('real');

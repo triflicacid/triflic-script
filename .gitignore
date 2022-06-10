@@ -1,4 +1,4 @@
-/node_modules/*
+node_modules/
 *.env
-web/source.js
-web/source.js.LICENSE.txt
+web/dist/script.js
+web/dist/script.js.LICENSE.txt
