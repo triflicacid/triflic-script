@@ -357,7 +357,7 @@ This defines a function. `name` is optional.
 
 i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };` achieve the same result.
 
-- `<args>` is a comma-seperated list of identifiers. Syntax: `[...][?]<arg>[: ["val"|"ref"] [?]<type>][= <value>]`. If ommited, the function takes no parameters
+- `<args>` is a comma-seperated list of identifiers. Syntax: `[...][?]<arg>[: ["val"|"ref"] <type>][= <value>]`. If ommited, the function takes no parameters
   - `<arg>` - argument name
   - `[...]` - marks parameter as compact.
     - Must only be one parameter
@@ -368,13 +368,12 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
     - `f(1,2)` -> `a=1, b=[], c=2`
     - `f(1,2,3)` -> `a=1, b=[2], c=3`
     - `f(1,2,3,4,5)` -> `a=1, b=[2,3,4], c=5`
-  - `[?]`: A question marke prefixing the type marks if the parameter is optional or not. If optional and a value is not provided, `undef` is passed as the parameter's value.
+  - `[?]`: A question mark prefixing the type marks if the parameter is optional or not. If optional and a value is not provided, `undef` is passed as the parameter's value.
   - `[:]` - marks that the following information is describing the argument
   - `["val"|"ref"]`: pass-by method of the argument. Is not present, default is `val`.
     - `val`: pass-by-value. The value provided for this argument is **copied** into a new local variable upon calling.
     - `ref`: pass-by-reference. The value provided for this argument is **transfered** into a new local variable upon calling (i.e. changing argument will change variable). This is suggested when the value will not be changed inside the function (as this will save copying the value and therefore speed and memory space).
   - `<type>`: The type of the argument.
-  - `[?]`: Supported for legacy reasons. Syntax error is previous `?` was encountered before parameter name.
   - `=`: marks following as default value if parameter is omitted
   - `<value>`: default value of the parameter if ommited (may only be a single token e.g. can't be '1 + 2' but may be `(1 + 2)`)
 
@@ -514,20 +513,20 @@ The assignation operator `=>` assigns a value to a symbol **which is not in the 
 See the programs in `programs/tests/scope` and compare the two functions.
 
 ## Inheritance
-TriflicScript supports a an extremely simple inheritance, wherein `map` types may be an instance of, and inherit from other `map` types. Inheritance links `map`s together and allows inherited maps to use parent `map`s properties and methods.
+TriflicScript supports an extremely simple inheritance, wherein `map` types may be an instance of, and inherit from, other `map` types. Inheritance links `map`s together and allows inherited maps to use parent `map`s properties and methods.
 
 When instantiated, the inheritance tree if traversed. Any property which is not a function will be deep copied into the newly created `map`.
-When a map is instantiated, it There are multiple ways be instantiate a map (i.e. create a copy from a template):
-- Use the `new` function. Calling `call($map)` will instantiate `$map` and return it.
+There are multiple ways be instantiate a map (i.e. create a copy from a template):
+- Use the `new` function. Calling `new($map)` will instantiate `$map` and return it.
 - `$map(...args)` has two cases. If `$map._Construct` is not defined, `$map` is instantiated and returned. If it is defined, `$map._Construct(...args)` will be called, with a reference to the newly instantiated `$map` being passed as the first argument.
   - `_Construct` must have at least one argument
   - The first argument must have the following signature: `[name]: ref map`
   - `_Construct` must not return a value (the returned value is ignored)
 
-Call `isinstance(A, B)` to test if `A` is an instance of `B`
+Call `isinstance(A, B)` to test if `A` is an instance of `B`, or if `A` inherits from `B`.
 
-To inherit from a `map`, use the built-in `inherit()` function. For example, if `B` is to inherit from `A`, define and bind `A` and `B`, then call `inherit(A, B)`.
-Call `inherit(A)` to return a `set` of `map`s that `A` is inherited from.
+To inherit from a `map`, use the built-in `inherit()` function. For example, if `B` is to inherit from `A`, call `inherit(A, B)`.
+`inherit` may take multiple argument e.g. `inherit(A, B, C)` means that `A` inherits from both `B` and `C`. `inherit` may be called on the same `map` multiple times e.g. `inherit(A, B); inherit(A, C)` - `A` inherits from both `B` and `C` (not overwritten).
 
 When instantiating a `map` which is inherited from other `map`s, nothing happens behind the scenes. The programmer must include calls to the appropriate constructors in `_Construct`. Continuing the example above, in `B`s constructor there would be `A._Construct(self, ...)` (**not** `A(self, ...)`).
 
@@ -535,6 +534,6 @@ When calling a method (function) on a map instance, the map will be automaticall
 - Any methods designed to be called by instances must take at least one argument
 - For a method to be able to modify the passed instance, it must be a `ref map` argument
 
-* Note, TriflicScripts inheritance model uses the maps themselves. The bound name does not matter; the name could be changed, or the symbol deleted entirely, and any inheriting maps would continue to work*
+*Note, TriflicScripts inheritance model uses the maps themselves. The bound name does not matter; the name could be changed, or the symbol deleted entirely, and any inheriting maps would continue to work*
 
 See `docs/inherit/`

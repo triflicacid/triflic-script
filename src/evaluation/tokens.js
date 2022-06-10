@@ -1293,27 +1293,22 @@ function parseAsFunctionArgs(argGroup) {
         if (arg.tokens[i] instanceof VariableToken && (arg.tokens[i + 1] instanceof VariableToken || arg.tokens[i + 1] instanceof KeywordToken || (arg.tokens[i + 1] instanceof OperatorToken && arg.tokens[i + 1].value === '?'))) {
           if (arg.tokens[i].value === 'val' || arg.tokens[i].value === 'ref') {
             data.pass = arg.tokens[i].value;
-            i++;
-          } else ok = false;
-        }
-        // Optional?
-        if (ok && arg.tokens[i] instanceof OperatorToken) {
-          if (arg.tokens[i].value === '?') {
-            if (data.pass === 'ref') throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': pass-by-reference parameter '${param.value}' cannot be optional (position ${arg.tokens[i].pos})`);
-            if (data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': parameter '${param.value}' already marked as optional (position ${arg.tokens[i].pos})`);
-            if (foundEllipse) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected '?': optional parameter cannot follow a collapse parameter (param '${param.value}')`);
-            data.optional = true;
-            lastOptional = param.value;
+            if (data.pass === 'ref' && data.optional) throw new Error(`[${errors.SYNTAX}] Syntax Error: optional parameter '${param.value}' cannot be marked as pass-by-reference (position ${arg.tokens[i].pos})`);
             i++;
           } else {
-            ok = false;
+            throw new Error(`[${errors.SYNTAX}] Syntax Error: expected pass-by indicator, got ${arg.tokens[i].value} (position ${arg.tokens[i].pos})`);
           }
         }
+
         if (ok) {
-          if (arg.tokens[i] instanceof VariableToken || arg.tokens[i] instanceof KeywordToken) {
+          if (arg.tokens[i] === undefined) {
+            throw new Error(`[${errors.SYNTAX}] Syntax Error: expected type indicator, got EOL${arg.tokens[i - 1] ? " (position " + arg.tokens[i - 1].pos + ")" : ""}`);
+          } else if (arg.tokens[i] instanceof VariableToken || arg.tokens[i] instanceof KeywordToken) {
             data.type = arg.tokens[i].value;
             i++;
-          } else ok = false;
+          } else {
+            throw new Error(`[${errors.SYNTAX}] Syntax Error: expected type indicator, got ${arg.tokens[i].value} (position ${arg.tokens[i].pos})`);
+          }
         }
       }
 
