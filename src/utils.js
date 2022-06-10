@@ -1,4 +1,5 @@
 const Complex = require("./maths/Complex");
+const crypto = require("crypto");
 const { errors } = require("./errors");
 
 /** Print */
@@ -300,6 +301,29 @@ function fromBinary(bin, type = 'float64') {
   return dv[numberTypeGetMethods[i]](0, true);
 }
 
+// "uint8", "int8", "uint16", "int16", "uint32", "int32", "uint64", "int64", "float32", "float64"
+function returnTypedArray(ntype, size) {
+  switch (ntype) {
+    case "uint8": return new Uint8Array(size);
+    case "int8": return new Int8Array(size);
+    case "uint16": return new Uint16Array(size);
+    case "int16": return new Int16Array(size);
+    case "uint32": return new Uint32Array(size);
+    case "int32": return new Int32Array(size);
+    case "uint64": return new BigUint64Array(size);
+    case "int64": return new BigInt64Array(size);
+    case "float32": return new Float32Array(size);
+    case "float64": return new Float64Array(size);
+  }
+}
+
+// https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
+function uuidv4() {
+  return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+    (c ^ crypto.randomFillSync(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
+
 /** Return JSON representation of a Value (returns StringValue) */
 function toJson(value) {
   if (typeof value === "string") return value;
@@ -316,5 +340,5 @@ function toJson(value) {
 
 module.exports = {
   print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence,
-  toBinary, fromBinary, numberTypes, toJson, int_to_base, base_to_int
+  toBinary, fromBinary, numberTypes, uuidv4, toJson, int_to_base, base_to_int, returnTypedArray
 };

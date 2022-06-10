@@ -15,6 +15,10 @@ For more help, see `docs/` for more documentation, `programs/` for example progr
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
 - Add `docs/funcs/` which describes and contains usage of every core-defined function **IN PROGRESS**
   - All core functions done, now functions defined in `defineFuncs`
+- Seperate non-core distribution methods into seperate directories with their own `node_modules` to avoid contaminating the main `node_modules` folder and tidy up the root directory.
+  - `discord.js` - modules `discord.js`, `dotenv`
+  - `web.js` - modules `webpack`, `webpack-cli`
+- Remove dependency of core functionality on node modules (`yargs`, `readline`)
 
 ## Bugs
 - Negative numbers after block is a syntax error e.g. `func() { if (0) {...} -1; }`
