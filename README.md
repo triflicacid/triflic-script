@@ -15,7 +15,7 @@ For more help, see `docs/` for more documentation, `programs/` for example progr
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
 - Add `docs/funcs/` which describes and contains usage of every core-defined function **IN PROGRESS**
   - All core functions done, now functions defined in `defineFuncs`
-- Remove dependency of core functionality on node modules (`yargs`, `readline`)
+- Remove dependency of core functionality on node modules (`readline`)
 
 ## Bugs
 - Negative numbers after block is a syntax error e.g. `func() { if (0) {...} -1; }`

@@ -9,7 +9,7 @@ const { setupIO, destroyIO } = require("./src/runspace/setup-io");
 const startEventLoop = require("./src/runspace/event-loop");
 
 // PARSE ARGV, SETUP RUNSPACE
-const opts = parseArgString(process.argv, true);
+const opts = parseArgString(process.argv.slice(2).join(" "), true);
 if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter;
 opts.app = 'CLI';
 opts.file = __filename;

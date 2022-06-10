@@ -1,6 +1,4 @@
 const process = require("process");
-const yargs = require("yargs");
-const { hideBin } = require("yargs/helpers");
 const { parseArgString } = require("./src/init/args");
 const fs = require("fs");
 const path = require("path");
@@ -18,7 +16,8 @@ async function main() {
     return 0;
   } else {
     // Find file
-    let argv = yargs(hideBin(process.argv)).argv, file = argv._[0];
+    let argv = parseArgString(process.argv.slice(2).join(" "));
+    let file = argv._[0];
     let exitCode = 0;
 
     // Does file exist?

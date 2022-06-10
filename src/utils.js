@@ -52,13 +52,6 @@ function prefixLines(str, prefix) {
   return str.split('\n').map(x => prefix + x).join('\n');
 }
 
-/** Return boolean value of an argv argument */
-function getArgvBool(argv, arg, defaultValue = true) {
-  if (argv[arg] === undefined) return defaultValue;
-  if (argv[arg] === "false" || argv[arg] === "0") return false;
-  return !!argv[arg];
-}
-
 function createEnum(obj) {
   const enumeration = {};
   for (let prop in obj) {
@@ -331,6 +324,6 @@ function toJson(value) {
 }
 
 module.exports = {
-  print, consoleColours, peek, isDigit, isWhitespace, prefixLines, getArgvBool, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence,
+  print, consoleColours, peek, isDigit, isWhitespace, prefixLines, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence,
   toBinary, fromBinary, numberTypes, toJson, int_to_base, base_to_int, returnTypedArray
 };
