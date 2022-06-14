@@ -1,0 +1,3 @@
+func main { if (false) { } -1 }
+
+println(main())

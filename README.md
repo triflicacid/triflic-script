@@ -9,17 +9,12 @@ For more help, see `docs/` for more documentation, `programs/` for example progr
 - Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
 
 ## TODO
-- Optional semi-colons. Expression terminates on
-  - `\n`, assuming not inside a bracketed group `[]` or `()`
-  - At the end of a block
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
 - Add `docs/funcs/` which describes and contains usage of every core-defined function **IN PROGRESS**
   - All core functions done, now functions defined in `defineFuncs`
 - Remove dependency of core functionality on node modules (`readline`)
 
 ## Bugs
-- Negative numbers after block is a syntax error e.g. `func() { if (0) {...} -1; }`
-  - As there is something before `-`, it isn't parsed as a unary operator
 - `discord.js` and `docs/syntax/test.js` need changing to latest version
 
 ## Execution Methods

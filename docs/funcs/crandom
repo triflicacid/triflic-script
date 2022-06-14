@@ -1,0 +1,15 @@
+// Returns an array of random numbers of a given numeric type
+// (more secure than random())
+// See numbertypes() for all valid numerical types
+
+// Default: float64 * 1
+println(crandom());
+
+// int8 * 1
+println(crandom("int8"));
+
+// uint32 *5
+println(crandom("int8", 5));
+
+// Doesn't support (u)int64
+// println(crandom("int64")); // <-- Error: numeric type int64 is not supported

@@ -38,6 +38,7 @@ class ValueToken extends Token {
 class KeywordToken extends Token {
   constructor(tstring, value, pos) {
     super(tstring, value, pos);
+    this.isValueKeyword = value === "true" || value === "false"; // Does this keyword represent a value
   }
 }
 
@@ -402,7 +403,7 @@ class TokenLine {
           if (i === 0 || this.tokens[i - 1] instanceof EllipseToken || (this.tokens[i - 1] instanceof OperatorToken && this.tokens[i - 1].value !== '[]') || this.tokens[i - 1] instanceof BracketToken) {
             let elements;
             if (this.tokens[i].value.length === 0) elements = [];
-            else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas();
+            else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas().filter(tl => tl.tokens.length > 0);
             else throw new expectedSyntaxError(']', peek(this.tokens[i].value[0].tokens));
 
             let structure = new ArrayStructure(this.rs, elements, this.tokens[i].pos);
@@ -444,6 +445,7 @@ class TokenLine {
             if (this.tokens[i].value.length === 0) elements = [];
             else if (this.tokens[i].value.length === 1) elements = this.tokens[i].value[0].splitByCommas(false);
             else throw new expectedSyntaxError('}', peek(this.tokens[i].value[0].tokens));
+            elements = elements.filter(tl => tl.tokens.length > 0);
 
             let structure;
             // MAP if first item is in syntax "a : ..."
@@ -909,7 +911,11 @@ class TokenLine {
         stack.push(cT.eval ? await cT.eval(evalObj) : cT);
       } else if (cT instanceof OperatorToken) {
         const info = cT.info();
-        if (stack.length < info.args) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected operator '${cT.value}' at position ${cT.pos} - stack underflow (expects ${info.args} values, got ${stack.length})`);
+        if (stack.length < info.args) {
+          let str = `[${errors.SYNTAX}] Syntax Error: unexpected operator '${cT.value}' at position ${cT.pos} - stack underflow (expects ${info.args} values, got ${stack.length})`;
+          if (info.unary && info.unary !== cT.value) str += `\n\tIf you meant the unary operator '${cT.value}', check your syntax with the criterion in docs/General.md`;
+          throw new Error(str);
+        }
         const args = stack.splice(stack.length - info.args);
         const val = await cT.eval(args, evalObj);
         stack.push(val);
@@ -938,7 +944,7 @@ class TokenLine {
       throw new Error(`[${errors.SYNTAX}] Syntax Error: Invalid syntax ${items.join(', ')}. Did you miss an EOL token ${EOLToken.symbol} (${EOLToken.symbol.charCodeAt(0)}) ?\n(evaluation failed to reduce expression to single value)`);
     }
     // Update 'ans' var with latest value
-    this.rs.setVar('ans', stack[0].castTo('any'), undefined, evalObj.pid);
+    this.rs.setVar('ans', stack[0].castTo("any"), undefined, evalObj.pid);
     return stack[0];
   }
 
@@ -1080,12 +1086,15 @@ function _tokenify(obj) {
       break;
     }
 
-    if (obj.allowMultiline && string[i] === EOLToken.symbol) { // End Of Line
-      currentTokens.push(new EOLToken(currentLine, obj.pos));
+    // Start a new line?
+    if (obj.allowMultiline && (string[i] === EOLToken.symbol || (string[i] === '\n' && !(obj.terminateOn.includes(")") || obj.terminateOn.includes("]"))))) { // End Of Line
+      // Blank line
       i++;
       obj.pos++;
+      // (1) Line empty? (2) Comma beforehand
+      if (currentTokens.length === 0 || (currentTokens[currentTokens.length - 1] instanceof OperatorToken && currentTokens[currentTokens.length - 1].value === ",")) continue;
       currentLine.updateTokens(currentTokens);
-      currentLine.source = string.substr(lastSourceIndex, i).trim();
+      currentLine.source = string.substring(lastSourceIndex, i - 1).trim();
       obj.lines.push(currentLine);
       lastSourceIndex = i;
       currentTokens = []; // Reset token array - start a new line
@@ -1171,7 +1180,7 @@ function _tokenify(obj) {
 
       // Is unary: first, after (, after an operator (first, check that there IS a unary operator available)
       const top = peek(currentTokens);
-      if (t.info().unary && (top === undefined || (top instanceof BracketToken && top.facing() === 1) || top instanceof OperatorToken)) {
+      if (t.info().unary && (top === undefined || (top instanceof BracketToken && top.facing() === 1) || top instanceof OperatorToken || (top instanceof KeywordToken && !top.isValueKeyword))) {
         t.isUnary = true;
       }
 
@@ -1257,10 +1266,12 @@ function _tokenify(obj) {
 /** Parse BracketedTokenLine as function arguments string. Return argument object. */
 function parseAsFunctionArgs(argGroup) {
   // Syntax: "arg[: [ref|val] [?]type [= ...]]"
-  let argObj = {}, lastOptional = null, foundEllipse = false; // Last encountered optional argument, found ellipse '...' ?
+  let argObj = {}, lastOptional = null, lastPosition = argGroup.pos, foundEllipse = false; // Last encountered optional argument, found ellipse '...' ?
   if (argGroup.value.length === 1) {
     let args = argGroup.value[0].splitByCommas(false); // DO NOT do extra parsing - not required for function arguments
+    if (args.length > 0 && args[args.length - 1].tokens.length === 0) args.pop();
     for (let arg of args) {
+      if (arg.tokens.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: unexpected end of input at position ${lastPosition}`);
       let data = {}, ok = true, i = 0, param;
 
       // Collapse multiple arguments into array?
@@ -1337,6 +1348,7 @@ function parseAsFunctionArgs(argGroup) {
         foundEllipse = true;
         if (!(data.pass === undefined || data.pass === 'val')) throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid pass-by type for '...' parameter '${param.value}' at ${param.pos}: ${data.pass}`);
       }
+      lastPosition = arg.tokens[i - 1].pos;
       argObj[param.value] = data;
     }
   }

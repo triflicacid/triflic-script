@@ -54,7 +54,6 @@ function parseArgstring(argstr) {
     } else {
       let thing = "";
       for (; i < argstr.length && argstr[i] !== ' '; ++i) thing += argstr[i];
-      console.log(thing, current)
       if (current) {
         data[current] = thing;
         current = undefined;

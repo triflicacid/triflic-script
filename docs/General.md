@@ -4,66 +4,13 @@ See `./README.md` and `docs/README.md` before reading this document.
 
 This document contains general documentation of the TriflicScript language.
 
-## Built-Ins
-Base definitions to a `Runspace` instance are present in `src/def.js`
-For more information on built-ins, enter `help()`.
-
-### Variables
-- `ans` : `any`. Present if `--ans` is truthy. Contains value of last executed expression.
-- `_isMain` : `bool`. Boolean indicating if script was run or is imported.
-- `headers` : `map`. Contains all headers used to initialise the application, including the value of all CLI argument described above.
-
-### `exit(code: ?real_int)`
-**NB no longer unceremoniously calls `process.exit()`
-
-Exits the current script execution (sets eval flag to `-1`) with a current code.
-
-After everything is cleared up, calls `#<Runspace>.onExitHandler(code)`
-
-### `import(file: string)`
-Internal: calls `#<Runspace>.import()`
-
-This functions is used to import scripts into the current runspace. `file` may be any valid file.
-
-If in format `<file>`, the full path to the imported file is resolves as follows: `root + "imports/" + file + ".js"` where
-- `currentWorkingDirectory` is the path of the directory in which `cli.js` lies. Note that this is always static to `cli.js`, not to the current executing file.
-- `"imports/"` is a standard directory where all core JavaScript import files are kept
-- `file` is the argument to the function
-Essentially, any file in `<>` are built-in JavaScript import files
-
-Else, `file` loads and executes the file. Path is relative to the current file. (see import stack in `import_stack()`)
-
-If the file is a `.js` (JavaScript) file:
-- `module.exports` must be set to a single function
-- `module.exports` is called (with `await`) with two argument: `await module.exports(#Runspace, exec_instance)`
-
-Any other extension:
-- The file is read
-- The file contents are passed into `Runspace#execute`
-
-For details on each library, see `Libraries.md`
-
-## Internal Methods
-Some functions call a method of the argument. As such, implementation may be changed by external code.
-
-- `del(a, b)` calls `a.__del__(b)`
-- `copy(a)` calls `a.__copy__()`
-- `len(a, ?b)` calls `a.__len__(b)` (`b` is used to set length of object)
-- `abs(a)` calls `a.__abs__()`
-- `getprop(a, b)` calls `a.__get__(b)`. Used by `<a>.<b>`.
-- `setprop(a, b, c)` calls `a.__set__(b, c)`. Used by `<a>.<b> = <c>`
-- `reverse(a)` calls `a.__reverse__()`
-- `find(a, b)` calls `a.__find__(b)`
-- `min(a)` calls `a.__min__()`
-- `max(a)` calls `a.__max__()`
-
-## Input
-A program may be interpreted and executed via `Runspace#execute`
-
-- `Runspace#parse` takes source code and returns an array of `TokenLine` objects
-- `Runspace#interpret` takes `TokenLine[]` and evaluates them
-
 ## Syntax
+
+Everything in TriflicScript is an expression, and everything (bar structures) return a value to the evaluation stack. Source code is read and split into tokens, at which stage nothing is known about structure or intent, and places into token lined. When an EOL token `;` or a newline not preceeded by a comma is encountered, a new token line begins. Token lined are then scanned and patterns grouped into structures such as `if`, `while`, list definitions etc... Finally, each token line is re-ordered into postfix notation awaiting evaluation.
+
+So
+- Everything is an expression
+- Lines are seperated by `;` or newlines not preceeded by `,`
 
 There is no syntax highlighter for TriflicScript, although syntax highlighting for the Rust language is suitable for TriflicScript.
 
@@ -92,6 +39,8 @@ These are structures in the code which define values:
   One cannot use this syntax to define an empty max, as `{}` would create a set.
   - Else, **set**.
 - `'...'` is a character literal. Must be empty or contain one character.
+
+NB trailing/duplicate commas in function parameters/arguments, arrays, sets of maps are ignored.
 
 Character escaped may appear in string and character literals. Any character following `\` (backslash) is escaped:
 - `0` - null (`0x0`)
@@ -222,6 +171,17 @@ The ellipse is part of syntax rather than an operator. Its behaviour depends on 
 
 ### Operators
 See `Operators.md` for detailed operator help.
+
+Operator Types:
+- **Unary** - takes one argument, `<val> [op]` or `[op] <val>`
+  
+  Some binary operators have a unary counterpart. To be parsed as a unary varient, it must be:
+  - At the beginning of an expression e.g. `-1`
+  - Preceding an open bracket e.g. `(-1)`
+  - Preceding an operator e.g. `1 + -1`
+  - Preceding a keyword which is not a value e.g. `return -1` but **not** `false -1`
+- **Binary** - the most common type, takes two arguments, traditionally `<lhs> [op] <rhs>`
+- **Ternary** - takes three arguments. It is made up of two parts: `<lhs> [op1] <mid> [op2] <rhs>`
 
 | Operator | Name | Precedence | Associativity | Description | Example | Method |
 | -- | -- | -- | -- | -- | -- | -- |
@@ -495,6 +455,65 @@ Variables all have a type which may change. New types may be added - see `import
 | `undef` | Represents an absent value. As such, this is not really a type. | `No` | `No` | `undef` |
 
 *\*These types are never returned from `type()`*
+
+## Built-Ins
+Base definitions to a `Runspace` instance are present in `src/def.js`
+For more information on built-ins, enter `help()`.
+
+### Variables
+- `ans` : `any`. Present if `--ans` is truthy. Contains value of last executed expression.
+- `_isMain` : `bool`. Boolean indicating if script was run or is imported.
+- `headers` : `map`. Contains all headers used to initialise the application, including the value of all CLI argument described above.
+
+### `exit(code: ?real_int)`
+**NB no longer unceremoniously calls `process.exit()`
+
+Exits the current script execution (sets eval flag to `-1`) with a current code.
+
+After everything is cleared up, calls `#<Runspace>.onExitHandler(code)`
+
+### `import(file: string)`
+Internal: calls `#<Runspace>.import()`
+
+This functions is used to import scripts into the current runspace. `file` may be any valid file.
+
+If in format `<file>`, the full path to the imported file is resolves as follows: `root + "imports/" + file + ".js"` where
+- `currentWorkingDirectory` is the path of the directory in which `cli.js` lies. Note that this is always static to `cli.js`, not to the current executing file.
+- `"imports/"` is a standard directory where all core JavaScript import files are kept
+- `file` is the argument to the function
+Essentially, any file in `<>` are built-in JavaScript import files
+
+Else, `file` loads and executes the file. Path is relative to the current file. (see import stack in `import_stack()`)
+
+If the file is a `.js` (JavaScript) file:
+- `module.exports` must be set to a single function
+- `module.exports` is called (with `await`) with two argument: `await module.exports(#Runspace, exec_instance)`
+
+Any other extension:
+- The file is read
+- The file contents are passed into `Runspace#execute`
+
+For details on each library, see `Libraries.md`
+
+## Internal Methods
+Some functions call a method of the argument. As such, implementation may be changed by external code.
+
+- `del(a, b)` calls `a.__del__(b)`
+- `copy(a)` calls `a.__copy__()`
+- `len(a, ?b)` calls `a.__len__(b)` (`b` is used to set length of object)
+- `abs(a)` calls `a.__abs__()`
+- `getprop(a, b)` calls `a.__get__(b)`. Used by `<a>.<b>`.
+- `setprop(a, b, c)` calls `a.__set__(b, c)`. Used by `<a>.<b> = <c>`
+- `reverse(a)` calls `a.__reverse__()`
+- `find(a, b)` calls `a.__find__(b)`
+- `min(a)` calls `a.__min__()`
+- `max(a)` calls `a.__max__()`
+
+## Input
+A program may be interpreted and executed via `Runspace#execute`
+
+- `Runspace#parse` takes source code and returns an array of `TokenLine` objects
+- `Runspace#interpret` takes `TokenLine[]` and evaluates them
 
 ## Scope
 A `scope` is a lexical area in which variables may be defined. The concept of scope is managed by a stack, with entry into a scope pushing a new hashtable of symbols onto the scope stack.

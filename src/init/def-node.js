@@ -1,10 +1,10 @@
 /** Define functions which are built on a nodejs runtime */
 
 const { errors } = require("../errors");
-const { StringValue } = require("../evaluation/values");
+const { StringValue, ArrayValue, NumberValue } = require("../evaluation/values");
 const { RunspaceBuiltinFunction } = require("../runspace/Function");
-const { returnTypedArray, numberTypes, uuidv4 } = require("../utils");
-const { system } = require("../utils-node");
+const { returnTypedArray, numberTypes } = require("../utils");
+const { system, uuidv4 } = require("../utils-node");
 const crypto = require("crypto");
 
 module.exports = function (rs) {

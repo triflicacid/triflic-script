@@ -51,6 +51,7 @@ const operators = {
     fn: async (fn, args, evalObj) => {
       fn = fn.castTo("any");
       if (!fn.__call__) throw new Error(`[${errors.NOT_CALLABLE}] Type Error: Type ${fn.type()} is not callable ("${fn}")`);
+      args = args.filter(tl => tl.tokens.length > 0);
       let newArgs = [];
       for (let i = 0; i < args.length; i++) {
         let ellipse = false;

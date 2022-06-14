@@ -1,0 +1,3 @@
+// Generate a uuid-v4 string
+
+println(uuid()) // 4651d34a-ea7b-453e-aca9-f698dc58b9b3
