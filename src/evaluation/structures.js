@@ -66,7 +66,7 @@ class MapStructure extends Structure {
   async eval(evalObj) {
     let map = new MapValue(this.rs);
     for (let i = 0; i < this.keys.length; i++) {
-      map.__set__(this.keys[i], await this.values[i].eval(evalObj));
+      await map.__set__(evalObj, this.keys[i], await this.values[i].eval(evalObj));
     }
     return map;
   }
@@ -396,10 +396,15 @@ class ForInStructure extends Structure {
       throw new Error(`[${errors.SYNTAX}] FOR IN loop: error whilst evaluating iterator:\n${e}`);
     }
 
-    if (typeof iter.__iter__ !== 'function') throw new Error(`[${errors.TYPE_ERROR}] Type ${iter.type()} is not iterable`);
-    let collection = iter.__iter__();
+    let collection = iter.__iter__ ? await iter.__iter__(evalObj) : undefined;
+    if (!(collection instanceof ArrayValue)) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Type ${iter.type()} is not iterable`);
+    try {
+      collection = collection.toPrimitive("array");
+    } catch (e) {
+      throw new Error(`[${errors.TYPE_ERROR}] Type Error: Type ${iter.type()} is not iterable\n${e}`);
+    }
     if (collection.length === 0);
-    else if (Array.isArray(collection[0])) {
+    else if (collection[0] instanceof ArrayValue) {
       if (this.vars.length === 1) { // One var contains an array
         let i = 0;
         while (true) {
@@ -409,7 +414,7 @@ class ForInStructure extends Structure {
             break;
           }
 
-          this.body.rs.defineVar(this.vars[0].value, new ArrayValue(this.body.rs, collection[i]), undefined, evalObj.pid);
+          this.body.rs.defineVar(this.vars[0].value, collection[i], undefined, evalObj.pid);
           await this.body.eval(obj);
 
           if (obj.action === 1 || proc.state !== 1) break;
@@ -423,6 +428,11 @@ class ForInStructure extends Structure {
           i++;
         }
       } else { // Map every item in array to a variable
+        try {
+          collection = collection.map(a => a.toPrimitive("array"));
+        } catch (e) {
+          throw new Error(`[${errors.TYPE_ERROR}] Type Error: invalid iterator for type ${iter.type()}:\n${e}`);
+        }
         if (this.vars.length !== collection[0].length) throw new Error(`[${errors.SYNTAX}] Syntax Error: FOR-IN: variable count mismatch: got ${this.vars.length}, expected ${collection[0].length} for type ${iter.type()}`);
         let i = 0;
         while (true) {

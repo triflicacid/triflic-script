@@ -141,7 +141,7 @@ There are two types of functions: `built-in`s and `user-defined`
   - Via a lambda
 
 #### lambda
-A lambda is a short-hand syntax for defining single-line, anonymous functions
+A lambda is a short-hand syntax for defining an anonymous function
 
 Syntax: `<args>[: <returnType>] -> <body>`
 - `<args>` - either a single symbol e.g. `x` or an argument list e.g. `(x, y: ref string)`
@@ -149,10 +149,6 @@ Syntax: `<args>[: <returnType>] -> <body>`
 - `<body>` - function body. Either a block `{...}`, or up to `;` or `,`
 
 `f = x -> x * 2` is equivalent to `f = func(x) { x * 2 }`
-
-If appears at beginning of a line, may have this special format: `<name> -> <body>` to define a function without any arguments called `name`. This will define the function without returning a reference
-
-`hi -> "Hello"` is equivalent to `func hi { "Hello" }`
 
 See `func` keyword for more information.
 
@@ -200,8 +196,6 @@ Operator Types:
 | / | Division | 15 | ltr | Divide LHS by RHS | `5 / 2` => `2.5` | `__div__` |
 | % | Modulo/Remainder/String Format | 15 | ltr | Return remainder of LHS divided by RHS, or interpolate items in RHS to string RHS | `5 % 2` => `1` | `__mod__` |
 | * | Multiplication | 15 | ltr | Multiply LHS by RHS | `5 * 2` => `10` | `__mul__` |
-| ∩ | Intersection | 15 | ltr | Find the intersection between the LHS and RHS | `{1,2} ∩ {2,3}` => `{2}` | `__intersect__` |
-| ∪ | Union | 14 | ltr | Find the union between the LHS and RHS | `{1,2} ∪ {2,3}` => `{1,2,3}` | `__union__` |
 | + | Addition | 14 | ltr | Add RHS to LHS | `5 + 2` => `7` | `__add__` |
 | - | Subtraction | 14 | ltr | Subtract RHS from LHS | `5 - 2` => `3` | `__sub__` |
 | >> | Right Shift | 13 | ltr | Bit shift LHS right by RHS places | `5 << 2` => `20` | `__rshift__` |
@@ -441,20 +435,23 @@ Variables all have a type which may change. New types may be added - see `import
 | Type | Description | Castable | Initialisable | Example |
 | ---- | ----------- | -------- | ------------- | ------- |
 | `any` | Represents any type. Used implicitly in functions when no argument type is provided | `Yes` | `No` | `5`, `"Hello"` |
-| `real` | Represents any number without an imaginary component | `Yes` | `Yes` | `5`, `3.14` |
-| `real_int`* | Represents a `real` integer | `Yes` | `Yes` | `5`, `3` |
+| `array` | Represents a collection of values | `Yes` | `Yes` | `[1, 2]`, `["H", true, [1]]` |
+| `bool` | Represents a boolean value | `Yes` | `Yes` | `true`, `false` |
+| `char` | Represents a single character which behaves like a `real` | `Yes` | `Yes` | `'a'` |
 | `complex` | Represents any number with an imaginary component. To make, multiple a `real` by `i` | `Yes` | `Yes` | `5i`, `3.14i` |
 | `complex_int`* | Represents a `complex` integer | `Yes` | `Yes` | `5i`, `3i` |
-| `string` | Represents a string of characters | `Yes` | `Yes` | `"Hello"` |
-| `char` | Represents a single character which behaves like a `real` | `Yes` | `Yes` | `'a'` |
-| `bool` | Represents a boolean value | `Yes` | `Yes` | `true`, `false` |
-| `array` | Represents a collection of values | `Yes` | `Yes` | `[1, 2]`, `["H", true, [1]]` |
-| `set` | Represents a unique collection of values (no repeated values) | `Yes` | `Yes` | `{1, 2}`, `{"H", true, [1]}` |
-| `map` | Represents a collection of keys which map to a value | `Yes` | `Yes` | `{1: "a", 2: "b"}`, `{"name": "John Doe", "male": true}` |
 | `func` | Contains a function reference which may be called | `No` | `No` | `sin`, `print` |
+| `map` | Represents a collection of keys which map to a value | `Yes` | `Yes` | `{1: "a", 2: "b"}`, `{"name": "John Doe", "male": true}` |
+| `object` | A `map` which may override built-in methods (`__x__`) | `No` | `Yes` | `{ "__len__": () -> 42 }` |
+| `real` | Represents any number without an imaginary component | `Yes` | `Yes` | `5`, `3.14` |
+| `real_int`* | Represents a `real` integer | `Yes` | `Yes` | `5`, `3` |
+| `set` | Represents a unique collection of values (no repeated values) | `Yes` | `Yes` | `{1, 2}`, `{"H", true, [1]}` |
+| `string` | Represents a string of characters | `Yes` | `Yes` | `"Hello"` |
 | `undef` | Represents an absent value. As such, this is not really a type. | `No` | `No` | `undef` |
 
 *\*These types are never returned from `type()`*
+
+`object` type - allows built-in methods to be overridden to implement customised behaviours. See `docs/overriding/` for more.
 
 ## Built-Ins
 Base definitions to a `Runspace` instance are present in `src/def.js`
@@ -498,16 +495,20 @@ For details on each library, see `Libraries.md`
 ## Internal Methods
 Some functions call a method of the argument. As such, implementation may be changed by external code.
 
+Every method mey be overwritten on type `object` to define custom behaviour. Unless specified, custom implementations may return any value (incl `undef`).
+
 - `del(a, b)` calls `a.__del__(b)`
 - `copy(a)` calls `a.__copy__()`
 - `len(a, ?b)` calls `a.__len__(b)` (`b` is used to set length of object)
 - `abs(a)` calls `a.__abs__()`
 - `getprop(a, b)` calls `a.__get__(b)`. Used by `<a>.<b>`.
 - `setprop(a, b, c)` calls `a.__set__(b, c)`. Used by `<a>.<b> = <c>`
-- `reverse(a)` calls `a.__reverse__()`
+- `reverse(a)` calls `a.__rev__()`
 - `find(a, b)` calls `a.__find__(b)`
 - `min(a)` calls `a.__min__()`
 - `max(a)` calls `a.__max__()`
+- `iter(a)` calls `a.__iter__()`
+  - Must return `array`
 
 ## Input
 A program may be interpreted and executed via `Runspace#execute`
@@ -537,17 +538,17 @@ TriflicScript supports an extremely simple inheritance, wherein `map` types may 
 When instantiated, the inheritance tree if traversed. Any property which is not a function will be deep copied into the newly created `map`.
 There are multiple ways be instantiate a map (i.e. create a copy from a template):
 - Use the `new` function. Calling `new($map)` will instantiate `$map` and return it.
-- `$map(...args)` has two cases. If `$map._Construct` is not defined, `$map` is instantiated and returned. If it is defined, `$map._Construct(...args)` will be called, with a reference to the newly instantiated `$map` being passed as the first argument.
-  - `_Construct` must have at least one argument
+- `$map(...args)` has two cases. If `$map.__construct__` is not defined, `$map` is instantiated and returned. If it is defined, `$map.__construct__(...args)` will be called, with a reference to the newly instantiated `$map` being passed as the first argument.
+  - `__construct__` must have at least one argument
   - The first argument must have the following signature: `[name]: ref map`
-  - `_Construct` must not return a value (the returned value is ignored)
+  - `__construct__` must not return a value (the returned value is ignored)
 
 Call `isinstance(A, B)` to test if `A` is an instance of `B`, or if `A` inherits from `B`.
 
 To inherit from a `map`, use the built-in `inherit()` function. For example, if `B` is to inherit from `A`, call `inherit(A, B)`.
 `inherit` may take multiple argument e.g. `inherit(A, B, C)` means that `A` inherits from both `B` and `C`. `inherit` may be called on the same `map` multiple times e.g. `inherit(A, B); inherit(A, C)` - `A` inherits from both `B` and `C` (not overwritten).
 
-When instantiating a `map` which is inherited from other `map`s, nothing happens behind the scenes. The programmer must include calls to the appropriate constructors in `_Construct`. Continuing the example above, in `B`s constructor there would be `A._Construct(self, ...)` (**not** `A(self, ...)`).
+When instantiating a `map` which is inherited from other `map`s, nothing happens behind the scenes. The programmer must include calls to the appropriate constructors in `__construct__`. Continuing the example above, in `B`s constructor there would be `A.__construct__(self, ...)` (**not** `A(self, ...)`).
 
 When calling a method (function) on a map instance, the map will be automatically passed as the first argument.
 - Any methods designed to be called by instances must take at least one argument

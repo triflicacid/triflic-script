@@ -10,17 +10,18 @@ function addType(name, overlap = []) {
 
 // Built-In types
 addType('any', '*');
+addType('array'); // [...]
+addType('bool'); // true, false
+addType('char', ['string']); // '...', behaves as real
 addType('complex', ['complex_int']); // a + bi
 addType('complex_int'); // a + bi, a, b are ints
+addType('func');
+addType('map'); // {a: b, ...}
+addType('object', 'map');
 addType('real', ['bool', 'real_int', 'complex']); // a
 addType('real_int', ['bool']); // a, a is an int
-addType('string'); // "..."
-addType('char', ['string']); // '...', behaves as real
-addType('bool'); // true, false
-addType('array'); // [...]
 addType('set'); // {a, b, ...}
-addType('map'); // {a: b, ...}
-addType('func');
+addType('string'); // "..."
 
 // Check if overlap between types
 function isTypeOverlap(type, overlapWith) {

@@ -6,19 +6,15 @@ function main(rs, pid) {
     rs.io.output.write(o.toString());
     return new UndefinedValue(rs);
   }, 'prints object to the screen'), pid);
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'printf', { o: 'any', options: { type: 'array', optional: true, ellipse: true } }, ({ o, options }) => {
-    let formatted = options ? o.castTo('string').format(options.toPrimitive('array')) : o.castTo('string');
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'printf', { o: 'any', options: { type: 'array', optional: true, ellipse: true } }, ({ o, options }, evalObj) => {
+    let formatted = options ? o.castTo('string', evalObj).format(options.toPrimitive('array')) : o.castTo('string', evalObj);
     rs.io.output.write(formatted.toString());
     return new UndefinedValue(rs);
   }, 'format object with options (strformat) and print to screen'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'println', { o: '?any' }, ({ o }) => {
-    rs.io.output.write((o ? o.toString() : '') + '\n');
+    rs.io.output.write((o ? o.toPrimitive('string') : '') + '\n');
     return new UndefinedValue(rs);
   }, 'prints object to the screen followed by a newline'), pid);
-  // rs.defineFunc(new RunspaceBuiltinFunction(rs, 'printr', { o: 'any' }, ({ o }) => {
-  //   console.log(o.castTo('any'));
-  //   return new UndefinedValue(rs);
-  // }, 'prints object as represented internally to the screen'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'input', { prompt: '?string' }, async ({ prompt }) => {
     if (prompt) rs.io.output.write(prompt.toPrimitive("string"));
     const input = await (() => {

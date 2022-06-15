@@ -1,8 +1,7 @@
 // "<operator>": {
 //   precedence: <int>,       // Precedence of operator
-//   args: <int> | <int[]>,   // Argument count, or array of argument counts (for overloads)
-//   fn: ...,                 // Function called if only one overload
-//   fn<overload-n>: ...,     // Function called corresponding to arg length overload e.g. fn2, fn1
+//   args: <int>,             // Argument count
+//   fn: ...,                 // Function called: (evalObj, ...args, data)
 //   desc: <string>,          // Description of operator
 //   syntax: <string>,        // Syntax of how operator is used
 //   unary: <string|null>     // If present, and if operator meets unary criteria, use this operator instead
@@ -19,11 +18,11 @@ const operators = {
     name: 'member access',
     precedence: 20,
     args: 2,
-    fn: (obj, prop) => {
+    fn: async (evalObj, obj, prop) => {
       if (typeof prop.getVar !== 'function') throw new Error(`[${errors.PROP}] Key Error: type ${prop.type()} is not a valid key`);
-      obj = obj.castTo("any");
+      obj = obj.castTo("any", evalObj);
       if (!obj.__get__) throw new Error(`[${errors.PROP}] Key Error: Cannot access property ${prop.value} of type ${obj.type()}`);
-      return obj.__get__(new StringValue(obj.rs, prop.value));
+      return await obj.__get__(evalObj, new StringValue(obj.rs, prop.value));
     },
     desc: `Access property <prop> of <obj>`,
     syntax: '<obj>.<prop>',
@@ -33,11 +32,11 @@ const operators = {
     name: 'computed member access',
     precedence: 20,
     args: 1,
-    fn: async (obj, prop, evalObj) => {
-      obj = obj.castTo("any");
+    fn: async (evalObj, obj, prop) => {
+      obj = obj.castTo("any", evalObj);
       prop = await prop.eval(evalObj);
       if (!obj.__get__) throw new Error(`[${errors.PROP}] Key Error: Cannot access property ${prop} of type ${obj.type()}`);
-      return obj.__get__(prop);
+      return await obj.__get__(evalObj, prop);
     },
     desc: `Evaluate <prop> and access property <prop> of <obj>`,
     syntax: '<obj>[<prop>]',
@@ -48,8 +47,8 @@ const operators = {
     name: 'call',
     precedence: 20,
     args: 1,
-    fn: async (fn, args, evalObj) => {
-      fn = fn.castTo("any");
+    fn: async (evalObj, fn, args) => {
+      fn = fn.castTo("any", evalObj);
       if (!fn.__call__) throw new Error(`[${errors.NOT_CALLABLE}] Type Error: Type ${fn.type()} is not callable ("${fn}")`);
       args = args.filter(tl => tl.tokens.length > 0);
       let newArgs = [];
@@ -76,14 +75,14 @@ const operators = {
     hidden: true,
   },
   "?.": {
-    name: 'oprional member access',
+    name: 'optional member access',
     precedence: 20,
     args: 2,
-    fn: (obj, prop) => {
-      obj = obj.castTo('any');
+    fn: async (evalObj, obj, prop) => {
+      obj = obj.castTo('any', evalObj);
       if (obj instanceof UndefinedValue) return new UndefinedValue(obj.rs);
       if (!obj.__get__) throw new Error(`[${errors.PROP}] Key Error: Cannot access property ${prop} of type ${obj.type()}`);
-      return obj.__get__(prop.castTo('any'));
+      return await obj.__get__(evalObj, new StringValue(obj.rs, prop.value));
     },
     desc: `Access property <prop> of <obj>`,
     syntax: '<obj>.<prop>',
@@ -93,7 +92,7 @@ const operators = {
     name: 'degrees',
     precedence: 18,
     args: 1,
-    fn: z => z.castTo('any').__deg__?.(),
+    fn: (evalObj, z) => z.castTo('any', evalObj).__deg__?.(evalObj),
     desc: `Take argument as degrees and convert to radians`,
     syntax: '<a>deg',
     assoc: 'rtl',
@@ -102,7 +101,7 @@ const operators = {
     name: 'logical not',
     precedence: 17,
     args: 1,
-    fn: x => x.castTo('any').__not__?.(),
+    fn: (evalObj, x) => x.castTo('any', evalObj).__not__?.(evalObj),
     desc: `logical not unless x is of type set. Then, find complement of x (using universal set, ε)`,
     syntax: 'x!',
     assoc: 'rtl',
@@ -111,7 +110,7 @@ const operators = {
     name: 'bitwise not',
     precedence: 17,
     args: 1,
-    fn: x => x.castTo('any').__bitwiseNot__?.(),
+    fn: (evalObj, x) => x.castTo('any', evalObj).__bitwiseNot__?.(evalObj),
     desc: `Bitwise NOT`,
     syntax: '~x',
     assoc: 'rtl',
@@ -120,7 +119,7 @@ const operators = {
     name: 'unary plus',
     precedence: 17,
     args: 1,
-    fn: n => n.castTo('any').__pos__?.(),
+    fn: (eo, n) => n.castTo('any', eo).__pos__?.(eo),
     desc: 'cast n into a number',
     syntax: '+n',
     unary: "u+",
@@ -130,7 +129,7 @@ const operators = {
     name: 'unary minus',
     precedence: 17,
     args: 1,
-    fn: n => n.castTo('any').__neg__?.(),
+    fn: (eo, n) => n.castTo('any', eo).__neg__?.(eo),
     desc: 'cast n into a negative number',
     syntax: '-n',
     unary: "u-",
@@ -140,7 +139,7 @@ const operators = {
     name: 'cast',
     precedence: 17,
     args: 1,
-    fn: (val, type) => val.castTo(type),
+    fn: (evalObj, val, type) => val.castTo(type, evalObj),
     desc: `attempt to cast <val> to type <type>`,
     syntax: '<type> value',
     unary: "<cast>",
@@ -151,7 +150,7 @@ const operators = {
     name: 'boolean cast',
     precedence: 17,
     args: 1,
-    fn: (val) => val.castTo("bool"),
+    fn: (evalObj, val) => val.castTo("bool", evalObj),
     desc: `attempt to cast <val> to a boolean`,
     syntax: 'value?',
     unary: "?",
@@ -161,7 +160,7 @@ const operators = {
     name: 'exponentation',
     precedence: 16,
     args: 2,
-    fn: (a, b) => a.castTo('any').__pow__?.(b.castTo('any')),
+    fn: (evalObj, a, b) => a.castTo('any', evalObj).__pow__?.(evalObj, b.castTo('any', evalObj)),
     desc: `exponentation: raise a to the b`,
     syntax: 'a ** b',
     assoc: 'rtl',
@@ -170,7 +169,7 @@ const operators = {
     name: 'sequence',
     precedence: 16,
     args: 2,
-    fn: (a, b) => a.castTo('any').__seq__?.(b.castTo('any')),
+    fn: (evalObj, a, b) => a.castTo('any', evalObj).__seq__?.(evalObj, b.castTo('any', evalObj)),
     desc: `generates sequence a to b`,
     syntax: 'a:b',
     assoc: 'rtl',
@@ -179,7 +178,7 @@ const operators = {
     name: 'division',
     precedence: 15,
     args: 2,
-    fn: (a, b) => a.castTo('any').__div__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__div__?.(eo, b.castTo('any', eo)),
     desc: `a ÷ b`,
     syntax: 'a / b',
     assoc: 'ltr',
@@ -188,7 +187,7 @@ const operators = {
     name: 'modulo',
     precedence: 15,
     args: 2,
-    fn: (a, b) => a.castTo('any').__mod__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__mod__?.(eo, b.castTo('any', eo)),
     desc: `a % b (remainder of a ÷ b)`,
     syntax: 'a % b',
     assoc: 'ltr',
@@ -197,7 +196,7 @@ const operators = {
     name: 'multiplication',
     precedence: 15,
     args: 2,
-    fn: (a, b) => a.castTo('any').__mul__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__mul__?.(eo, b.castTo('any', eo)),
     desc: `a × b`,
     syntax: 'a * b',
     assoc: 'ltr',
@@ -206,7 +205,7 @@ const operators = {
     name: 'addition',
     precedence: 14,
     args: 2,
-    fn: (a, b) => a.castTo('any').__add__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__add__?.(eo, b.castTo('any', eo)),
     desc: `a + b`,
     syntax: 'a + b',
     unary: 'u+',
@@ -216,26 +215,26 @@ const operators = {
     name: 'subtract',
     precedence: 14,
     args: 2,
-    fn: (a, b) => a.castTo('any').__sub__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__sub__?.(eo, b.castTo('any', eo)),
     desc: `a - b`,
     syntax: 'a - b',
     unary: 'u-',
     assoc: 'ltr',
   },
   "<<": {
-    name: 'right shift',
+    name: 'left shift',
     precedence: 13,
     args: 2,
-    fn: (a, b) => a.castTo('any').__lshift__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__lshift__?.(eo, b.castTo('any', eo)),
     desc: `Bitwise left shift a by b places`,
     syntax: 'a << b',
     assoc: 'ltr',
   },
   ">>": {
-    name: 'left shift',
+    name: 'right shift',
     precedence: 13,
     args: 2,
-    fn: (a, b) => a.castTo('any').__rshift__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__rshift__?.(eo, b.castTo('any', eo)),
     desc: `Bitwise right shift a by b places`,
     syntax: 'a >> b',
     assoc: 'ltr',
@@ -244,7 +243,7 @@ const operators = {
     name: 'less than or equal to',
     precedence: 12,
     args: 2,
-    fn: (a, b) => a.castTo('any').__le__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__le__?.(eo, b.castTo('any', eo)),
     desc: `a less than or equal to b`,
     syntax: 'a <= b',
     assoc: 'ltr',
@@ -253,7 +252,7 @@ const operators = {
     name: 'less than',
     precedence: 12,
     args: 2,
-    fn: (a, b) => a.castTo('any').__lt__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__lt__?.(eo, b.castTo('any', eo)),
     desc: `a less than b`,
     syntax: 'a < b',
     assoc: 'ltr',
@@ -262,7 +261,7 @@ const operators = {
     name: 'greater than or equal to',
     precedence: 12,
     args: 2,
-    fn: (a, b) => a.castTo('any').__ge__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__ge__?.(eo, b.castTo('any', eo)),
     desc: `a greater than or equal to b`,
     syntax: 'a >= b',
     assoc: 'ltr',
@@ -271,7 +270,7 @@ const operators = {
     name: 'greater than',
     precedence: 12,
     args: 2,
-    fn: (a, b) => a.castTo('any').__gt__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__gt__?.(eo, b.castTo('any', eo)),
     desc: `a greater than b`,
     syntax: 'a > b',
     assoc: 'ltr',
@@ -280,7 +279,7 @@ const operators = {
     name: 'in',
     precedence: 12,
     args: 2,
-    fn: (a, b) => a.castTo('any').__in__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__in__?.(eo, b.castTo('any', eo)),
     desc: `check if <a> is in <b>. (NB a space after 'in' is required)`,
     syntax: 'a in b',
     assoc: 'rtl',
@@ -289,7 +288,7 @@ const operators = {
     name: 'equality',
     precedence: 11,
     args: 2,
-    fn: (a, b) => a.castTo('any').__eq__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__eq__?.(eo, b.castTo('any', eo)),
     desc: `a equal to b`,
     syntax: 'a == b',
     assoc: 'ltr',
@@ -298,7 +297,7 @@ const operators = {
     name: 'inequality',
     precedence: 11,
     args: 2,
-    fn: (a, b) => a.castTo('any').__neq__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__neq__?.(eo, b.castTo('any', eo)),
     desc: `a not equal to b`,
     syntax: 'a != b',
     assoc: 'ltr',
@@ -307,7 +306,7 @@ const operators = {
     name: 'bitwise and',
     precedence: 10,
     args: 2,
-    fn: (a, b) => a.castTo('any').__bitwiseAnd__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__bitwiseAnd__?.(eo, b.castTo('any', eo)),
     desc: `Bitwise AND`,
     syntax: 'a & b',
     assoc: 'ltr',
@@ -316,7 +315,7 @@ const operators = {
     name: 'bitwise xor',
     precedence: 9,
     args: 2,
-    fn: (a, b) => a.castTo('any').__xor__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__xor__?.(eo, b.castTo('any', eo)),
     desc: `Bitwise XOR`,
     syntax: 'a ^ b',
     assoc: 'ltr',
@@ -325,7 +324,7 @@ const operators = {
     name: 'bitwise or',
     precedence: 8,
     args: 2,
-    fn: (a, b) => a.castTo('any').__bitwiseOr__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__bitwiseOr__?.(eo, b.castTo('any', eo)),
     desc: `Bitwise OR`,
     syntax: 'a | b',
     assoc: 'ltr',
@@ -334,7 +333,7 @@ const operators = {
     name: 'logical and',
     precedence: 7,
     args: 2,
-    fn: (a, b) => a.castTo('any').__and__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__and__?.(eo, b.castTo('any', eo)),
     desc: `Logical AND`,
     syntax: 'a && b',
     assoc: 'ltr',
@@ -343,7 +342,7 @@ const operators = {
     name: 'logical or',
     precedence: 6,
     args: 2,
-    fn: (a, b) => a.castTo('any').__or__?.(b.castTo('any')),
+    fn: (eo, a, b) => a.castTo('any', eo).__or__?.(eo, b.castTo('any', eo)),
     desc: `Logical OR`,
     syntax: 'a || b',
     assoc: 'ltr',
@@ -352,7 +351,7 @@ const operators = {
     name: 'nullish coalescing',
     precedence: 5,
     args: 2,
-    fn: (a, b) => a.castTo("any") instanceof UndefinedValue ? b : a,
+    fn: (eo, a, b) => a.castTo("any", eo) instanceof UndefinedValue ? b : a,
     desc: `Returns <a> unless it is undefined, in which case return <b>`,
     syntax: 'a ?? b',
     assoc: 'ltr',
@@ -361,9 +360,9 @@ const operators = {
     name: 'conditional',
     precedence: 4,
     args: 0,
-    fn: async ([cond, if1, if0], evalObj) => {
+    fn: async (evalObj, [cond, if1, if0]) => {
       let bool = await cond.eval(evalObj);
-      bool = bool.castTo('bool');
+      bool = bool.castTo('bool', evalObj);
       if (bool.value) {
         return await if1.eval(evalObj);
       } else {
@@ -379,7 +378,7 @@ const operators = {
     name: 'assignment',
     precedence: 3,
     args: 2,
-    fn: (symbol, value) => symbol.__assign__?.(value.castTo("any")),
+    fn: (eo, symbol, value) => symbol.__assign__?.(eo, value),
     desc: 'Set symbol <symbol> equal to <v>',
     syntax: 'symbol = v',
     assoc: 'rtl',
@@ -388,7 +387,7 @@ const operators = {
     name: 'nonlocal assignment',
     precedence: 3,
     args: 2,
-    fn: (symbol, value) => symbol.__nonlocalAssign__?.(value.castTo("any")),
+    fn: (eo, symbol, value) => symbol.__nonlocalAssign__?.(eo, value.castTo("any")),
     desc: 'Set symbol <symbol> in nonlocal scope equal to <v>',
     syntax: 'symbol => v',
     assoc: 'rtl',
@@ -397,7 +396,7 @@ const operators = {
     name: 'addition assignment',
     precedence: 3,
     args: 2,
-    fn: (symbol, value) => symbol.__assignAdd__?.(value),
+    fn: (eo, symbol, value) => symbol.__assignAdd__?.(eo, value),
     desc: 'Add <v> to <symbol>',
     syntax: 'symbol += v',
     assoc: 'rtl',
@@ -406,7 +405,7 @@ const operators = {
     name: 'subtraction assignment',
     precedence: 3,
     args: 2,
-    fn: (symbol, value) => symbol.__assignSub__?.(value),
+    fn: (eo, symbol, value) => symbol.__assignSub__?.(eo, value),
     desc: 'Subtract <v> from <symbol>',
     syntax: 'symbol -= v',
     assoc: 'rtl',
@@ -415,7 +414,7 @@ const operators = {
     name: 'multiplication assignment',
     precedence: 3,
     args: 2,
-    fn: (symbol, value) => symbol.__assignMul__?.(value),
+    fn: (eo, symbol, value) => symbol.__assignMul__?.(eo, value),
     desc: 'Multiply <symbol> by <v>',
     syntax: 'symbol *= v',
     assoc: 'rtl',
@@ -424,7 +423,7 @@ const operators = {
     name: 'division assignment',
     precedence: 3,
     args: 2,
-    fn: (symbol, value) => symbol.__assignDiv__?.(value),
+    fn: (eo, symbol, value) => symbol.__assignDiv__?.(eo, value),
     desc: 'Divide <symbol> by <v>',
     syntax: 'symbol /= v',
     assoc: 'rtl',
@@ -433,7 +432,7 @@ const operators = {
     name: 'modulus assignment',
     precedence: 3,
     args: 2,
-    fn: (symbol, value) => symbol.__assignMod__?.(value),
+    fn: (eo, symbol, value) => symbol.__assignMod__?.(eo, value),
     desc: 'Sets <symbol> to <symbol> % <v>',
     syntax: 'symbol %= v',
     assoc: 'rtl',
@@ -442,7 +441,7 @@ const operators = {
     name: 'comma',
     precedence: 1,
     args: 2,
-    fn: (lhs, rhs) => rhs,
+    fn: (eo, lhs, rhs) => rhs,
     desc: 'Used to seperate statements. Evaluates <lhs> and <rhs>, but only returns <rhs>',
     syntax: '<statement>, <statement>',
     assoc: 'ltr',

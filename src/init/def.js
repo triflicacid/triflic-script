@@ -20,7 +20,7 @@ function define(rs) {
 
   /****************** CORE FUNCTIONS */
 
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'help', { item: '?any' }, async ({ item }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'help', { item: '?any' }, async ({ item }, evalObj) => {
     let help = '';
     if (item === undefined) {
       help = `help(?s) \t Get help on an argument e.g. function, variable, operator\ncopyright() \t View copyright information\nerror_code(code) \t Return brief help on a given error code\nvars() \t Return array of all variables\noperators() \t Return array of all operators\ntypes() \t Return array of all available types \nnew(type) \t Instantiates a new value of type <type> \nkeywords() \t Return array of all keywords \nimport() \t Import a script relative to import_dir()\nexit() \t Terminate the program`;
@@ -43,16 +43,22 @@ function define(rs) {
     } else if (item instanceof StringValue && KeywordToken.keywords.includes(item.value)) { // KEYWORDS
       help = `keyword "${item.value}"`;
     } else if (item instanceof Value) {
-      let str = item.toString();
-      help = `string[${str.length}] "${str}"`;
+      let str = item.toString(evalObj);
+      help = `${item.type()} "${str}"`;
     } else {
       if (rs.opts.strict) throw new Error(`[${errors.BAD_ARG}] Argument Error: Cannot get help on given argument`);
     }
     return new StringValue(rs, help);
   }, 'Get general help or help on a provided argument'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copyright', {}, () => new StringValue(rs, "Copyright (c) 2022 Ruben Saunders.\nAll Right Reserved."), 'View copyright information'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, ({ obj, key }) => {
-    const v = key === undefined ? obj.__del__?.(key) : obj.castTo("any").__del__?.(key);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, async ({ obj, key }, evalObj) => {
+    let v;
+    if (key === undefined) {
+      v = obj.__del__ ? await obj.__del__(evalObj, key) : undefined;
+    } else {
+      obj = obj.castTo("any", evalObj);
+      v = obj.__del__ ? await obj.__del__(evalObj, key) : undefined;
+    }
     if (v === undefined) throw new Error(`[${errors.DEL}] Argument Error: cannot del() object of type ${obj.type()}`);
     return v;
   }, 'attempt to delete given object. If a key is given, attempts to delete that key from the given object.'));
@@ -104,16 +110,16 @@ function define(rs) {
       return new NumberValue(rs, len);
     }
   }, 'Force the destruction of the current local scope (will not pop local#0)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'keywords', {}, () => new ArrayValue(rs, KeywordToken.keywords.map(kw => new StringValue(rs, kw))), 'list all keywords'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new ArrayValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return array all available operators'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'types', {}, () => new ArrayValue(rs, Array.from(types).map(t => new StringValue(rs, t))), 'return array of all valid types'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }) => o.castTo(type.toString()), 'attempt a direct cast from object <o> to type <type>'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'keywords', {}, () => new SetValue(rs, KeywordToken.keywords.map(kw => new StringValue(rs, kw))), 'returns set of all keywords'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'operators', {}, () => new SetValue(rs, Object.keys(operators).map(op => new StringValue(rs, op))), 'return set of all available operators'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'types', {}, () => new SetValue(rs, Array.from(types).map(t => new StringValue(rs, t))), 'return set of all valid types'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'cast', { o: 'any', type: 'string' }, ({ o, type }, evalObj) => o.castTo(type.toString(evalObj), evalObj), 'attempt a direct cast from object <o> to type <type>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'type', { o: 'any' }, ({ o }) => new StringValue(rs, o.type()), 'returns the type of object <o>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'type_overlap', { t1: 'string', t2: 'string' }, ({ t1, t2 }) => new BoolValue(rs, isTypeOverlap(t1.toString(), t2.toString())), 'does type t1 overlap with type t2?'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'complex', { a: 'real', b: 'real' }, ({ a, b }) => new NumberValue(rs, new Complex(a, b)), 'create a complex number'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'void', { o: 'any' }, ({ o }) => new UndefinedValue(rs), 'throws away given argument - returns undefined'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }) => {
-    t = t.castTo('any');
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'new', { t: 'string' }, ({ t }, evalObj) => {
+    t = t.castTo('any', evalObj);
     if (t instanceof MapValue) {
       return t.createInstance();
     } else {
@@ -123,17 +129,17 @@ function define(rs) {
       return value;
     }
   }, 'create new value of type <t>. If <t> is a map, creates new instance (doesn\'t call _Construct)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isinstance', { o: 'any', t: '?any' }, ({ o, t }) => {
-    o = o.castTo('any');
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'isinstance', { o: 'any', t: '?any' }, ({ o, t }, evalObj) => {
+    o = o.castTo('any', evalObj);
     if (t === undefined) return new BoolValue(rs, o instanceof MapValue && o.instanceOf !== undefined);
-    t = t.castTo('any');
+    t = t.castTo('any', evalObj);
     let b = (o instanceof MapValue && t instanceof MapValue) ? o.isInstanceOf(t) : o.type() === t.type();
     return new BoolValue(rs, b);
   }, 'return if <o> is an instance of, or inherits from, <t>. If <o> and <t> are not maps, compares types. If only one argument provided, returns if <o> is an instance of anything.'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'inherit', { inheritor: 'map', types: { type: 'map', ellipse: true } }, ({ inheritor, types }) => {
-    inheritor = inheritor.castTo('any');
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'inherit', { inheritor: 'map', types: { type: 'map', ellipse: true } }, ({ inheritor, types }, evalObj) => {
+    inheritor = inheritor.castTo('any', evalObj);
     if (!(inheritor instanceof MapValue)) throw new Error(`[${errors.BAD_ARG}] Argument Error: expected inheritor to be of type map, got type ${inheritor.type()}`);
-    types = types.toPrimitive('array').map(o => o.castTo('any'));
+    types = types.toPrimitive('array').map(o => o.castTo('any', evalObj));
     for (let o of types) if (!(o instanceof MapValue)) throw new Error(`[${errors.BAD_ARG}] Argument Error: expected types to be array of maps, got type ${o.type()}`);
     for (let o of types) inheritor.inheritFrom.add(o);
     return inheritor;
@@ -141,7 +147,7 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'array', { len: '?real_int', val: '?any' }, async ({ len, val }, evalObj) => {
     if (len === undefined) return new ArrayValue(rs);
     if (val === undefined) return new ArrayValue(rs, Array.from({ length: len.toPrimitive('real_int') }).fill(rs.UNDEFINED));
-    val = val.castTo('any');
+    val = val.castTo('any', evalObj);
     if (val.type() === "func") {
       const arr = Array.from({ length: len.toPrimitive('real_int') });
       for (let i = 0; i < arr.length; i++) arr[i] = await val.value.call(evalObj, [new NumberValue(rs, i)]);
@@ -150,7 +156,7 @@ function define(rs) {
     return new ArrayValue(rs, Array.from({ length: len.toPrimitive('real_int') }).fill(val));
   }, 'create and return a new array of length <len=1>. Fill with value <val=undef>, of call <val>(index)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'array2d', { cols: 'real_int', rows: 'real_int', val: '?any' }, async ({ cols, rows, val }, evalObj) => {
-    val = val ? val.castTo('any') : rs.UNDEFINED;
+    val = val ? val.castTo('any', evalObj) : rs.UNDEFINED;
     cols = cols.toPrimitive('real_int');
     rows = rows.toPrimitive('real_int');
     if (val.type() === 'func') {
@@ -159,14 +165,15 @@ function define(rs) {
       return new ArrayValue(rs, Array.from({ length: cols }, () => new ArrayValue(rs, Array.from({ length: rows }).fill(val))));
     }
   }, 'create and return a 2D new array with <cols> cols and <rows> rows, and fill with <val=undef> (may be a function)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copy', { o: 'any' }, ({ o }) => {
-    const copy = o.castTo("any").__copy__?.();
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copy', { o: 'any' }, async ({ o }, evalObj) => {
+    o = o.castTo("any", evalObj);
+    let copy = o.__copy__ ? await o.__copy__(evalObj) : undefined;
     if (copy === undefined) throw new Error(`[${errors.CANT_COPY}] Type Error: Type ${o.type()} cannot be copied`);
     return copy;
   }, 'Return a copy of object <o>'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'call', { fn: 'string', args: { type: 'array', optional: true, ellipse: true } }, async ({ fn, args }, evalObj) => {
-    fn = fn.castTo("any").getFn();
-    const ret = await fn.call(evalObj, args ? args.toPrimitive("array").map(t => t.castTo("any")) : []);
+    fn = fn.castTo("any", evalObj).getFn();
+    const ret = await fn.call(evalObj, args ? args.toPrimitive("array").map(t => t.castTo("any", evalObj)) : []);
     return ret;
   }, 'Call function <fn> with <args> provided as arguments'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'chr', { n: 'real_int' }, ({ n }) => new CharValue(rs, String.fromCharCode(n.toPrimitive("real"))), 'return character with ASCII code <n>'));
@@ -177,11 +184,11 @@ function define(rs) {
   }, 'returns boolean indicating if name <name> is defined and accessable'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'getvar', { name: 'string' }, ({ name }, evalObj) => {
     const obj = rs.getVar(name.toString(), evalObj.pid);
-    return obj ? obj.castTo("any") : rs.UNDEFINED;
+    return obj ? obj.castTo("any", evalObj) : rs.UNDEFINED;
   }, 'get variable with name <name> (or undef)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'setvar', { name: 'string', value: '?any' }, ({ name, value }, evalObj) => {
     name = name.toString();
-    value = value.castTo('any');
+    value = value.castTo('any', evalObj);
     rs.defineVar(name, value, undefined, evalObj.pid);
     return value;
   }, 'sets/defines local variable with name <name>'));
@@ -195,66 +202,76 @@ function define(rs) {
     for (let n = start; n < end; n += step) range.push(new NumberValue(rs, n));
     return new ArrayValue(rs, range);
   }, 'Return array populated with numbers between <a>-<b> step <c>. 1 arg=range(0,<a>,1); 2 args=range(<a>,<b>,1); 3 args=range(<a>,<b>,<c>)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'len', { o: 'any', len: '?real_int' }, ({ o, len }) => {
-    o = o.castTo("any");
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'len', { o: 'any', len: '?real_int' }, async ({ o, len }, evalObj) => {
+    o = o.castTo("any", evalObj);
     let length;
     if (len) {
-      const rlen = len.toPrimitive('real_int');
+      const rlen = len.castTo('real_int', evalObj);
       if (rlen < 0 || isNaN(rlen) || !isFinite(rlen)) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid length ${len}`);
-      length = o.__len__?.(rlen);
+      length = o.__len__ ? await o.__len__(evalObj, rlen) : undefined;
     } else {
-      length = o.__len__?.();
+      length = o.__len__ ? await o.__len__(evalObj) : undefined;
     }
     if (length === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no len()`);
-    return new NumberValue(rs, length === undefined ? NaN : length);
+    return length;
   }, 'return length of argument or set new length'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'to_json', { o: 'any' }, ({ o }) => {
-    const json = o.castTo("any").__toJson__?.();
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'to_json', { o: 'any' }, async ({ o }, evalObj) => {
+    o = o.castTo("any", evalObj);
+    let json = o.__toJson__ ? await o.__toJson__(evalObj) : undefined;
     if (json === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} cannot be converted to JSON`);
     return new StringValue(rs, json);
   }, 'return JSON representation of object'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'max', { o: 'any' }, ({ o }) => {
-    const max = o.castTo("any").__max__?.();
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'max', { o: 'any' }, async ({ o }, evalObj) => {
+    o = o.castTo("any", evalObj);
+    let max = o.__max__ ? await o.__max__(evalObj) : undefined;
     if (max === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no max()`);
     return max;
   }, 'return maximum value of the argument'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'min', { o: 'any' }, ({ o }) => {
-    const min = o.castTo("any").__min__?.();
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'min', { o: 'any' }, async ({ o }, evalObj) => {
+    o = o.castTo("any", evalObj);
+    let min = o.__min__ ? await o.__min__(evalObj) : undefined;
     if (min === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no min()`);
     return min;
   }, 'return minimum value of the argument'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'abs', { o: 'any' }, ({ o }) => {
-    const abs = o.castTo("any").__abs__?.();
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'iter', { o: 'any' }, async ({ o }, evalObj) => {
+    o = o.castTo("any", evalObj);
+    let ar = o.__iter__ ? await o.__iter__(evalObj) : undefined;
+    if (ar === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot iterate object of type ${o.type()}`);
+    return ar;
+  }, 'return iterable array from object'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'abs', { o: 'any' }, async ({ o }, evalObj) => {
+    o = o.castTo("any", evalObj);
+    let abs = o.__abs__ ? await o.__abs__(evalObj) : undefined;
     if (abs === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: argument of type ${o.type()} has no abs()`);
-    return new NumberValue(rs, abs === undefined ? NaN : abs);
+    return abs;
   }, 'return length of argument'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'getprop', { arg: 'any', key: 'any' }, ({ arg, key }) => {
-    arg = arg.castTo("any");
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'getprop', { arg: 'any', key: 'any' }, async ({ arg, key }, evalObj) => {
+    arg = arg.castTo("any", evalObj);
     if (typeof arg.__get__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot get property of type ${arg.type()}`);
-    return arg.__get__(key);
+    return await arg.__get__(evalObj, key);
   }, 'get property <key> in <arg> (same as <arg>[<key>])'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'setprop', { arg: 'any', key: 'any', value: 'any' }, ({ arg, key, value }) => {
-    arg = arg.castTo("any");
-    key = key.castTo('any');
-    value = value.castTo('any');
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'setprop', { arg: 'any', key: 'any', value: 'any' }, async ({ arg, key, value }, evalObj) => {
+    arg = arg.castTo("any", evalObj);
+    key = key.castTo('any', evalObj);
+    value = value.castTo('any', evalObj);
     if (typeof arg.__set__ !== 'function') throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot set property of type ${arg.type()}`);
-    return arg.__set__(key, value);
+    return await arg.__set__(evalObj, key, value);
   }, 'set property <key> in <arr> to <item> (same as <arg>[<key>] = <value>)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }) => {
-    arr = arr.castTo('any');
-    item = item.castTo('any');
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'push', { arr: 'array', item: 'any' }, ({ arr, item }, evalObj) => {
+    arr = arr.castTo('any', evalObj);
+    item = item.castTo('any', evalObj);
     if (arr instanceof ArrayValue) return new NumberValue(rs, arr.value.push(item));
     if (arr instanceof SetValue) { arr.run(() => arr.value.push(item)); return new NumberValue(rs, arr.value.length); }
     throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected collection, got ${arr.type()}`);
   }, 'push item <item> to array <arr>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'pop', { arr: 'array' }, ({ arr }) => {
-    arr = arr.castTo("any");
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'pop', { arr: 'array' }, ({ arr }, evalObj) => {
+    arr = arr.castTo("any", evalObj);
     if (arr instanceof ArrayValue || arr instanceof SetValue) return arr.value.pop();
     throw new Error(`[${errors.TYPE_ERROR}] Type Error: expected array, got ${arr.type()}`);
   }, 'pop item from array <arr>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'reverse', { arg: 'any' }, ({ arg }) => {
-    arg = arg.castTo('any');
-    let rev = arg.__reverse__?.();
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'reverse', { arg: 'any' }, async ({ arg }, evalObj) => {
+    arg = arg.castTo('any', evalObj);
+    let rev = arg.__rev__ ? await arg.__rev__(evalObj) : undefined;
     if (rev === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot reverse() type ${arg.type()}`);
     return rev;
   }, 'reverse argument <arg>'));
@@ -266,7 +283,7 @@ function define(rs) {
   }, 'sort array numerically'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'filter', { arr: 'array', fn: 'func' }, async ({ arr, fn }, evalObj) => {
     const array = [];
-    fn = fn.castTo("func").getFn();
+    fn = fn.castTo("func", evalObj).getFn();
     if (fn.argMin !== 1 && fn.argMin !== 2) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must accept at least 1 or 2 arguments, got function with ${fn.argMin} arguments`);
     arr = arr.toPrimitive('array');
     for (let i = 0; i < arr.length; i++) {
@@ -277,35 +294,35 @@ function define(rs) {
     return new ArrayValue(rs, array);
   }, 'Remove all values from arr for which fn(value, ?index) is false'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'map', { arr: 'array', fn: 'func' }, async ({ arr: rarr, fn }, evalObj) => {
-    fn = fn.castTo("func").getFn();
+    fn = fn.castTo("func", evalObj).getFn();
     let arr = rarr.toPrimitive('array');
     const array = [];
     if (fn.argMin === 0) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, []));
     else if (fn.argMin === 1) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i]]));
     else if (fn.argMin === 2) for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i], new NumberValue(rs, i)]));
     else if (fn.argMin === 3) {
-      let arrc = rarr.getVar().value.__copy__();
+      let arrc = await rarr.getVar().value.__copy__(evalObj);
       for (let i = 0; i < arr.length; i++) array.push(await fn.call(evalObj, [arr[i], new NumberValue(rs, i), arrc]));
     } else
       throw new Error(`${errors.BAD_ARG} Argument Error: func must take 0-4 arguments, got ${fn.signature()}`);
     return new ArrayValue(rs, array);
   }, 'Apply func to each item in array, push return value to new array and return new array. Func -> (?item, ?index, ?array)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'foreach', { arr: 'array', fn: 'func' }, async ({ arr: rarr, fn }, evalObj) => {
-    fn = fn.castTo("func").getFn();
+    fn = fn.castTo("func", evalObj).getFn();
     let arr = rarr.toPrimitive('array');
     if (fn.argMin === 0) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, []);
     else if (fn.argMin === 1) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i]]);
     else if (fn.argMin === 2) for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i], new NumberValue(rs, i)]);
     else if (fn.argMin === 3) {
-      let arrc = rarr.getVar().value.__copy__();
+      let arrc = await rarr.getVar().value.__copy__(evalObj);
       for (let i = 0; i < arr.length; i++) await fn.call(evalObj, [arr[i], new NumberValue(rs, i), arrc]);
     }
     else throw new Error(`${errors.BAD_ARG} Argument Error: func must take 0-4 arguments, got ${fn.signature()}`);
     return new UndefinedValue(rs);
   }, 'Apply func to each item in array. Func -> (?item, ?index, ?array)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'reduce', { arr: 'array', fn: 'func', initial: '?any' }, async ({ arr, fn, initial }, evalObj) => {
-    let acc = initial ? initial.castTo('any') : new NumberValue(rs, 0);
-    fn = fn.castTo('func').getFn();
+    let acc = initial ? initial.castTo('any', evalObj) : new NumberValue(rs, 0);
+    fn = fn.castTo('func', evalObj).getFn();
     if (fn.argMin !== 2 && fn.argMin !== 3) throw new Error(`[${errors.BAD_ARG}] Argument Error: func must have 2 or 3 arguments, got function with ${fn.argMin} arguments`);
     arr = arr.toPrimitive('array');
     for (let i = 0; i < arr.length; i++) {
@@ -314,16 +331,16 @@ function define(rs) {
     }
     return acc;
   }, 'Reduce array to single value via func(acc, current, ?index). Initially, acc = initial or 0'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'find', { obj: 'any', item: 'any' }, ({ obj, item }) => {
-    item = item.castTo("any");
-    obj = obj.castTo("any");
-    let ret = obj.__find__?.(item);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'find', { obj: 'any', item: 'any' }, async ({ obj, item }, evalObj) => {
+    item = item.castTo("any", evalObj);
+    obj = obj.castTo("any", evalObj);
+    let ret = obj.__find__ ? await obj.__find__(evalObj, item) : undefined;
     if (ret === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: cannot search type ${o.type()}`);
     return ret;
   }, 'Find <item> in <o>. Collections: return index of <item> or -1. Map: return key of item with value <item> or undefined.'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fill', { array: 'array', item: 'any' }, async ({ array, item }, evalObj) => {
     if (!(array instanceof VariableToken && array.type() === 'array')) throw new Error(`[${errors.BAD_ARG}] Argument Error: expected variable of type array for <array>`);
-    item = item.castTo("any");
+    item = item.castTo("any", evalObj);
     let list = array.getVar().value, length = list.value.length;
     if (item.type() === 'func') {
       let fn = item.value;
@@ -531,7 +548,7 @@ function defineFuncs(rs) {
       throw new Error(`[${errors.BAD_ARG}] Argument Error: type ${name.type()} is not a valid reference type (expected symbol)`);
     }
   }, 'Return symbol that <name> is a reference to (or undef)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'strformat', { str: 'string', values: { ellipse: 1 } }, ({ str, values }) => str.castTo('string').format(values.toPrimitive('array')), 'Return formatted string'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'strformat', { str: 'string', values: { ellipse: 1 } }, ({ str, values }, evalObj) => str.castTo('string', evalObj).format(values.toPrimitive('array')), 'Return formatted string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'nformat', { n: 'complex', region: '?string' }, ({ n, region }) => new StringValue(rs, n.toPrimitive('complex').toLocaleString(region ? region.toPrimitive('string') : 'en-GB')), 'Return formatted number string'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'expform', { z: 'complex', fdigits: '?real_int' }, ({ z, fdigits }) => new StringValue(rs, z.toPrimitive('complex').toExponential(fdigits ? fdigits.toPrimitive('real_int') : undefined)), 'Return complex number in exponential form, with <fdigits> fractional digits'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'tofrac', { num: 'real', improper: '?bool' }, ({ num, improper }) => new StringValue(rs, new Fraction(num.toPrimitive("real")).toString(improper ? improper.toPrimitive('bool') : true)), 'Convert a real number to a fraction (string)'));

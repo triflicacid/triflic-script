@@ -1,0 +1,37 @@
+// object types allow overriding of built-in methods
+
+o = <object>{
+  "__len__": () -> (print("Call __len__ : "), random()), // Override len(o)
+  // "__len__": n -> random() * n; // Override len(o, n)
+  // "__del__": () -> println("Call __del__"), // *CANNOT* override del(o)
+  "__del__": p -> println("Call __del__({p})"), // Override del(o, p)
+  "__copy__": () -> println("Call __copy__"), // Override copy(o)
+  "__abs__": () -> (print("Call __abs__ : "), 42), // Override abs(o)
+  "__get__": p -> println("Call __get__({p})"), // Override getprop(o, p)
+  "__set__": (k, v) -> println("Call __set__({k}, {v})"), // Override setprop(o, k, v)
+  "__rev__": () -> println("Call __rev__"), // Override reverse(o)
+  "__find__": item -> println("Call __find__({item})"), // Override find(o, item)
+  "__min__": () -> println("Call __min__"), // Override min(o)
+  "__max__": () -> println("Call __max__"), // Override max(o)
+  "__iter__": () -> ["h", "e", "l", "l", "o"], // Override iter(o)
+  "__cast__": t -> println("Call __cast__({t})"), // Override cast(o, t)
+};
+
+println(len(o)) // Call o.__len__()
+// println(len(o, 2)) // Call o.__len__(2)
+del(o, "Prop") // Call o.__del__("Prop")
+copy(o) // Call o.__copy__()
+println(abs(o)) // Call o.__abs__()
+getprop(o, "prop") // Call o.__get__("prop")
+o.prop // Call o.__get__("prop")
+o["prop"] // Call o.__get__("prop")
+setprop(o, "prop", 5) // Calls o.__set__("prop", 5)
+o.prop = 5 // Calls o.__get__("prop") then o.__set__("prop", 5)
+reverse(o) // Calls o.__rev__()
+find(o, "item") // Calls o.__find__("item")
+min(o) // Calls o.__min__()
+max(o) // Calls o.__max__()
+println(iter(o)) // Calls o.__iter__()
+for (c in o) { print(c + ", ") } // Calls o.__iter__() and loops iterates through it
+println();
+println(cast(o, "complex")); // Call o.__cast__("complex"). NB casting to types "any" or "object" do not call __cast__

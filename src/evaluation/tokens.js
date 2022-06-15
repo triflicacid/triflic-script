@@ -20,8 +20,8 @@ class Token {
   is(klass, val = undefined) {
     return (this instanceof klass && (val != undefined && this.value === val));
   }
-  toString() {
-    return this.value.toString();
+  toString(evalObj) {
+    return this.value.toString(evalObj);
   }
 }
 
@@ -31,7 +31,7 @@ class ValueToken extends Token {
     super(tstring, value, pos);
   }
 
-  castTo(type) { return this.value.castTo(type); }
+  castTo(type, evalObj) { return this.value.castTo(type, evalObj); }
 }
 
 /** Token representing a keyword */
@@ -59,7 +59,7 @@ class OperatorToken extends Token {
     let fn = info.fn;
     if (typeof fn !== 'function') throw new Error(`[${errors.ARG_COUNT}] Argument Error: no overload for operator function ${this.toString().trim()} with ${args.length} args`);
     let r;
-    try { r = await fn(...args, this.data, evalObj); } catch (e) { throw new Error(`[${errors.BAD_ARG}] Operator '${this.toString().trim()}' with { ${args.map(a => a.type()).join(', ')} } at position ${this.pos}:\n${e}`); }
+    try { r = await fn(evalObj, ...args, this.data); } catch (e) { throw new Error(`[${errors.BAD_ARG}] Operator '${this.toString().trim()}' with { ${args.map(a => a.type()).join(', ')} } at position ${this.pos}:\n${e}`); }
     if (r instanceof Error) throw r; // May return custom errors
     if (r === undefined) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${this.toString().trim()} does not support arguments { ${args.map(a => a.type()).join(', ')} } at position ${this.pos}`);
     return r;
@@ -123,32 +123,39 @@ class VariableToken extends Token {
   constructor(tstring, vname, pos) {
     super(tstring, vname, pos);
   }
+
   type() {
     let val = this.getVarNoError();
     if (val === undefined) return "symbol";
     return typeof val.type === "function" ? val.type() : val.value.type();
   }
-  castTo(type) {
+
+  castTo(type, evalObj) {
     let v = this.getVar();
     if (v.value === this) throw new Error(`Self-referencing variable (infinite lookup prevented) - variable '${this.value}'`);
-    return v.castTo(type);
+    return v.castTo(type, evalObj);
   }
-  toPrimitive(type) {
-    return this.tstr.rs.getVar(this.value, this.tstr.block.pid).toPrimitive(type);
+
+  toPrimitive(type, evalObj) {
+    return this.tstr.rs.getVar(this.value, this.tstr.block.pid).toPrimitive(type, evalObj);
   }
+
   exists() {
     return this.tstr.rs.getVar(this.value, this.tstr.block.pid) !== undefined;
   }
+
   getVar() {
     const v = this.tstr.rs.getVar(this.value, this.tstr.block.pid);
     if (v === undefined) this._throwNameError();
     return v;
   }
+
   getVarNoError() {
     return this.tstr.rs.getVar(this.value, this.tstr.block.pid);
   }
-  toString() {
-    return str(this.getVar()?.value);
+
+  toString(evalObj) {
+    return str(this.getVar()?.value, evalObj);
   }
 
   /** Throw Name Error */
@@ -157,14 +164,14 @@ class VariableToken extends Token {
   }
 
   /** function: del() */
-  __del__() {
+  __del__(evalObj) {
     const ok = this.tstr.rs.deleteVar(this.value, this.tstr.block.pid);
     return new BoolValue(this.tstr.rs, ok);
   }
 
   /** operator: = */
-  __assign__(value) {
-    value = value.castTo("any");
+  __assign__(evalObj, value) {
+    value = value.castTo("any", evalObj);
     const name = this.value, thisVar = this.getVarNoError();
     if (thisVar && thisVar.refFor) {
       thisVar.refFor.value = value;
@@ -176,8 +183,8 @@ class VariableToken extends Token {
   }
 
   /** operator: => */
-  __nonlocalAssign__(value) {
-    value = value.castTo("any");
+  __nonlocalAssign__(evalObj, value) {
+    value = value.castTo("any", evalObj);
     const name = this.value;
     if (!this.exists()) throw new Error(`[${errors.NULL_REF}] Null Reference: no non-local binding for symbol '${name}'. Did you mean to use '=' ?`);
     this.tstr.rs.setVar(name, value, undefined, this.tstr.block.pid);
@@ -185,40 +192,40 @@ class VariableToken extends Token {
   }
 
   /** operator: += */
-  __assignAdd__(value) {
-    value = this.castTo("any").__add__(value.castTo("any"));
+  async __assignAdd__(evalObj, value) {
+    value = await this.castTo("any", evalObj).__add__(evalObj, value.castTo("any", evalObj));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
   }
 
   /** operator: -= */
-  __assignSub__(value) {
-    value = this.castTo("any").__sub__(value.castTo("any"));
+  async __assignSub__(evalObj, value) {
+    value = await this.castTo("any", evalObj).__sub__(evalObj, value.castTo("any", evalObj));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
   }
 
   /** operator: *= */
-  __assignMul__(value) {
-    value = this.castTo("any").__mul__(value.castTo("any"));
+  async __assignMul__(evalObj, value) {
+    value = await this.castTo("any", evalObj).__mul__(evalObj, value.castTo("any", evalObj));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
   }
 
   /** operator: /= */
-  __assignDiv__(value) {
-    value = this.castTo("any").__div__(value.castTo("any"));
+  async __assignDiv__(evalObj, value) {
+    value = await this.castTo("any", evalObj).__div__(evalObj, value.castTo("any", evalObj));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
   }
 
   /** operator: %= */
-  __assignMod__(value) {
-    value = this.castTo("any").__mod__(value.castTo("any"));
+  async __assignMod__(evalObj, value) {
+    value = await this.castTo("any", evalObj).__mod__(evalObj, value.castTo("any", evalObj));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
@@ -948,8 +955,8 @@ class TokenLine {
     return stack[0];
   }
 
-  toString() {
-    return this.tokens.map(t => t.toString()).join(' ');
+  toString(evalObj) {
+    return this.tokens.map(t => t.toString(evalObj)).join(' ');
   }
 
   /** Return array of tokens of this tokenString RPNd */

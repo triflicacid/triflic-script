@@ -2,7 +2,7 @@
 
 // Create template map
 let Person = {
-  "_Construct": (self: ref map, name: string, age: real_int) -> {
+  "__construct__": (self: ref map, name: string, age: real_int) -> {
     // "self" is the newly instantiated Person instance
     self.name = name;
     self.age = age;

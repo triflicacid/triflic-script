@@ -1,14 +1,14 @@
 // In this example, we create a map which inherits from another
 
 let Animal = {
-  "_Construct": (self: ref map, species: string) -> {
+  "__construct__": (self: ref map, species: string) -> {
     self.species = species;
   },
   "getSpecies": self -> "<SPECIES: \"{self.species}\">"
 };
 
 let Person = {
-  "_Construct": (self: ref map, name: string, age: real_int) -> {
+  "__construct__": (self: ref map, name: string, age: real_int) -> {
     self.species = "Human";
     self.name = name;
     self.age = age;

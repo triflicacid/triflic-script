@@ -63,9 +63,9 @@ function createEnum(obj) {
   return enumeration;
 }
 
-const str = x => {
+const str = (x, eo) => {
   try {
-    return x.toString();
+    return x.toString(eo);
   } catch (e) {
     return String(x);
   }
@@ -310,12 +310,12 @@ function returnTypedArray(ntype, size) {
 }
 
 /** Return JSON representation of a Value (returns StringValue) */
-function toJson(value) {
+function toJson(evalObj, value) {
   if (typeof value === "string") return value;
   const error = () => new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot convert type ${value.type()} to JSON`);
   let json;
   try {
-    json = value.__toJson__();
+    json = value.__toJson__(evalObj);
   } catch (e) {
     throw error();
   }

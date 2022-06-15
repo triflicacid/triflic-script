@@ -162,7 +162,7 @@ module.exports = (rs, pid) => {
   }, 'Matrix: Return <rows>*<cols> matrix filled with random numbers equivalent to random(<rMin>, <rMax>)'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'mmap', { m: 'matrix', fn: 'func' }, async ({ m, fn }, evalObj) => {
     m = m.toPrimitive("matrix");
-    fn = fn.castTo("func").getFn();
+    fn = fn.castTo("func", evalObj).getFn();
     if (fn.argMin !== 1 && fn.argMin !== 3) throw new Error(`${errors.ARG_COUNT} Argument Error: expectf fn to take 1 or 3 arguments, got ${fn.signature()}`);
     const mat = m.copy();
     for (let r = 0; r < mat.rows; ++r) {

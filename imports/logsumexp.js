@@ -4,9 +4,9 @@ const Complex = require("../src/maths/Complex");
 const { sum } = require("../src/utils");
 
 module.exports = (rs, pid) => {
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'logsumexp', { arr: 'array', w: '?any' }, ({ arr, w }) => {
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'logsumexp', { arr: 'array', w: '?any' }, ({ arr, w }, evalObj) => {
     arr = arr.toPrimitive('array');
-    w = w.castTo("any");
+    w = w.castTo("any", evalObj);
     let weights;
     if (w instanceof ArrayValue) {
       weights = w.toPrimitive('array').map(x => x.toPrimitive('complex'));

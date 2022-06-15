@@ -1,0 +1,68 @@
+// object types allow overriding of operator calls
+// NB none of the assignment operators can be overridden, despite method names existing
+
+o = <object>{
+  "__get__": prop -> "property: " + prop, // <o>.<prop>, <o>[<prop>]
+  "__call__": (...args) -> "args: " + args, // <o>(<args>)
+  "__deg__": () -> "in degrees: " + phi, // <o> deg
+  "__not__": () -> "not: true", // !<o>
+  "__bitwiseNot__": () -> "bitwise not: 0101", // ~<o>
+  "__pos__": () -> "positive: +2", // +<o>
+  "__neg__": () -> "negate: -2", // -<o>
+  "__cast__": t -> "cast to: " + t, // <<type>><o>
+  "__pow__": n -> "pow: o ** " + n, // o ** <n>
+  "__seq__": end -> "seq: o:" + end, // o:<n>
+  "__div__": n -> "div: o / " + n, // o / <n> 
+  "__mod__": n -> "mod: o % " + n, // o % <n> 
+  "__mul__": n -> "mul: o * " + n, // o * <n> 
+  "__add__": n -> "add: o + " + n, // o + <n> 
+  "__sub__": n -> "sub: o - " + n, // o - <n> 
+  "__lshift__": n -> "left shift: o << " + n, // o << <n> 
+  "__rshift__": n -> "right shift: o >> " + n, // o >> <n> 
+  "__le__": n -> "less than or equal to: o <= " + n, // o <= <n> 
+  "__lt__": n -> "less than: o < " + n, // o < <n> 
+  "__ge__": n -> "greater than or equal to: o >= " + n, // o >= <n> 
+  "__gt__": n -> "greater than: o > " + n, // o > <n>
+  "__in__": col -> "member of " + col + " ?", // o in <col>
+  "__eq__": x -> "equality: o == " + x, // o == <x>
+  "__neq__": x -> "non equality: o != " + x, // o != <x>
+  "__bitwiseAnd__": x -> "bitwise and: o & " + x, // o & <x>
+  "__xor__": x -> "bitwise xor: o ^ " + x, // o ^ <x>
+  "__bitwiseOr__": x -> "bitwise or: o | " + x, // o | <x>
+  "__and__": x -> "logical and: o && " + x, // o && <x>
+  "__or__": x -> "logical or: o || " + x, // o || <x>
+}
+
+println(o.key) // MEMBER ACCESS: o.__get__("key")
+println(o[1 + 2]) // COMPUTED MEMBER ACCESS: o.__get__(3)
+println(o(1, 2, 3)) // CALL: o.__call__(1, 2, 3)
+println(o?.prop) // OPTIONAL MEMBER ACCESS: o.__get__("prop")
+println(o deg) // DEGREES: o.__deg__()
+println(!o) // LOGICAL NOT: o.__not__()
+println(~o) // BITWISE NOT: o.__bitwiseNnot__()
+println(+o) // UNARY PLUS: o.__pos__()
+println(-o) // UNARY MINUS: o.__neg__()
+println(<string>o) // CAST: o.__cast__("string"). NB casting <any> or <object> does not call __cast__
+println(o?) // BOOLEAN CAST: o.__cast__("bool")
+println(o ** 3) // EXPONENTIATION: o.__pow__(3)
+println(o:10) // SEQUENCE: o.__seq__(10)
+println(o / 3) // DIVISION: o.__div__(3)
+println(o % 4) // MODULO: o.__mod__(4)
+println(o * 5) // MULTIPLY: o.__mul__(5)
+println(o + 6) // ADDITION: o.__add__(6)
+println(o - 1) // SUBTRACT: o.__sub__(1)
+println(o << 2) // SUBTRACT: o.__lshift__(2)
+println(o >> 2) // SUBTRACT: o.__rshift__(2)
+println(o <= 5) // LESS THAN OR EQUAL TO: o.__le__(5)
+println(o < 5) // LESS THAN: o.__lt__(5)
+println(o >= 5) // GREATER THAN OR EQUAL TO: o.__ge__(5)
+println(o > 5) // GREATER THAN: o.__gt__(5)
+let col = [1, 2, 3];
+println(o in col) // MEMBER OF: o.__in__(col)
+println(o == 18) // EQUALITY: o.__eq__(18)
+println(o != 18) // NON-EQUALITY: o.__neq__(18)
+println(o & 15) // BITWISE AND: o.__bitwiseAnd__(15)
+println(o ^ 11) // BITWISE XOR: o.__xor__(11)
+println(o | 5) // BITWISE OR: o.__bitwiseOr__(5)
+println(o && true) // LOGICAL OR: o.__and__(true)
+println(o || 18) // LOGICAL OR: o.__or__(18)

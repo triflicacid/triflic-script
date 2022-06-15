@@ -60,12 +60,12 @@ module.exports = (rs, pid) => {
     pid = pid.toPrimitive("real_int");
     let proc = rs.get_process(pid);
     if (proc === undefined) throw new Error(`[${errors.BAD_ARG}] Argument Error: no such process PID=${pid}`);
-    fn = fn.castTo("any").getFn();
+    fn = fn.castTo("any", evalObj).getFn();
     const obj = createEvalObj(evalObj.blockID, evalObj.lineID, pid);
 
     proc.state = 1;
     proc.stateValue = {};
-    proc.stateValue.promise = fn.call(obj, args ? args.toPrimitive("array").map(t => t.castTo("any")) : []);
+    proc.stateValue.promise = fn.call(obj, args ? args.toPrimitive("array").map(t => t.castTo("any", evalObj)) : []);
     proc.stateValue.promise.then(() => {
       if (proc.state === 1) {
         proc.state = 0;
