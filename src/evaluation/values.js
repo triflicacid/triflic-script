@@ -676,7 +676,7 @@ class ArrayValue extends Value {
 
   /** find() function */
   __find__(evalObj, item) {
-    return new NumberValue(this.rs, findIndex(item, this.value));
+    return new NumberValue(this.rs, findIndex(item, this.value, evalObj));
   }
 
   /** copy() function */
@@ -727,7 +727,7 @@ class ArrayValue extends Value {
   /** operator: * */
   __mul__(evalObj, n) {
     const t = n.type();
-    if (t === 'array') return new ArrayValue(this.rs, intersect(this.toPrimitive('array', evalObj), n.toPrimitive('array', evalObj)));
+    if (t === 'array') return new ArrayValue(this.rs, intersect(this.toPrimitive('array', evalObj), n.toPrimitive('array', evalObj), evalObj));
     if (t === 'real') return new ArrayValue(this.rs, arrRepeat(this.toPrimitive('array', evalObj), n.toPrimitive('real_int', evalObj)));
   }
 
@@ -769,7 +769,7 @@ class SetValue extends Value {
   }
 
   /** Return JSON representation*/
-  __toJson__(evalObj) { return "[" + this.value.map(v => toJson(v)) + "]"; }
+  __toJson__(evalObj) { return "[" + this.value.map(v => toJson(evalObj, v)) + "]"; }
 
   /** abs() function */
   __abs__(evalObj) { return new NumberValue(this.rs, this.value.length); }
@@ -788,7 +788,7 @@ class SetValue extends Value {
 
   /** find() function */
   __find__(evalObj, item) {
-    return new NumberValue(this.rs, findIndex(item, this.value));
+    return new NumberValue(this.rs, findIndex(item, this.value, evalObj));
   }
 
   /** copy() function */
@@ -814,7 +814,7 @@ class SetValue extends Value {
   }
 
   /** operator: == */
-  __eq__(evalObj, a) { return new BoolValue(this.rs, a.type() === 'set' && this.value.length === a.value.length ? this.value.map(v => findIndex(v, a.value) !== -1).every(x => x) : false); }
+  __eq__(evalObj, a) { return new BoolValue(this.rs, a.type() === 'set' && this.value.length === a.value.length ? this.value.map(v => findIndex(v, a.value, evalObj) !== -1).every(x => x) : false); }
 
   /** operator: ' */
   __not__(evalObj) {
@@ -827,7 +827,7 @@ class SetValue extends Value {
   /** operator: * */
   __mul__(evalObj, n) {
     const t = n.type();
-    if (t === 'set') return new SetValue(this.rs, intersect(this.toPrimitive('array', evalObj), n.toPrimitive('array', evalObj)));
+    if (t === 'set') return new SetValue(this.rs, intersect(this.toPrimitive('array', evalObj), n.toPrimitive('array', evalObj), evalObj));
   }
 
   /** operator: + */

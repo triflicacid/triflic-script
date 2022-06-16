@@ -114,13 +114,13 @@ const sum = arr => arr.reduce((a, x) => a.add(x), new Complex(0));
 const sort = arr => [...arr].sort((a, b) => a - b);
 
 /** Check if two Values are equal */
-function equal(a, b) {
+function equal(a, b, evalObj) {
   const basic = a === b;
   if (basic) return basic;
 
   let bool;
   try {
-    bool = a.castTo('any').__eq__(b);
+    bool = a.castTo('any', evalObj).__eq__(evalObj, b);
   } catch (e) {
     return false;
   }
@@ -128,18 +128,18 @@ function equal(a, b) {
 }
 
 /** Find and return index of <item> in pritmitive <array> */
-function findIndex(item, array) {
-  for (let i = 0; i < array.length; i++) if (equal(item, array[i])) return i;
+function findIndex(item, array, evalObj) {
+  for (let i = 0; i < array.length; i++) if (equal(item, array[i], evalObj)) return i;
   return -1;
 }
 
 /** Remove duplicate values from array  */
-function removeDuplicates(arr) {
+function removeDuplicates(arr, evalObj) {
   let set = [];
   for (let i = 0; i < arr.length; i++) {
     let found = false;
     for (let j = 0; j < set.length; j++) {
-      if (equal(arr[i], set[j])) {
+      if (equal(arr[i], set[j], evalObj)) {
         found = true;
         break;
       }
@@ -150,10 +150,10 @@ function removeDuplicates(arr) {
 }
 
 /** Return intersection between two primitive arrays */
-const intersect = (a, b) => a.filter(v => findIndex(v, b) !== -1);
+const intersect = (a, b, evalObj) => a.filter(v => findIndex(v, b, evalObj) !== -1);
 
 /** Difference between two primitive arrays: diff([1,2], [5,1]) = [2] */
-const arrDifference = (a, b) => a.filter(v => findIndex(v, b) === -1);
+const arrDifference = (a, b, evalObj) => a.filter(v => findIndex(v, b, evalObj) === -1);
 
 function arrRepeat(array, count) {
   if (count < 1) return [];
