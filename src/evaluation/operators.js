@@ -51,23 +51,32 @@ const operators = {
       fn = fn.castTo("any", evalObj);
       if (!fn.__call__) throw new Error(`[${errors.NOT_CALLABLE}] Type Error: Type ${fn.type()} is not callable ("${fn}")`);
       args = args.filter(tl => tl.tokens.length > 0);
-      let newArgs = [];
+      let newArgs = [], kwargs = new Map();
       for (let i = 0; i < args.length; i++) {
-        let ellipse = false;
-        if (args[i].tokens[0]?.value === '...') { // '...' ?
-          ellipse = args[i].tokens[0];
-          args[i].tokens.splice(0, 1);
-        }
-        let newArg = await args[i].eval(evalObj);
-        if (ellipse) { // Expand array-like
-          let arr;
-          try { arr = newArg.toPrimitive('array'); } catch { throw new Error(`[${errors.TYPE_ERROR}] Type Error: '...': cannot expand type ${newArg.type()} at position ${ellipse.pos + 4}`); }
-          newArgs.push(...arr);
+        if (typeof args[i].tokens[0]?.getVar === "function" && typeof args[i].tokens[args[i].tokens.length - 1]?.priority === "function" && args[i].tokens[args[i].tokens.length - 1].value === '=') { // Keyword arg
+          let name = args[i].tokens[0].value;
+          if (kwargs.has(name)) throw new Error(`[${errors.NAME}] Name Error; duplicate keyword argument '${name}' at position ${args[i].tokens[0].pos}`);
+          let oldTokens = args[i].tokens;
+          args[i].tokens = args[i].tokens.slice(1).slice(0, oldTokens.length - 2);
+          kwargs.set(name, await args[i].eval(evalObj));
+          args[i].tokens = oldTokens;
         } else {
-          newArgs.push(newArg);
+          let ellipse = false;
+          if (args[i].tokens[0]?.value === '...') { // '...' ?
+            ellipse = args[i].tokens[0];
+            args[i].tokens.splice(0, 1);
+          }
+          let newArg = await args[i].eval(evalObj);
+          if (ellipse) { // Expand array-like
+            let arr;
+            try { arr = newArg.toPrimitive('array'); } catch { throw new Error(`[${errors.TYPE_ERROR}] Type Error: '...': cannot expand type ${newArg.type()} at position ${ellipse.pos + 4}`); }
+            newArgs.push(...arr);
+          } else {
+            newArgs.push(newArg);
+          }
         }
       }
-      return await fn.__call__(evalObj, newArgs);
+      return await fn.__call__(evalObj, newArgs, kwargs);
     },
     desc: `calls function with given arguments`,
     syntax: '<func>(<args>)',

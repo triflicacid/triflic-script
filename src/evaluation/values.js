@@ -1031,7 +1031,7 @@ class MapValue extends Value {
   }
 
   /** Construct */
-  async __call__(evalObj, args) {
+  async __call__(evalObj, args, kwargs) {
     let obj = this.createInstance();
     if (this.value.has("__construct__")) {
       let construct = this.value.get("__construct__").castTo("any"), ret;
@@ -1139,9 +1139,9 @@ class ObjectValue extends MapValue {
     return fn ? fn.getFn().call(evalObj, [key, value]) : super.__set__?.(evalObj, key, value);
   }
 
-  __call__(evalObj, args) {
+  __call__(evalObj, args, kwargs) {
     let fn = this.__getRaw(evalObj, '__call__');
-    return fn ? fn.getFn().call(evalObj, args) : super.__call__?.(evalObj, args);
+    return fn ? fn.getFn().call(evalObj, args, kwargs) : super.__call__?.(evalObj, args, kwargs);
   }
 
   castTo(type, evalObj) {
@@ -1174,12 +1174,12 @@ class FunctionRefValue extends Value {
   }
 
   /** When this is called. Takes array of Value classes as arguments */
-  async __call__(evalObj, args) {
+  async __call__(evalObj, args, kwargs) {
     const fn = this.getFn();
     if (this.prependArgs.length > 0) args = [...this.prependArgs, ...args];
     if (fn) {
       try {
-        return await fn.call(evalObj, args);
+        return await fn.call(evalObj, args, kwargs);
       } catch (e) {
         throw new Error(`[${errors.GENERAL}] Function ${fn.signature()}:\n${e}`);
       }

@@ -25,7 +25,7 @@ class RunspaceFunction {
           // Is optional?
           let isOptional = string[0] === '?';
           if (isOptional) {
-            string = string.substr(1);
+            string = string.substring(1);
             data.optional = true;
           }
           data.pass = 'val';
@@ -37,7 +37,7 @@ class RunspaceFunction {
           data.default = args[arg].default;
           if (data.type && data.type[0] === '?') {
             data.optional = true;
-            data.type = data.type.substr(1);
+            data.type = data.type.substring(1);
           }
           data.ellipse = !!args[arg].ellipse;
         }
@@ -109,12 +109,12 @@ class RunspaceUserFunction extends RunspaceFunction {
     return new RunspaceUserFunction(this.rs, this.name, this.rargs, this.tstr);
   }
 
-  /** Evaluation object & array of Token arguments */
-  async call(evalObj, args = []) {
+  /** Evaluation object & array of Token arguments. Accepts Map() of keywords arguments */
+  async call(evalObj, args = [], kwargs = undefined) {
     // console.log(`RUF: CALL ${this.name} IN PID=${evalObj.pid}`);
     this.checkArgCount(args);
     this.rs.pushScope(evalObj.pid);
-    this.rs.defineVar("args", this.rs.generateArray(args), 'Array of values passed to function', evalObj.pid);
+    const vArgs = [], vKwargs = new Map();
     // Set arguments to variables matching definition symbols
     let i = 0;
     for (let [arg, data] of this.args) {
@@ -135,6 +135,7 @@ class RunspaceUserFunction extends RunspaceFunction {
               throw new Error(`[${errors.CANT_COPY}] Argument Error: Cannot copy value of type '${value.type()}' ('...' argument '${arg}')`);
             }
             values.push(value);
+            vArgs.push(value); // ARGS
           }
           casted = this.rs.generateArray(values);
           --i;
@@ -164,6 +165,7 @@ class RunspaceUserFunction extends RunspaceFunction {
               throw new Error(`[${errors.CANT_COPY}] Argument Error: Cannot copy value of type '${casted.type()}' (argument '${arg}')`);
             }
           }
+          vArgs.push(casted); // ARGS
         }
         this.rs.defineVar(arg, casted, undefined, evalObj.pid);
       } else if (data.pass === 'ref') {
@@ -171,7 +173,9 @@ class RunspaceUserFunction extends RunspaceFunction {
           let vobj = args[i].getVar();
           let varObj = this.rs.defineVar(arg, vobj, undefined, evalObj.pid);
           varObj.refFor = vobj;
+          vArgs.push(args[i]); // ARGS
         } else if (args[i].value instanceof Map) {
+          vArgs.push(args[i].value); // ARGS
           this.rs.defineVar(arg, undefined, undefined, evalObj.pid);
           this.rs.setVarObj(arg, args[i], undefined, evalObj.pid);
         } else {
@@ -183,6 +187,14 @@ class RunspaceUserFunction extends RunspaceFunction {
       i++;
     }
 
+    // Copy kwargs
+    for (let [k, v] of kwargs) {
+      let copy = await (await v.castTo("any", evalObj)).__copy__();
+      vKwargs.set(k, copy);
+    }
+
+    this.rs.defineVar("args", this.rs.generateArray(vArgs), 'Array of values passed to function', evalObj.pid);
+    this.rs.defineVar("kwargs", this.rs.generateMap(vKwargs), 'Map of keyword arguments', evalObj.pid);
     let ret = await this.tstr.eval(evalObj);
     ret = ret.castTo(this.returnType);
     this.rs.popScope(evalObj.pid);

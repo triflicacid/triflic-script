@@ -140,6 +140,12 @@ There are two types of functions: `built-in`s and `user-defined`
   - Via `func` keyword
   - Via a lambda
 
+Functions may be called by applying the `()` operator after the name. `()` contains a comma-seperated list of arguments to be passed to the function.
+- Arrays may be "spread" by prefixing them with `...` (see `Ellipse`)
+- Keyword arguments are prefixed with a name e.g. `name = ...` and are placed in a local variable `kwargs`. Their position in the argument array is ignored.
+
+E.g. `(1, c = 3, 2)` is equivalent to `(1, 2)` position wise
+
 #### lambda
 A lambda is a short-hand syntax for defining an anonymous function
 
@@ -339,9 +345,12 @@ i.e. `func hello() { print("Hello"); }` and `hello = func() { print("Hello"); };
 
 Examples:
   - `func fn(a)` -> function `fn` takes an argument `a` of type `any`
-  - `func fn(a: ?<type>)` -> function `fn` takes an optional argument `a` of type `<type>`
+  - `func fn(?a: <type>)` -> function `fn` takes an optional argument `a` of type `<type>`
   - `func fn(a: ref <type>)` -> function `fn` takes a pass-by-reference argument `a` of type `<type>`
   - `func fn(a: <type>): <rtype>` -> function `fn` takes an argument `a` of type `<type>` and returns type `<rtype>`
+
+#### Calling
+Functions 
 
 ### `break`
 Syntax: `break`
@@ -461,6 +470,8 @@ For more information on built-ins, enter `help()`.
 - `ans` : `any`. Present if `--ans` is truthy. Contains value of last executed expression.
 - `_isMain` : `bool`. Boolean indicating if script was run or is imported.
 - `headers` : `map`. Contains all headers used to initialise the application, including the value of all CLI argument described above.
+- `args` : `array`. Available inside functions, lists all position arguments recieved in the function
+- `kwargs` : `map`. Available inside functions, contains map of all keyword arguments provided to the function
 
 ### `exit(code: ?real_int)`
 **NB no longer unceremoniously calls `process.exit()`

@@ -1,0 +1,12 @@
+// kwargs - keyword arguments, are placed into the local variable `kwargs` of type `map`
+// Their position is ignored, and they do not overwrite positional arguments
+
+func f(a, b) {
+  kwargs.c += 1
+  println(a, kwargs.a) // Not equal
+}
+
+let c = 12;
+println("{c=}")
+f(1, 2, c = c, a = 5)
+println("{c=}") // Value of c not changed

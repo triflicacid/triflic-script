@@ -6,13 +6,13 @@ If I had known how this would progress, I would've written this in Java or C++ f
 For more help, see `docs/` for more documentation, `programs/` for example programs, and the built-in `help` function.
 
 ## Important Notes
-- Short-circuiting does not work. This applies to `&&`, `||`, `??` and `?.`
+- TriflicScript is under active development
+- Short-circuiting is not a feature - this applies to `&&`, `||`, `??` and `?.`
 
 ## TODO
 - Labelled blocks. `break` and `continue` statements may be followed by a block label.
 - Add `docs/funcs/` which describes and contains usage of every core-defined function **IN PROGRESS**
   - All core functions done, now functions defined in `defineFuncs`
-- Remove dependency of core functionality on node modules (`readline`)
 
 ## Bugs
 - `discord.js` and `docs/syntax/test.js` need changing to latest version

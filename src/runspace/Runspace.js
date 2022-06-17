@@ -41,8 +41,13 @@ class Runspace {
   get FALSE() { return new BoolValue(this, false); }
 
   /** Create ArrayValue */
-  generateArray(items = []) {
+  generateArray(items = undefined) {
     return new ArrayValue(this, items);
+  }
+
+  /** Create MapValue */
+  generateMap(map = undefined) {
+    return new MapValue(this, map);
   }
 
   /** Declare a new variable in the topmost scope. Return variable object */
@@ -310,6 +315,6 @@ class Runspace {
 }
 
 Runspace.LANG_NAME = "TriflicScript";
-Runspace.VERSION = 1.158;
+Runspace.VERSION = 1.159;
 
 module.exports = Runspace;
