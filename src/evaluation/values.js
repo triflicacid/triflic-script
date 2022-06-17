@@ -1082,7 +1082,7 @@ class ObjectValue extends MapValue {
         let method = "__" + name + "__";
         ObjectValue.prototype[method] = function (evalObj) {
           let fn = this.__getRaw(evalObj, method);
-          if (fn) return fn.getFn().call(evalObj);
+          if (fn) return fn.getFn().call(evalObj, this.instanceOf ? [this] : []);
           let sup = Object.getPrototypeOf(ObjectValue.prototype);
           return sup[method] ? sup[method](evalObj) : undefined;
         };
@@ -1093,7 +1093,7 @@ class ObjectValue extends MapValue {
         let method = "__" + name + "__";
         ObjectValue.prototype[method] = function (evalObj, arg) {
           let fn = this.__getRaw(evalObj, method);
-          if (fn) return fn.getFn().call(evalObj, [arg]);
+          if (fn) return fn.getFn().call(evalObj, this.instanceOf ? [this, arg] : [arg]);
           let sup = Object.getPrototypeOf(ObjectValue.prototype);
           return sup[method] ? sup[method](evalObj, arg) : undefined;
         };
@@ -1102,6 +1102,15 @@ class ObjectValue extends MapValue {
   }
 
   type() { return "object"; }
+
+  /** Create and return new MapValue which is an instance of this */
+  createInstance() {
+    let map = new Map();
+    this._passCreateInstanceValues(map);
+    let objValue = new ObjectValue(this.rs, map);
+    objValue.instanceOf = this;
+    return objValue;
+  }
 
   __del__(evalObj, a) {
     let fn = this.__getRaw(evalObj, '__del__');

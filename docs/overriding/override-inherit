@@ -1,0 +1,16 @@
+// Define object with overriding addition and inherit from it
+
+let nlog = <object>{
+  "__construct__": (self: ref map, ?nval: real = 0) -> {
+    self.value = nval;
+  },
+  "value": 0,
+  "__add__": (self: ref map, arg: any) -> {
+    println("ADD: {self.value} + {arg}");
+    self.value + arg;
+  },
+}
+
+let x = nlog(5)
+println(type(x), x, isinstance(x, nlog))
+x + 3 // STDOUT: "ADD: ..."
