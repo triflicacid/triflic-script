@@ -2,7 +2,7 @@ const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracket
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
 const { StringValue, NumberValue, Value, UndefinedValue, CharValue, BoolValue, FunctionRefValue } = require("./values");
 const operators = require("./operators");
-const { errors } = require("../errors");
+const { errors, operatorDoesntSupport } = require("../errors");
 const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure, SwitchStructure, LabelStructure, GotoStructure, LetStructure } = require("./structures");
 const { Block } = require("./block");
 const Complex = require("../maths/Complex");
@@ -61,7 +61,7 @@ class OperatorToken extends Token {
     let r;
     try { r = await fn(evalObj, ...args, this.data); } catch (e) { throw new Error(`[${errors.BAD_ARG}] Operator '${this.toString().trim()}' with { ${args.map(a => a.type()).join(', ')} } at position ${this.pos}:\n${e}`); }
     if (r instanceof Error) throw r; // May return custom errors
-    if (r === undefined) throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${this.toString().trim()} does not support arguments { ${args.map(a => a.type()).join(', ')} } at position ${this.pos}`);
+    if (r === undefined) operatorDoesntSupport(this.toString().trim(), args.map(a => a.type()), this.pos);
     return r;
   }
 
@@ -193,7 +193,7 @@ class VariableToken extends Token {
 
   /** operator: += */
   async __assignAdd__(evalObj, value) {
-    value = await this.castTo("any", evalObj).__add__(evalObj, value.castTo("any", evalObj));
+    value = await this.castTo("any", evalObj).__add__?.(evalObj, value.castTo("any", evalObj));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
@@ -201,7 +201,7 @@ class VariableToken extends Token {
 
   /** operator: -= */
   async __assignSub__(evalObj, value) {
-    value = await this.castTo("any", evalObj).__sub__(evalObj, value.castTo("any", evalObj));
+    value = await this.castTo("any", evalObj).__sub__?.(evalObj, value.castTo("any", evalObj));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
@@ -209,7 +209,7 @@ class VariableToken extends Token {
 
   /** operator: *= */
   async __assignMul__(evalObj, value) {
-    value = await this.castTo("any", evalObj).__mul__(evalObj, value.castTo("any", evalObj));
+    value = await this.castTo("any", evalObj).__mul__?.(evalObj, value.castTo("any", evalObj));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
@@ -217,7 +217,7 @@ class VariableToken extends Token {
 
   /** operator: /= */
   async __assignDiv__(evalObj, value) {
-    value = await this.castTo("any", evalObj).__div__(evalObj, value.castTo("any", evalObj));
+    value = await this.castTo("any", evalObj).__div__?.(evalObj, value.castTo("any", evalObj));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;
@@ -225,7 +225,7 @@ class VariableToken extends Token {
 
   /** operator: %= */
   async __assignMod__(evalObj, value) {
-    value = await this.castTo("any", evalObj).__mod__(evalObj, value.castTo("any", evalObj));
+    value = await this.castTo("any", evalObj).__mod__?.(evalObj, value.castTo("any", evalObj));
     if (value === undefined) return undefined;
     this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
     return value;

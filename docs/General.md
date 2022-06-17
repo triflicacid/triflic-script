@@ -142,9 +142,15 @@ There are two types of functions: `built-in`s and `user-defined`
 
 Functions may be called by applying the `()` operator after the name. `()` contains a comma-seperated list of arguments to be passed to the function.
 - Arrays may be "spread" by prefixing them with `...` (see `Ellipse`)
-- Keyword arguments are prefixed with a name e.g. `name = ...` and are placed in a local variable `kwargs`. Their position in the argument array is ignored.
+- Keyword arguments are prefixed with a name e.g. `name = ...` and are placed in a local variable `kwargs`.
+  - `name = ...` copies `...` into `kwargs`
+  - `name => symbol` places reference to `symbol` in kwargs (changes to `kwargs[symbol]` in the function will alter `name`)
+  - Their position in the argument array is ignored.
+  - Keyword arguments always override positional argument values
 
 E.g. `(1, c = 3, 2)` is equivalent to `(1, 2)` position wise
+
+See section on the `func` keyword and `docs/syntax/func` for more
 
 #### lambda
 A lambda is a short-hand syntax for defining an anonymous function

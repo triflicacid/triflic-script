@@ -1,5 +1,0 @@
-func f(a, ...b, c) {
-	println(args)
-}
-
-f(1, 2, 3, 4, 5)

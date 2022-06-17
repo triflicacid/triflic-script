@@ -1,0 +1,8 @@
+func f {
+  kwargs.a *= 2
+}
+
+let x = 5
+println("{x=}")
+f(a => x)
+println("{x=}")

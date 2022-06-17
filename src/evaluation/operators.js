@@ -53,27 +53,41 @@ const operators = {
       args = args.filter(tl => tl.tokens.length > 0);
       let newArgs = [], kwargs = new Map();
       for (let i = 0; i < args.length; i++) {
-        if (typeof args[i].tokens[0]?.getVar === "function" && typeof args[i].tokens[args[i].tokens.length - 1]?.priority === "function" && args[i].tokens[args[i].tokens.length - 1].value === '=') { // Keyword arg
-          let name = args[i].tokens[0].value;
-          if (kwargs.has(name)) throw new Error(`[${errors.NAME}] Name Error; duplicate keyword argument '${name}' at position ${args[i].tokens[0].pos}`);
-          let oldTokens = args[i].tokens;
-          args[i].tokens = args[i].tokens.slice(1).slice(0, oldTokens.length - 2);
-          kwargs.set(name, await args[i].eval(evalObj));
-          args[i].tokens = oldTokens;
+        if (typeof args[i].tokens[0]?.getVar === "function" && typeof args[i].tokens[args[i].tokens.length - 1]?.priority === "function") { // Keyword arg
+          // Standard keyword argument
+          if (args[i].tokens[args[i].tokens.length - 1].value === '=') {
+            let name = args[i].tokens[0].value;
+            if (kwargs.has(name)) throw new Error(`[${errors.NAME}] Name Error: duplicate keyword argument '${name}' at position ${args[i].tokens[0].pos}`);
+            let oldTokens = args[i].tokens;
+            args[i].tokens = args[i].tokens.slice(1).slice(0, oldTokens.length - 2);
+            kwargs.set(name, await (await args[i].eval(evalObj)).castTo("any", evalObj));
+            args[i].tokens = oldTokens;
+            continue;
+          } else if (args[i].tokens.length === 3 && args[i].tokens[2].value === '=>') {
+            // Keyword argument by ref
+            let name = args[i].tokens[0].value;
+            if (typeof args[i].tokens[1].getVar === "function") {
+              if (kwargs.has(name)) throw new Error(`[${errors.NAME}] Name Error: duplicate keyword argument '${name}' at position ${args[i].tokens[0].pos}`);
+              kwargs.set(name, args[i].tokens[1]);
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: expected '<symbol> => <symbol>' at position ${args[i].tokens[0].pos}`);
+            }
+            continue;
+          }
+        }
+
+        let ellipse = false;
+        if (args[i].tokens[0]?.value === '...') { // '...' ?
+          ellipse = args[i].tokens[0];
+          args[i].tokens.splice(0, 1);
+        }
+        let newArg = await args[i].eval(evalObj);
+        if (ellipse) { // Expand array-like
+          let arr;
+          try { arr = newArg.toPrimitive('array'); } catch { throw new Error(`[${errors.TYPE_ERROR}] Type Error: '...': cannot expand type ${newArg.type()} at position ${ellipse.pos + 4}`); }
+          newArgs.push(...arr);
         } else {
-          let ellipse = false;
-          if (args[i].tokens[0]?.value === '...') { // '...' ?
-            ellipse = args[i].tokens[0];
-            args[i].tokens.splice(0, 1);
-          }
-          let newArg = await args[i].eval(evalObj);
-          if (ellipse) { // Expand array-like
-            let arr;
-            try { arr = newArg.toPrimitive('array'); } catch { throw new Error(`[${errors.TYPE_ERROR}] Type Error: '...': cannot expand type ${newArg.type()} at position ${ellipse.pos + 4}`); }
-            newArgs.push(...arr);
-          } else {
-            newArgs.push(newArg);
-          }
+          newArgs.push(newArg);
         }
       }
       return await fn.__call__(evalObj, newArgs, kwargs);

@@ -3,7 +3,7 @@ const { range } = require("../maths/functions");
 const { RunspaceFunction } = require("../runspace/Function");
 const { str, removeDuplicates, arrDifference, intersect, arrRepeat, findIndex, equal, peek, toJson } = require("../utils");
 const { castingError, isNumericType, isRealType } = require("./types");
-const { errors } = require("../errors");
+const { errors, operatorDoesntSupport } = require("../errors");
 
 class Value {
   constructor(runspace, value) {
@@ -34,43 +34,48 @@ class Value {
   getAssignError() { return new Error(`[${errors.TYPE_ERROR}] Type Error: Cannot assign to object ${this.type()}`); }
 
   /** operator: = */
-  __assign__(evalObj, val) {
+  async __assign__(evalObj, val) {
     if (this.onAssign === undefined) throw this.getAssignError();
-    return this.onAssign(evalObj, val.castTo('any'));
+    return this.onAssign(evalObj, await val.castTo('any', evalObj));
   }
 
   /** operator: += */
   async __assignAdd__(evalObj, val) {
     if (this.onAssign === undefined) throw this.getAssignError();
-    return this.onAssign(evalObj, await this.getAssignVal().__add__(evalObj, val.castTo('any')));
+    const me = await this.getAssignVal();
+    return me && me.__add__ ? this.onAssign(evalObj, await me.__add__(evalObj, await val.castTo('any', evalObj))) : undefined;
   }
 
   /** operator: -= */
   async __assignSub__(evalObj, val) {
     if (this.onAssign === undefined) throw this.getAssignError();
-    return this.onAssign(evalObj, await this.getAssignVal().__sub__(evalObj, val.castTo('any')));
+    const me = await this.getAssignVal();
+    return me && me.__sub__ ? this.onAssign(evalObj, await me.__sub__(evalObj, await val.castTo('any', evalObj))) : undefined;
   }
 
   /** operator: *= */
   async __assignMul__(evalObj, val) {
     if (this.onAssign === undefined) throw this.getAssignError();
-    return this.onAssign(evalObj, await this.getAssignVal().__mul__(evalObj, val.castTo('any')));
+    const me = await this.getAssignVal();
+    return me && me.__mul__ ? this.onAssign(evalObj, await me.__mul__(evalObj, await val.castTo('any', evalObj))) : undefined;
   }
 
   /** operator: /= */
   async __assignDiv__(evalObj, val) {
     if (this.onAssign === undefined) throw this.getAssignError();
-    return this.onAssign(evalObj, await this.getAssignVal().__div__(evalObj, val.castTo('any')));
+    const me = await this.getAssignVal();
+    return me && me.__div__ ? this.onAssign(evalObj, await me.__div__(evalObj, await val.castTo('any', evalObj))) : undefined;
   }
 
   /** operator: %= */
   async __assignMod__(evalObj, val) {
     if (this.onAssign === undefined) throw this.getAssignError();
-    return this.onAssign(evalObj, await this.getAssignVal().__mod__(evalObj, val.castTo('any')));
+    const me = await this.getAssignVal();
+    return me && me.__mod__ ? this.onAssign(evalObj, await me.__mod__(evalObj, await val.castTo('any', evalObj))) : undefined;
   }
 
   /** operator: u+ */
-  __pos__(evalObj) { return this.castTo('complex'); }
+  __pos__(evalObj) { return this.castTo('complex', evalObj); }
 
   /** operator: u- */
   __neg__(evalObj) { return new NumberValue(this.rs, Complex.mult(this.toPrimitive('complex', evalObj), -1)); }

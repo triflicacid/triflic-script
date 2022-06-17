@@ -112,7 +112,13 @@ class RunspaceUserFunction extends RunspaceFunction {
   /** Evaluation object & array of Token arguments. Accepts Map() of keywords arguments */
   async call(evalObj, args = [], kwargs = undefined) {
     // console.log(`RUF: CALL ${this.name} IN PID=${evalObj.pid}`);
-    this.checkArgCount(args);
+    const argsPos = Array.from(this.args.keys());
+    // Insert kwargs into argument array if necessary
+    for (let [k, v] of kwargs) {
+      if (argsPos.includes(k)) args[argsPos.indexOf(k)] = v;
+    }
+
+    this.checkArgCount(args.filter(x => x));
     this.rs.pushScope(evalObj.pid);
     const vArgs = [], vKwargs = new Map();
     // Set arguments to variables matching definition symbols
@@ -187,9 +193,9 @@ class RunspaceUserFunction extends RunspaceFunction {
       i++;
     }
 
-    // Copy kwargs
+    // Copy kwarg values
     for (let [k, v] of kwargs) {
-      let copy = await (await v.castTo("any", evalObj)).__copy__();
+      let copy = typeof v.getVar === "function" ? v : await (await v.castTo("any", evalObj)).__copy__();
       vKwargs.set(k, copy);
     }
 

@@ -38,4 +38,9 @@ const errorDesc = {
   [errors.JSON_ERROR]: `Malformed JSON`,
 };
 
-module.exports = { errors, errorDesc };
+/** "Operator does not support" error */
+function operatorDoesntSupport(op, types, pos) {
+  throw new Error(`[${errors.TYPE_ERROR}] Type Error: Operator ${op} does not support arguments { ${types.join(', ')} } at position ${pos}`);
+}
+
+module.exports = { errors, errorDesc, operatorDoesntSupport };
