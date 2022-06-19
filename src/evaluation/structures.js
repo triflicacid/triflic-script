@@ -161,6 +161,7 @@ class WhileStructure extends Structure {
     if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
     this.body.breakable = 1;
+    this.body.continueable = 1;
     this.body.prepare();
     this.condition.prepare();
     if (this.thenBlock) this.thenBlock.prepare();
@@ -177,8 +178,14 @@ class WhileStructure extends Structure {
       }
       await this.body.eval(obj);
 
-      if (obj.action === 1 || proc.state !== 1) break;
-      else if (obj.action === 2) {
+      if (proc.state !== 1) break;
+      else if (obj.action === 1) {
+        if (obj.actionValue) { // Propagate label'd breaks
+          evalObj.action = 1;
+          evalObj.actionValue = obj.actionValue;
+        }
+        break;
+      } else if (obj.action === 2) {
         obj.action = 0;
       } else if (obj.action === 3) {
         propagateEvalObj(obj, evalObj);
@@ -201,6 +208,7 @@ class DoWhileStructure extends Structure {
     if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
     this.body.breakable = 1;
+    this.body.continueable = 1;
     this.body.prepare();
     this.condition.prepare();
     if (this.thenBlock) this.thenBlock.prepare();
@@ -211,8 +219,14 @@ class DoWhileStructure extends Structure {
     while (true) {
       await this.body.eval(obj);
 
-      if (obj.action === 1 || proc.state !== 1) break;
-      else if (obj.action === 2) {
+      if (proc.state !== 1) break;
+      else if (obj.action === 1) {
+        if (obj.actionValue) { // Propagate label'd breaks
+          evalObj.action = 1;
+          evalObj.actionValue = obj.actionValue;
+        }
+        break;
+      } else if (obj.action === 2) {
         obj.action = 0;
       } else if (obj.action === 3) {
         propagateEvalObj(obj, evalObj);
@@ -242,6 +256,7 @@ class UntilStructure extends Structure {
     if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
     this.body.breakable = 1;
+    this.body.continueable = 1;
     this.body.prepare();
     this.condition.prepare();
     if (this.thenBlock) this.thenBlock.prepare();
@@ -258,8 +273,14 @@ class UntilStructure extends Structure {
       }
       await this.body.eval(obj);
 
-      if (obj.action === 1 || proc.state !== 1) break;
-      else if (obj.action === 2) {
+      if (proc.state !== 1) break;
+      else if (obj.action === 1) {
+        if (obj.actionValue) { // Propagate label'd breaks
+          evalObj.action = 1;
+          evalObj.actionValue = obj.actionValue;
+        }
+        break;
+      } else if (obj.action === 2) {
         obj.action = 0;
       } else if (obj.action === 3) {
         propagateEvalObj(obj, evalObj);
@@ -282,6 +303,7 @@ class DoUntilStructure extends Structure {
     if (this.condition.value.length === 0) throw new Error(`[${errors.SYNTAX}] Syntax Error: expression expected, got )`);
     if (this.condition.value.length > 1) throw new expectedSyntaxError(')', peek(this.condition.value[0].tokens));
     this.body.breakable = 1;
+    this.body.continueable = 1;
     this.body.prepare();
     this.condition.prepare();
     if (this.thenBlock) this.thenBlock.prepare();
@@ -292,8 +314,14 @@ class DoUntilStructure extends Structure {
     while (true) {
       await this.body.eval(obj);
 
-      if (obj.action === 1 || proc.state !== 1) break;
-      else if (obj.action === 2) {
+      if (proc.state !== 1) break;
+      else if (obj.action === 1) {
+        if (obj.actionValue) { // Propagate label'd breaks
+          evalObj.action = 1;
+          evalObj.actionValue = obj.actionValue;
+        }
+        break;
+      } else if (obj.action === 2) {
         obj.action = 0;
       } else if (obj.action === 3) {
         propagateEvalObj(obj, evalObj);
@@ -325,6 +353,7 @@ class ForStructure extends Structure {
     if (this.loop.value.length > 3) throw new expectedSyntaxError(')', peek(this.loop.value[2].tokens));
     this.loop.value.forEach(line => line.prepare());
     this.body.breakable = 1;
+    this.body.continueable = 1;
     this.body.prepare();
     if (this.thenBlock) this.thenBlock.prepare();
   }
@@ -336,8 +365,14 @@ class ForStructure extends Structure {
       while (true) {
         await this.body.eval(obj);
 
-        if (obj.action === 1 || proc.state !== 1) break;
-        else if (obj.action === 2) {
+        if (proc.state !== 1) break;
+        else if (obj.action === 1) {
+          if (obj.actionValue) { // Propagate label'd breaks
+            evalObj.action = 1;
+            evalObj.actionValue = obj.actionValue;
+          }
+          break;
+        } else if (obj.action === 2) {
           obj.action = 0;
         } else if (obj.action === 3) {
           propagateEvalObj(obj, evalObj);
@@ -356,7 +391,14 @@ class ForStructure extends Structure {
         }
         await this.body.eval(obj);
 
-        if (obj.action === 1) break;
+        if (proc.state !== 1) break;
+        else if (obj.action === 1) {
+          if (obj.actionValue) { // Propagate label'd breaks
+            evalObj.action = 1;
+            evalObj.actionValue = obj.actionValue;
+          }
+          break;
+        }
         else if (obj.action === 2) {
           obj.action = 0;
         } else if (obj.action === 3) {
@@ -383,6 +425,7 @@ class ForInStructure extends Structure {
   validate() {
     this.iter.prepare();
     this.body.breakable = 1;
+    this.body.continueable = 1;
     this.body.prepare();
     if (this.thenBlock) this.thenBlock.prepare();
   }
@@ -417,8 +460,14 @@ class ForInStructure extends Structure {
           this.body.rs.defineVar(this.vars[0].value, collection[i], undefined, evalObj.pid);
           await this.body.eval(obj);
 
-          if (obj.action === 1 || proc.state !== 1) break;
-          else if (obj.action === 2) {
+          if (proc.state !== 1) break;
+          else if (obj.action === 1) {
+            if (obj.actionValue) { // Propagate label'd breaks
+              evalObj.action = 1;
+              evalObj.actionValue = obj.actionValue;
+            }
+            break;
+          } else if (obj.action === 2) {
             obj.action = 0;
           } else if (obj.action === 3) {
             propagateEvalObj(obj, evalObj);
@@ -447,8 +496,14 @@ class ForInStructure extends Structure {
           }
           await this.body.eval(obj);
 
-          if (obj.action === 1 || proc.state !== 1) break;
-          else if (obj.action === 2) {
+          if (proc.state !== 1) break;
+          else if (obj.action === 1) {
+            if (obj.actionValue) { // Propagate label'd breaks
+              evalObj.action = 1;
+              evalObj.actionValue = obj.actionValue;
+            }
+            break;
+          } else if (obj.action === 2) {
             obj.action = 0;
           } else if (obj.action === 3) {
             propagateEvalObj(obj, evalObj);
@@ -472,8 +527,14 @@ class ForInStructure extends Structure {
         this.body.rs.defineVar(this.vars[0].value, collection[i], undefined, evalObj.pid);
         await this.body.eval(obj);
 
-        if (obj.action === 1 || proc.state !== 1) break;
-        else if (obj.action === 2) {
+        if (proc.state !== 1) break;
+        else if (obj.action === 1) {
+          if (obj.actionValue) { // Propagate label'd breaks
+            evalObj.action = 1;
+            evalObj.actionValue = obj.actionValue;
+          }
+          break;
+        } else if (obj.action === 2) {
           obj.action = 0;
         } else if (obj.action === 3) {
           propagateEvalObj(obj, evalObj);
@@ -498,6 +559,7 @@ class FuncStructure extends Structure {
 
   validate() {
     this.body.breakable = 0;
+    this.body.continueable = 0;
     this.body.returnable = 2; // Handle returns directly
     this.body.prepare();
   }
@@ -525,6 +587,7 @@ class LoopStructure extends Structure {
 
   validate() {
     this.body.breakable = 1;
+    this.body.continueable = 1;
     this.body.prepare();
   }
 
@@ -534,8 +597,14 @@ class LoopStructure extends Structure {
     while (true) {
       await this.body.eval(obj);
 
-      if (obj.action === 1 || proc.state !== 1) break;
-      else if (obj.action === 2) {
+      if (proc.state !== 1) break;
+      else if (obj.action === 1) {
+        if (obj.actionValue) { // Propagate label'd breaks
+          evalObj.action = 1;
+          evalObj.actionValue = obj.actionValue;
+        }
+        break;
+      } else if (obj.action === 2) {
         obj.action = 0;
       } else if (obj.action === 3) {
         propagateEvalObj(obj, evalObj);
@@ -548,12 +617,14 @@ class LoopStructure extends Structure {
 class BreakStructure extends Structure {
   constructor(pos) {
     super("BREAK", pos);
+    this.label = undefined;
   }
 
   validate() { }
 
   async eval(evalObj) {
     evalObj.action = 1; // Action for BREAK
+    evalObj.actionValue = this.label;
   }
 }
 
@@ -620,7 +691,7 @@ class SwitchStructure extends Structure {
         if (condition.value.length > 1) throw new expectedSyntaxError(')', peek(condition.value[0].tokens));
         condition.prepare();
       }
-      block.breakable = 1;
+      block.breakable = 2;
       block.prepare();
     }
     if (this.elseBlock) this.elseBlock.prepare();
@@ -640,8 +711,14 @@ class SwitchStructure extends Structure {
           enteredCase = true;
         }
 
-        if (enteredCase || obj.action === 1 || proc.state !== 1) break;
-        else if (obj.action === 2) {
+        if (enteredCase || proc.state !== 1) break;
+        else if (obj.action === 1) {
+          if (obj.actionValue) { // Propagate label'd breaks
+            evalObj.action = 1;
+            evalObj.actionValue = obj.actionValue;
+          }
+          break;
+        } else if (obj.action === 2) {
           obj.action = 0;
         } else if (obj.action === 3) {
           propagateEvalObj(obj, evalObj);
@@ -704,7 +781,7 @@ class LetStructure extends Structure {
     super("LET", pos);
     this.rs = rs;
     this.symbol = symbol;
-    this.variation = "single";
+    this.variation = "single"; // single / array / set
   }
 
   validate() { }

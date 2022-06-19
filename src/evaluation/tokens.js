@@ -538,7 +538,7 @@ class TokenLine {
           }
           case "do": {
             if (this.tokens[i + 1] instanceof Block) {
-              this.tokens[i + 1].breakable = 1;
+              this.tokens[i + 1].breakable = 2;
               this.tokens[i + 1].prepare();
               this.tokens.splice(i, 1); // Remove "do"
             }
@@ -556,7 +556,7 @@ class TokenLine {
                   structure.thenBlock = this.tokens[i + 3];
                   removeCount += 2;
                 } else {
-                  throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid WHILE construct at position ${this.tokens[i].pos}: expected block after 'else' at position ${this.tokens[i + 2].pos}`);
+                  throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid WHILE construct at position ${this.tokens[i].pos}: expected block after 'then' at position ${this.tokens[i + 2].pos}`);
                 }
               }
               this.tokens.splice(i - 1, removeCount, structure); // Remove "{...}" "while" "(...)", insert strfucture
@@ -571,7 +571,7 @@ class TokenLine {
                   structure.thenBlock = this.tokens[i + 4];
                   removeCount += 2;
                 } else {
-                  throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid WHILE construct at position ${this.tokens[i].pos}: expected block after 'else' at position ${this.tokens[i + 3].pos}`);
+                  throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid WHILE construct at position ${this.tokens[i].pos}: expected block after 'then' at position ${this.tokens[i + 3].pos}`);
                 }
               }
               this.tokens.splice(i, removeCount, structure); // Remove "while" "(...)" "{...}" and insert structure
@@ -593,7 +593,7 @@ class TokenLine {
                   structure.thenBlock = this.tokens[i + 3];
                   removeCount += 2;
                 } else {
-                  throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid UNTIL construct at position ${this.tokens[i].pos}: expected block after 'else' at position ${this.tokens[i + 2].pos}`);
+                  throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid UNTIL construct at position ${this.tokens[i].pos}: expected block after 'then' at position ${this.tokens[i + 2].pos}`);
                 }
               }
               this.tokens.splice(i - 1, removeCount, structure); // Remove "{...}" "while" "(...)", insert strfucture
@@ -609,7 +609,7 @@ class TokenLine {
                   structure.thenBlock = this.tokens[i + 4];
                   removeCount += 2;
                 } else {
-                  throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid UNTIL construct at position ${this.tokens[i].pos}: expected block after 'else' at position ${this.tokens[i + 3].pos}`);
+                  throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid UNTIL construct at position ${this.tokens[i].pos}: expected block after 'then' at position ${this.tokens[i + 3].pos}`);
                 }
               }
               this.tokens.splice(i, removeCount, structure); // Remove "while" "(...)" "{...}" and insert structure
@@ -648,13 +648,13 @@ class TokenLine {
                 structure = new ForStructure(this.rs, this.tokens[i].pos, this.tokens[i + 1], this.tokens[i + 2]);
               }
 
-              // Else block?
+              // Then block?
               if (this.tokens[i + 3] instanceof KeywordToken && this.tokens[i + 3].value === 'then') {
                 if (this.tokens[i + 4] instanceof Block) {
                   structure.thenBlock = this.tokens[i + 4];
                   removeCount += 2;
                 } else {
-                  throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid FOR construct at position ${this.tokens[i].pos}: expected block after 'else' at position ${this.tokens[i + 3].pos}`);
+                  throw new Error(`[${errors.SYNTAX}] Syntax Error: invalid FOR construct at position ${this.tokens[i].pos}: expected block after 'then' at position ${this.tokens[i + 3].pos}`);
                 }
               }
 
@@ -727,18 +727,30 @@ class TokenLine {
             break;
           }
           case "break": {
+            if (this.tokens.length > i + 2) throw new Error(`[${errors.SYNTAX}] Syntex Error: unexpected token(s) after 'break' at position ${this.tokens[i].pos}`);
             if (this.block.breakable) {
+              let label;
+              if (this.tokens[i + 1]) {
+                if (this.tokens[i + 1] instanceof VariableToken) label = this.tokens[i + 1].value;
+                else throw new Error(`[${errors.SYNTAX}] Syntax Error: expected symbol after 'break' statement at position ${this.tokens[i + 1]}`);
+              }
               let structure = new BreakStructure(this.tokens[i].pos);
+              structure.label = label;
               structure.validate();
-              this.tokens[i] = structure;
+              this.tokens.splice(i, label ? 2 : 1, structure);
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: 'break' not permitted here`);
             }
             break;
           }
           case "continue": {
-            if (this.block.breakable) {
+            if (this.tokens.length > i + 1) throw new Error(`[${errors.SYNTAX}] Syntex Error: unexpected token(s) after 'continue' at position ${this.tokens[i].pos}`);
+            if (this.block.continueable) {
               let structure = new ContinueStructure(this.tokens[i].pos);
               structure.validate();
               this.tokens[i] = structure;
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: 'continue' not permitted here`);
             }
             break;
           }
@@ -748,6 +760,8 @@ class TokenLine {
               let structure = new ReturnStructure(this.tokens[i].pos, tokenLine);
               structure.validate();
               this.tokens[i] = structure;
+            } else {
+              throw new Error(`[${errors.SYNTAX}] Syntax Error: 'return' not permitted here`);
             }
             break;
           }

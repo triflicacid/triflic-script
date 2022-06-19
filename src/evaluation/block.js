@@ -6,7 +6,7 @@ var currBlockID = 0;
 
 /**
  * A Code block.
- * breakable & returnable - can these keywords be used?
+ * breakable, continueable & returnable - can these keywords be used? (break, continue, return)
  * 0 -> No. 1 -> Propagation. 2 -> Direct use.
  */
 class Block {
@@ -21,6 +21,7 @@ class Block {
     this.labels = new Map(); // Label lookup map
 
     this.breakable = (this.parent?.breakable) ? 1 : 0;
+    this.continueable = (this.parent?.continueable) ? 1 : 0;
     this.returnable = (this.parent?.returnable) ? 1 : 0;
   }
 
@@ -67,16 +68,19 @@ class Block {
         break;
       }
       else if (obj.action === 0) continue;
-      else if (obj.action === 1) {
-        // console.log("Break line %d in block %s", l, this.id)
-        if (this.breakable === 1) {
-          evalObj.action = 1; // Propagate
+      else if (obj.action === 1) { // BREAK
+        // console.log("Break line %d in block %s (%i)", l, this.id, this.breakable)
+        if (this.breakable > 0) {
+          if (obj.actionValue ? !this.labels.has(obj.actionValue) : this.breakable === 1) { // Propagate if pointing to label
+            evalObj.action = 1;
+            evalObj.actionValue = obj.actionValue;
+          }
           break; // break action
         }
-      } else if (obj.action === 2 && this.breakable) {
+      } else if (obj.action === 2) { // CONTINUE
         // console.log("Coninue line %d in block %s", l, this.id)
-        if (this.breakable) {
-          evalObj.action = 2;
+        if (this.continueable > 0) {
+          if (this.continueable === 1) evalObj.action = 2;
           break;
         }
       } else if (obj.action === 3) {

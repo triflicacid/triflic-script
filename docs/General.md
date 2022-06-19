@@ -355,13 +355,12 @@ Examples:
   - `func fn(a: ref <type>)` -> function `fn` takes a pass-by-reference argument `a` of type `<type>`
   - `func fn(a: <type>): <rtype>` -> function `fn` takes an argument `a` of type `<type>` and returns type `<rtype>`
 
-#### Calling
-Functions 
-
 ### `break`
-Syntax: `break`
+Syntax: `break [<label>]`
 
-Breaks out of the current loop.
+Breaks out of the current loop/block.
+
+If `<label>` is present, stop execution of all loops/blocks until encounters block in which label `label` is defined. See `syntax/break-label`.
 
 ### `continue`
 Syntax: `continue`

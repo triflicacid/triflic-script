@@ -1,0 +1,12 @@
+label outer
+let i = 0
+while (i < 10) {
+  let j = 0
+  println("{i = }")
+  while (j < i) {
+    if (j == 3) { break outer }
+    println("  {j = }")
+    j += 1
+  }
+  i += 1
+}

@@ -10,7 +10,7 @@ For more help, see `docs/` for more documentation, `programs/` for example progr
 - Short-circuiting is not a feature - this applies to `&&`, `||`, `??` and `?.`
 
 ## TODO
-- Labelled blocks. `break` and `continue` statements may be followed by a block label.
+- `continue` statement may be followed by a label.
 - Add `docs/funcs/` which describes and contains usage of every core-defined function **IN PROGRESS**
   - All core functions done, now functions defined in `defineFuncs`
 
