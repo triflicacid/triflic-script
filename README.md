@@ -16,6 +16,8 @@ For more help, see `docs/` for more documentation, `programs/` for example progr
 
 ## Bugs
 - `discord.js` and `docs/syntax/test.js` need changing to latest version
+- Attempting to print out circular references results in a crash/error
+  - Re-Write array/map/set string casting to handle circular references
 
 ## Execution Methods
 - `cli.js` - prompt a console-based CLI. Takes command line arguments. `<io>` is imported.

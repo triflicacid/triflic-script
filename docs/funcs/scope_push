@@ -4,9 +4,27 @@ let a = 1;
 let b = 2;
 
 println(locals()); // [..., a, b]
-
 scope_push();
 
 let c = 3;
 
 println(locals()); // [c]
+scope_pop();
+
+// scope_push with an argument creates a new lexical scope around the provided map.
+// The map may be modified to "define" new variables, and any new variabled defined
+//  will be added to the map
+let map = { "name": "Joey" }
+
+println(isdefined("name")) // false
+scope_push(map) // Create new scope from a map
+println("{name=}") // "Joey"
+map.name = "Emma"
+println("{name=}") // "Emma"
+map.x = 3 // "Define" new variable
+println("{x=}") // 3
+x = 18
+println("{x=}") // 18
+del(map, "name") // Delete variable
+println(isdefined("name")) // false
+scope_pop()

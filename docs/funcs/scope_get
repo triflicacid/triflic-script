@@ -1,0 +1,10 @@
+// Returns map of topmost lexical scope
+// NB attempting to print out `scope` will result in an error as
+// it will be attempting to print a circular reference
+
+let a = 2;
+let b = 5;
+let scope = scope_get();
+println(isdefined("_hello")); // false
+scope._hello = "Hi";
+println("{_hello=}"); // _hello=Hi

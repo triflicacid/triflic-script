@@ -151,8 +151,16 @@ class Runspace {
   }
 
   /** Push new variable scope */
-  pushScope(pid = 0) {
-    this._procs.get(pid).vars.push(new Map());
+  pushScope(pid = 0, map = undefined) {
+    this._procs.get(pid).vars.push(map || (new Map()));
+  }
+
+  /** Return topmost scope */
+  peekScope(pid = 0) {
+    if (this._procs.has(pid)) {
+      let scopes = this._procs.get(pid).vars;
+      return scopes.length === 0 ? undefined : scopes[scopes.length - 1];
+    }
   }
 
   /** Pop variable scope */

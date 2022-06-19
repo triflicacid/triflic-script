@@ -97,10 +97,16 @@ function define(rs) {
     const lmap = rs.get_process(evalObj.pid).blocks.get(evalObj.blockID).getAllLabels();
     return new ArrayValue(rs, Array.from(lmap.keys()).map(l => new StringValue(rs, l)));
   }, 'list all addressable labels'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_push', {}, (_, evalObj) => {
-    rs.pushScope(evalObj.pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_push', { map: '?map' }, async ({ map }, evalObj) => {
+    rs.pushScope(evalObj.pid, map ? (await map.castTo("map")).value : undefined);
     return new NumberValue(rs, rs.get_process(evalObj.pid).vars.length);
-  }, 'Force a creation of a new lexical scope'));
+  }, 'Force a creation of a new lexical scope (from <map> if provided)'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_get', {}, async (_, evalObj) => {
+    let x = rs.peekScope(evalObj.pid);
+    if (!x) return new UndefinedValue(rs);
+    for (let [k, v] of x) x.set(k, await v.castTo("any", evalObj));
+    return new MapValue(rs, x);
+  }, 'Return map of topmost variable scope'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'scope_pop', {}, (_, evalObj) => {
     const len = rs.get_process(evalObj.pid).vars.length;
     if (len > 1) {
