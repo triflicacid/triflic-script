@@ -781,6 +781,7 @@ class LetStructure extends Structure {
     super("LET", pos);
     this.rs = rs;
     this.symbol = symbol;
+    this.type = undefined; // Type assertion
     this.variation = "single"; // single / array / set
   }
 
@@ -794,10 +795,11 @@ class LetStructure extends Structure {
       case "set":
         for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value, undefined, undefined, evalObj.pid);
         return new SetValue(this.rs, this.symbol); // Return array of un-evaluated symbols for expression purposes
-      default:
-        this.rs.defineVar(this.symbol.value, undefined, undefined, evalObj.pid);
+      default: {
+        const v = this.rs.defineVar(this.symbol.value, undefined, undefined, evalObj.pid);
+        v.type = this.type;
         return this.symbol;
-
+      }
     }
   }
 }

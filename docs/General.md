@@ -102,14 +102,24 @@ Variables store values in memory. There are some predefined variables.
 
 Variables may be assigned to using the `=` assignment operator. Variables may be functions.
 
-- Assignment using `=`:
+- Assignment using `=`
+
+  Syntax: `<symbol> = <value>`
+
   - Creates a new local variable `symbol` with value `value`
 
 - Assignment using `=>`
+
+  Syntax: `<symbol> => <value>`
+
   - Sets `symbol` to `value`. If no binding to `symbol` exists, throws an error.
 
 - Declaration using `let`
-  - Declares variable `symbol` in given scope to `undef`
+
+  Syntax: `let <symbol>[: <type>]`
+
+  - Declares variable `symbol` in given scope to with value `undef`
+  - If present, `type` must be a valid, castable type, enforcing `symbol` to type `type`. Any future assignments to `symbol` will be cast into `type` beforehand.
 
 The `ans` variable contains the value of the last executed line. e.g. `2 + 1; ans` -> `3`
 

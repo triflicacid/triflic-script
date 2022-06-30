@@ -170,12 +170,20 @@ class VariableToken extends Token {
   }
 
   /** operator: = */
-  __assign__(evalObj, value) {
+  async __assign__(evalObj, value) {
     value = value.castTo("any", evalObj);
     const name = this.value, thisVar = this.getVarNoError();
-    if (thisVar && thisVar.refFor) {
-      thisVar.refFor.value = value;
+    if (thisVar) {
+      if (thisVar.type)
+        try {
+          value = await value.castTo(thisVar.type, evalObj);
+        } catch (e) {
+          throw new Error(`[${errors.TYPE_ERROR}] Error assigning object ${value.type()} to ${thisVar.type} symbol "${this.value}":\n${e}`);
+        }
       thisVar.value = value;
+      if (thisVar.refFor) { // Referencing another variable
+        thisVar.refFor.value = value;
+      }
     } else {
       this.tstr.rs.defineVar(name, value, undefined, this.tstr.block.pid);
     }
@@ -183,10 +191,17 @@ class VariableToken extends Token {
   }
 
   /** operator: => */
-  __nonlocalAssign__(evalObj, value) {
+  async __nonlocalAssign__(evalObj, value) {
     value = value.castTo("any", evalObj);
     const name = this.value;
     if (!this.exists()) throw new Error(`[${errors.NULL_REF}] Null Reference: no non-local binding for symbol '${name}'. Did you mean to use '=' ?`);
+    const thisVar = this.getVar();
+    if (thisVar.type)
+      try {
+        value = await value.castTo(thisVar.type, evalObj);
+      } catch (e) {
+        throw new Error(`[${errors.TYPE_ERROR}] Error assigning object ${value.type()} to ${thisVar.type} symbol "${this.value}":\n${e}`);
+      }
     this.tstr.rs.setVar(name, value, undefined, this.tstr.block.pid);
     return value;
   }
@@ -835,8 +850,15 @@ class TokenLine {
           case "let": {
             if (this.tokens[i + 1] instanceof VariableToken) {
               const structure = new LetStructure(this.tokens[i].pos, this.rs, this.tokens[i + 1]);
+              if (this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === ':') {
+                if (this.tokens[i + 3] instanceof VariableToken) {
+                  structure.type = this.tokens[i + 3].value;
+                } else {
+                  throw new Error(`[${errors.SYNTAX}] Syntax Error: expected type symbol following type assertion at position ${this.tokens[i + 3] ? this.tokens[i + 3].pos : this.tokens[i + 2].pos}`);
+                }
+              }
               structure.validate();
-              this.tokens.splice(i, 2, structure);
+              this.tokens.splice(i, structure.type ? 4 : 2, structure);
             } else if (this.tokens[i + 1] instanceof BracketedTokenLines && (this.tokens[i + 1].opening === "[" || this.tokens[i + 1].opening === "{") && this.tokens[i + 1].value.length === 1) {
               let elements = this.tokens[i + 1].value[0].splitByCommas(), symbols = [];
               for (let i = 0; i < elements.length; i++) {

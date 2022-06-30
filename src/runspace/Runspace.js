@@ -3,7 +3,6 @@ const RunspaceVariable = require("./Variable");
 const { tokenify } = require("../evaluation/tokens");
 const { createEvalObj } = require("../utils");
 const { primitiveToValueClass, MapValue, Value, FunctionRefValue, UndefinedValue, ArrayValue, BoolValue } = require("../evaluation/values");
-const { RunspaceFunction } = require("./Function");
 const { Block } = require("../evaluation/block");
 const { errors } = require("../errors");
 
@@ -53,10 +52,8 @@ class Runspace {
   /** Declare a new variable in the topmost scope. Return variable object */
   defineVar(name, value = undefined, desc = undefined, pid = undefined) {
     if (value === undefined) value = new UndefinedValue(this);
-    let obj;
-    if (value instanceof Value || value instanceof RunspaceFunction) obj = new RunspaceVariable(name, value, desc);
-    else if (value instanceof RunspaceVariable) obj = value.copy();
-    else obj = new RunspaceVariable(name, primitiveToValueClass(this, value), desc);
+    if (!(value instanceof Value)) value = primitiveToValueClass(this, value);
+    const obj = new RunspaceVariable(name, value, desc);
 
     if (pid === undefined) {
       this._globals.set(name, obj);
@@ -323,6 +320,6 @@ class Runspace {
 }
 
 Runspace.LANG_NAME = "TriflicScript";
-Runspace.VERSION = 1.161;
+Runspace.VERSION = 1.162;
 
 module.exports = Runspace;

@@ -13,8 +13,8 @@ const { Fraction } = require("../maths/Fraction");
 /** Core definitions !REQUIRED! */
 function define(rs) {
   /****************** CORE VARIABLES */
-  rs.defineVar('nan', NaN, 'Value representing Not A Number');
-  rs.defineVar('inf', Infinity, 'Value representing Infinity');
+  rs.defineVar('nan', new NumberValue(rs, NaN), 'Value representing Not A Number');
+  rs.defineVar('inf', new NumberValue(rs, Infinity), 'Value representing Infinity');
   rs.defineVar('undef', new UndefinedValue(rs), 'A variable that has not been assigned a value is of type undefined');
   rs.defineVar('universal_set', new SetValue(rs, []), 'Universal set');
 
@@ -439,19 +439,19 @@ function define(rs) {
 
 /** Built-in Variables */
 function defineVars(rs) {
-  rs.defineVar('DBL_EPSILON', DBL_EPSILON, 'smallest such that 1.0+DBL_EPSILON != 1.0');
-  rs.defineVar('pi', PI, 'pi is equal to the circumference of any circle divided by its diameter'); // pi
-  rs.defineVar('e', E, 'Euler\'s constant'); // e
-  rs.defineVar('omega', OMEGA, 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
-  rs.defineVar('phi', PHI, 'Phi, the golden ratio, approx (1 + √5)/2'); // phi, golden ratio
-  rs.defineVar('tau', TWO_PI, 'A constant representing the ratio between circumference and radius of a circle'); // tau
-  rs.defineVar(Complex.imagLetter, new Complex(0, 1), '√(-1)');
-  rs.defineVar('ln2', Math.LN2, 'Natural logarithm of 2');
-  rs.defineVar('ln10', Math.LN10, 'Natural logarithm of 10');
-  rs.defineVar('log2e', Math.LOG2E, 'Base-2 logarithm of e');
-  rs.defineVar('log10e', Math.LOG10E, 'Base-10 logarithm of e');
-  rs.defineVar('sqrt1_2', Math.SQRT1_2, 'Square root of 0.5');
-  rs.defineVar('sqrt2', Math.SQRT2, 'Square root of 2');
+  rs.defineVar('DBL_EPSILON', new NumberValue(rs, DBL_EPSILON), 'smallest such that 1.0+DBL_EPSILON != 1.0');
+  rs.defineVar('pi', new NumberValue(rs, PI), 'pi is equal to the circumference of any circle divided by its diameter'); // pi
+  rs.defineVar('e', new NumberValue(rs, E), 'Euler\'s constant'); // e
+  rs.defineVar('omega', new NumberValue(rs, OMEGA), 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
+  rs.defineVar('phi', new NumberValue(rs, PHI), 'Phi, the golden ratio, approx (1 + √5)/2'); // phi, golden ratio
+  rs.defineVar('tau', new NumberValue(rs, TWO_PI), 'A constant representing the ratio between circumference and radius of a circle'); // tau
+  rs.defineVar(Complex.imagLetter, new NumberValue(rs, new Complex(0, 1)), '√(-1)');
+  rs.defineVar('ln2', new NumberValue(rs, Math.LN2), 'Natural logarithm of 2');
+  rs.defineVar('ln10', new NumberValue(rs, Math.LN10), 'Natural logarithm of 10');
+  rs.defineVar('log2e', new NumberValue(rs, Math.LOG2E), 'Base-2 logarithm of e');
+  rs.defineVar('log10e', new NumberValue(rs, Math.LOG10E), 'Base-10 logarithm of e');
+  rs.defineVar('sqrt1_2', new NumberValue(rs, Math.SQRT1_2), 'Square root of 0.5');
+  rs.defineVar('sqrt2', new NumberValue(Math.SQRT2), 'Square root of 2');
 }
 
 /** Built-in functions */

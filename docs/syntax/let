@@ -20,3 +20,12 @@ println("global: {n=}");
 // Multiple variables on one line
 let [a, b];
 let {b, c};
+// See programs/tests/unpacking for more
+
+// Type assertion
+let a: real;
+a = 5;
+println("{type(a)} {a=}"); // (real) a=5
+a = "Hello";
+println("{type(a)} {a=}"); // (real) a=nan
+let a; // Re-declare 'a' with no type assertion
