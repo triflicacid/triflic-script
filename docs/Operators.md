@@ -6,6 +6,11 @@ There are some types listed that are general terms:
 - `complex-like` - `complex` | `char` | `boolean`
 - `symbol` - a variable
 
+Comparison between complex numbers is lexograpical. Using `a > b` as an example,
+- If `Im(a) = Im(b) = 0`, evaluates `Re(a) > Re(b)`
+- If `Re(a) = Re(b) = 0`, evaluates `Im(a) > Im(b)`
+- Else, evaluates to `false`
+
 | Operator | Argument 1 | Argument 2 | Action | Example |
 | -------- | ---------- | ---------- | ------ | ------- |
 | `+` | `any` | n/a | Casts arg1 to type `complex` | `+"5"` => `5` |

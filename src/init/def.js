@@ -445,7 +445,7 @@ function defineVars(rs) {
   rs.defineVar('omega', new NumberValue(rs, OMEGA), 'Principle solution to xe^x = 1 (= W(1))'); // W(1, 0)
   rs.defineVar('phi', new NumberValue(rs, PHI), 'Phi, the golden ratio, approx (1 + √5)/2'); // phi, golden ratio
   rs.defineVar('tau', new NumberValue(rs, TWO_PI), 'A constant representing the ratio between circumference and radius of a circle'); // tau
-  rs.defineVar(Complex.imagLetter, new NumberValue(rs, new Complex(0, 1)), '√(-1)');
+  rs.defineVar(Complex.imagLetter, new NumberValue(rs, Complex.I), '√(-1)');
   rs.defineVar('ln2', new NumberValue(rs, Math.LN2), 'Natural logarithm of 2');
   rs.defineVar('ln10', new NumberValue(rs, Math.LN10), 'Natural logarithm of 10');
   rs.defineVar('log2e', new NumberValue(rs, Math.LOG2E), 'Base-2 logarithm of e');

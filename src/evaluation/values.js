@@ -130,7 +130,7 @@ class UndefinedValue extends Value {
 
 class NumberValue extends Value {
   constructor(runspace, num = 0) {
-    super(runspace, Complex.assert(num));
+    super(runspace, Complex.parse(num));
   }
 
   type() { return this.value.isReal() ? "real" : "complex"; }
@@ -224,21 +224,25 @@ class NumberValue extends Value {
   /** operator: <= */
   __le__(evalObj, n) {
     if (isRealType(this.type()) && isRealType(n.type())) return new BoolValue(this.rs, this.toPrimitive('real', evalObj) <= n.toPrimitive('real', evalObj));
+    if (isNumericType(this.type()) && isNumericType(n.type())) return new BoolValue(this.rs, Complex.le(this.toPrimitive('complex', evalObj), n.toPrimitive('complex', evalObj)));
   }
 
   /** operator: < */
   __lt__(evalObj, n) {
     if (isRealType(this.type()) && n.type() === 'real') return new BoolValue(this.rs, this.toPrimitive('real', evalObj) < n.toPrimitive('real', evalObj));
+    if (isNumericType(this.type()) && isNumericType(n.type())) return new BoolValue(this.rs, Complex.lt(this.toPrimitive('complex', evalObj), n.toPrimitive('complex', evalObj)));
   }
 
   /** operator: >= */
   __ge__(evalObj, n) {
     if (isRealType(this.type()) && isRealType(n.type())) return new BoolValue(this.rs, this.toPrimitive('real', evalObj) >= n.toPrimitive('real', evalObj));
+    if (isNumericType(this.type()) && isNumericType(n.type())) return new BoolValue(this.rs, Complex.ge(this.toPrimitive('complex', evalObj), n.toPrimitive('complex', evalObj)));
   }
 
   /** operator: > */
   __gt__(evalObj, n) {
     if (isRealType(this.type()) && isRealType(n.type())) return new BoolValue(this.rs, this.toPrimitive('real', evalObj) > n.toPrimitive('real', evalObj));
+    if (isNumericType(this.type()) && isNumericType(n.type())) return new BoolValue(this.rs, Complex.gt(this.toPrimitive('complex', evalObj), n.toPrimitive('complex', evalObj)));
   }
 
   /** Operator: : */
