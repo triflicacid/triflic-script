@@ -1236,7 +1236,7 @@ function _tokenify(obj) {
     // Number?
     let numObj;
     try {
-      numObj = parseNumber(string.substr(i), true, '_', Complex.imagLetter);
+      numObj = parseNumber(string.substr(i), { exponent: true, seperator: '_', imag: Complex.imagLetter });
     } catch (e) {
       throw new Error(`[${errors.SYNTAX}] Syntax Error: ${e.message} (literal at position ${obj.pos})`); // Error whilst parsing number literal
     }

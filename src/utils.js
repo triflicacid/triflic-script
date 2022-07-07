@@ -239,10 +239,11 @@ function decodeEscapeSequence(string, pos) {
   return { char, pos };
 }
 
-// Convert given number in base 10 to the provided base
+/** Convert given number in base 10 to the provided base */
 function int_to_base(n, b) {
   let str = "";
-  if (b < 2) return str;
+  if (b < 2)
+    return str;
   while (n > 0.1) {
     let rem = n % b;
     n /= b;
@@ -252,8 +253,7 @@ function int_to_base(n, b) {
   return str.split("").reverse().join("");
 }
 
-// Convert string in a given base to a number. Mutates 'str' to point to end of
-// scanned section
+/** Convert string in a given base to a number. */
 function base_to_int(str, base) {
   let dec = 0;
   let k = str.length === 1 ? 1 : Math.pow(base, str.length - 1), i = 0;
@@ -265,6 +265,23 @@ function base_to_int(str, base) {
   }
   return dec;
 }
+
+/** Convert string in a given base to a number. May include a decimal point */
+function base_to_float(str, base) {
+  let dec = 0;
+  const di = str.indexOf(".");
+  let k = str.length === 1 ? 1 : Math.pow(base, (di === -1 ? str.length : di) - 1), i = 0;
+  while (i < str.length) {
+    if (str[i] !== '.') {
+      let code = str[i].charCodeAt(0);
+      dec += (code - (code <= 57 ? 48 : 55)) * k;
+      k /= base;
+    }
+    i++;
+  }
+  return dec;
+}
+
 const numberTypes = ["uint8", "int8", "uint16", "int16", "uint32", "int32", "uint64", "int64", "float32", "float64"];
 const numberTypeGetMethods = ["getUint8", "getInt8", "getUint16", "getInt16", "getUint32", "getInt32", "getBigUint64", "getBigInt64", "getFloat32", "getFloat64"];
 const numberTypeSetMethods = ["setUint8", "setInt8", "setUint16", "setInt16", "setUint32", "setInt32", "setBigUint64", "setBigInt64", "setFloat32", "setFloat64"];
@@ -325,5 +342,5 @@ function toJson(evalObj, value) {
 
 module.exports = {
   print, consoleColours, peek, isDigit, isWhitespace, prefixLines, assertReal, createEnum, str, bool, createTokenStringParseObj, createEvalObj, propagateEvalObj, arraysEqual, sort, sum, equal, findIndex, removeDuplicates, intersect, arrDifference, arrRepeat, printError, printWarn, throwMatchingBracketError, expectedSyntaxError, sortObjectByLongestKey, decodeEscapeSequence,
-  toBinary, fromBinary, numberTypes, toJson, int_to_base, base_to_int, returnTypedArray
+  toBinary, fromBinary, numberTypes, toJson, int_to_base, base_to_int, base_to_float, returnTypedArray
 };

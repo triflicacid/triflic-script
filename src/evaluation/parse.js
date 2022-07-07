@@ -1,5 +1,7 @@
 /** NB Functions used in parsing */
 
+const { base_to_float } = require("../utils.js");
+
 const operators = require("./operators");
 
 const bracketMap = {
@@ -43,90 +45,97 @@ function getMatchingBracket(pos, program) {
 
 const radices = { x: 16, d: 10, b: 2, o: 8 };
 const radicesRegex = { 16: /[0-9A-Fa-f]/, 10: /[0-9]/, 2: /[01]/, 8: /[0-7]/ };
-/**
- * Like parseFloat
- * @param {string} string
- * @param {boolean} allowExponent allow exponent '...e...' in number?
- * @param {string} seperator permitted seperator between digits. Must be of length = 1
- * @returns {object} Return information about extracted number, such as string, sign, exponent, radix...
- */
-function parseNumber(string, allowExponent = true, seperator = '_', imag = 'i') {
+function parseNumber(string, opts = {}) {
+  var _a, _b, _c;
+  (_a = opts.exponent) !== null && _a !== void 0 ? _a : (opts.exponent = true);
+  (_b = opts.decimal) !== null && _b !== void 0 ? _b : (opts.decimal = true);
+  (_c = opts.signed) !== null && _c !== void 0 ? _c : (opts.signed = true);
   let pos = 0, sign = 1, strBeforeDot = '', strAfterDot = '', radix = 10, exp = null;
-  let metSign = false, metDigitBeforeDecimal = false, metDot = false, metDigitAfterDecimal = false, metE = false, metSeperator = false, metRadix = false, metImag = false;
-
+  let metSign = !opts.signed, metDigitBeforeDecimal = false, metDot = false, metDigitAfterDecimal = false, metE = false, metSeperator = false, metRadix = false, metImag = false;
   for (pos = 0; pos < string.length; pos++) {
     if (!metSign && (string[pos] === '-' || string[pos] === '+')) { // Sign
       metSign = true;
       sign = string[pos] === '-' ? -1 : 1;
       metSeperator = false;
-    } else if (pos === 0 && string[pos] === '0' && string[pos + 1] in radices) { // Radix
+    }
+    else if (pos === 0 && string[pos] === '0' && string[pos + 1] in radices) { // Radix
       pos++;
       radix = radices[string[pos]];
-    } else if (radicesRegex[radix].test(string[pos])) { // Digit
+    }
+    else if (radicesRegex[radix].test(string[pos])) { // Digit
       metSeperator = false;
-      if (!metSign) metSign = true; // Default to '+'
+      if (!metSign)
+        metSign = true; // Default to '+'
       if (metDot) {
         strAfterDot += string[pos];
         metDigitAfterDecimal = true;
-      } else {
+      }
+      else {
         strBeforeDot += string[pos];
         metDigitBeforeDecimal = true;
       }
-    } else if (string[pos] === '.') { // seperator
-      if (metSeperator) throw new Error("Invalid syntax: expected digit in number literal");
+    }
+    else if (opts.decimal && string[pos] === '.') { // seperator
+      if (metSeperator)
+        throw new Error("Invalid syntax: expected digit in number literal");
       if (!metDot) {
         metDot = true;
-      } else {
+      }
+      else {
         break; // INVALID
       }
-    } else if (string[pos].toLowerCase() === 'e') {
-      if (metSeperator) throw new Error("Invalid syntax: expected digit in number literal");
+    }
+    else if (string[pos].toLowerCase() === 'e') {
+      if (metSeperator)
+        throw new Error("Invalid syntax: expected digit in number literal");
       metSeperator = false;
-      if (allowExponent) {
-        const obj = parseNumber(string.substr(pos + 1), false, seperator, false);
-        if (obj.str === '') break;
+      if (opts.exponent) {
+        const newOpts = Object.assign({}, opts);
+        newOpts.exponent = false;
+        const obj = parseNumber(string.substr(pos + 1), newOpts);
+        if (obj.str === '')
+          break;
         pos += 1 + obj.pos;
         exp = obj;
         break;
-      } else {
+      }
+      else {
         break; // INVALID
       }
-    } else if (string[pos] === seperator) {
+    }
+    else if (opts.seperator && string[pos] === opts.seperator) {
       if (metSeperator) {
         throw new Error(`Invalid number literal: unexpected seperator`);
-      } else {
-        if (metDot && !metDigitAfterDecimal) break;
-        if (!metDigitBeforeDecimal) break;
+      }
+      else {
+        if (metDot && !metDigitAfterDecimal)
+          break;
+        if (!metDigitBeforeDecimal)
+          break;
         metSeperator = true;
       }
-    } else {
+    }
+    else {
       break; // INVALID
     }
   }
-
-  if (imag && (strBeforeDot !== '' || strAfterDot !== '') && string[pos] === imag) {
+  if (opts.imag && (strBeforeDot !== '' || strAfterDot !== '') && string[pos] === opts.imag) {
     pos++;
     metImag = true;
   }
-
-  if (strBeforeDot !== '') strBeforeDot = parseInt(strBeforeDot, radix);
-  if (strAfterDot !== '') strAfterDot = parseInt(strAfterDot, radix);
   let str = strBeforeDot + (metDot ? '.' + strAfterDot : '');
   if (str === '.' || str.startsWith('.e')) {
     pos = 0;
     str = '';
   }
-
-  let num = sign * +str, base = num;
+  let num = sign * base_to_float(str, radix), base = num, nexp = 1;
   if (exp) {
     num *= Math.pow(10, exp.num);
     str += 'e' + exp.str;
-    exp = exp.num;
+    nexp = exp.num;
   }
-  if (metImag) {
-    str += imag;
-  }
-  return { pos, str: string.substring(0, pos), sign, base, exp, radix, num, imag: metImag };
+
+  return { pos, str: string.substring(0, pos), sign, base, exp: nexp, radix, num, imag: metImag };
 }
 
 /** Requires Runspace instance */
