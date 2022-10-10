@@ -9,8 +9,8 @@ let nlog = <object>{
     println("ADD: {self.value} + {arg}");
     self.value + arg;
   },
-}
+};
 
-let x = nlog(5)
-println(type(x), x, isinstance(x, nlog))
-x + 3 // STDOUT: "ADD: ..."
+let x = nlog(5);
+println(type(x), x, isinstance(x, nlog));
+x + 3; // STDOUT: "ADD: ..."

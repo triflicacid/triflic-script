@@ -111,6 +111,7 @@ class RunspaceUserFunction extends RunspaceFunction {
 
   /** Evaluation object & array of Token arguments. Accepts Map() of keywords arguments */
   async call(evalObj, args = [], kwargs = undefined) {
+    if (kwargs === undefined) kwargs = new Map();
     // console.log(`RUF: CALL ${this.name} IN PID=${evalObj.pid}`);
     const argsPos = Array.from(this.args.keys());
     // Insert kwargs into argument array if necessary

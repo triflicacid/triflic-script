@@ -6,11 +6,11 @@ This document contains general documentation of the TriflicScript language.
 
 ## Syntax
 
-Everything in TriflicScript is an expression, and everything (bar structures) return a value to the evaluation stack. Source code is read and split into tokens, at which stage nothing is known about structure or intent, and places into token lined. When an EOL token `;` or a newline not preceeded by a comma is encountered, a new token line begins. Token lined are then scanned and patterns grouped into structures such as `if`, `while`, list definitions etc... Finally, each token line is re-ordered into postfix notation awaiting evaluation.
+Everything in TriflicScript is an expression, and everything (bar structures) return a value to the evaluation stack. Source code is read and split into tokens, at which stage nothing is known about structure or intent, and places into token lined. When an EOL token `;` is encountered, a new token line begins. Token lined are then scanned and patterns grouped into structures such as `if`, `while`, list definitions etc... Finally, each token line is re-ordered into postfix notation awaiting evaluation.
 
 So
 - Everything is an expression
-- Lines are seperated by `;` or newlines not preceeded by `,`
+- Expressions are seperated by a semi-colon `;` 
 
 There is no syntax highlighter for TriflicScript, although syntax highlighting for the Rust language is suitable for TriflicScript.
 

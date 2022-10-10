@@ -517,7 +517,7 @@ function defineFuncs(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'round', { x: 'complex', dp: '?real_int' }, ({ x, dp }) => {
     x = x.toPrimitive('complex');
     if (dp === undefined) return new NumberValue(rs, Complex.round(x));
-    return new NumberValue(rs, Complex.roundDp(x, dp.toPrimitive('real')));
+    return new NumberValue(rs, Complex.round(x, dp.toPrimitive('real')));
   }, 'round x to the nearest integer, or to <dp> decimal places')); // round
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'Re', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').a), 'return real component of z'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'Im', { z: 'complex' }, ({ z }) => new NumberValue(rs, z.toPrimitive('complex').b), 'return imaginary component of z'));

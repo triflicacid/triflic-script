@@ -8,7 +8,7 @@ for (_ in 0:count) {
   digits += n;
 }
 
-let freqs = <map>;
+let freqs = <map>undef;
 for (digit in digits) {
   if (digit in freqs) {
     freqs[digit] += 1;

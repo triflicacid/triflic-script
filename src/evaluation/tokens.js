@@ -1,7 +1,7 @@
 const { peek, str, createTokenStringParseObj, isWhitespace, throwMatchingBracketError, expectedSyntaxError, decodeEscapeSequence } = require("../utils");
 const { bracketValues, bracketMap, parseNumber, parseOperator, parseSymbol } = require("./parse");
 const { StringValue, NumberValue, Value, UndefinedValue, CharValue, BoolValue, FunctionRefValue } = require("./values");
-const operators = require("./operators");
+const operators = require("./operators")
 const { errors, operatorDoesntSupport } = require("../errors");
 const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, DoUntilStructure, UntilStructure, FuncStructure, ArrayStructure, SetStructure, MapStructure, ForInStructure, LoopStructure, BreakStructure, ContinueStructure, ReturnStructure, SwitchStructure, LabelStructure, GotoStructure, LetStructure } = require("./structures");
 const { Block } = require("./block");
@@ -208,9 +208,9 @@ class VariableToken extends Token {
 
   /** operator: += */
   async __assignAdd__(evalObj, value) {
-    value = await this.castTo("any", evalObj).__add__?.(evalObj, value.castTo("any", evalObj));
+    value = await (await this.castTo("any", evalObj)).__add__?.(evalObj, await value.castTo("any", evalObj));
     if (value === undefined) return undefined;
-    this.tstr.rs.setVar(this.value, value, undefined, this.tstr.block.pid);
+    let x = this.tstr.rs.setVar(this.value, value, undefined, evalObj.pid);
     return value;
   }
 
@@ -833,7 +833,11 @@ class TokenLine {
                   }
                   if (currTokenI >= currLine.tokens.length) {
                     currLineI++;
-                    if (!switchBlock.tokenLines[currLineI]) break;
+                    if (!switchBlock.tokenLines[currLineI]) {
+                      break;
+                    }
+                    currLine = switchBlock.tokenLines[currLineI];
+                    currTokenI = 0;
                   }
                 }
 
@@ -1130,7 +1134,8 @@ function _tokenify(obj) {
     }
 
     // Start a new line?
-    if (obj.allowMultiline && (string[i] === EOLToken.symbol || (string[i] === '\n' && !(obj.terminateOn.includes(")") || obj.terminateOn.includes("]"))))) { // End Of Line
+    // if (obj.allowMultiline && (string[i] === EOLToken.symbol || (string[i] === '\n' && !(obj.terminateOn.includes(")") || obj.terminateOn.includes("]"))))) { // End Of Line
+    if (obj.allowMultiline && (string[i] === EOLToken.symbol)) { // End Of Line
       // Blank line
       i++;
       obj.pos++;

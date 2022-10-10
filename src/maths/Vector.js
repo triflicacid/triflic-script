@@ -15,7 +15,7 @@ class Vector {
         if (i < 0) i = this.data.length + i;
         if (i < 0 || isNaN(i) || !isFinite(i)) return false;
         if (value === undefined) value = new Complex(0);
-        else value = Complex.assert(value);
+        else value = Complex.parse(value);
         if (i >= this.data.length) while (i >= this.data.length) this.data.push(new Complex(0));
         this.data[i] = value;
         return true;

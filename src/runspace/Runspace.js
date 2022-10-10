@@ -67,13 +67,7 @@ class Runspace {
 
   /** Set a variable to a value. Return Variable object or false. */
   setVar(name, value, startingScope = undefined, pid = undefined) {
-    if (pid === undefined) {
-      if (this._globals.has(name)) {
-        const vo = this._globals.get(name);
-        vo.value = value;
-        return vo;
-      }
-    } else {
+    if (pid !== undefined) {
       if (!this._procs.has(pid)) throw new Error(`[${errors.NAME}] Name Error: no process with PID=${pid} (whilst setting ${name})`);
       const vars = this._procs.get(pid).vars;
       if (startingScope === undefined) startingScope = vars.length - 1;
@@ -84,6 +78,11 @@ class Runspace {
           return vo;
         }
       }
+    }
+    if (this._globals.has(name)) {
+      const vo = this._globals.get(name);
+      vo.value = value;
+      return vo;
     }
     return false;
   }

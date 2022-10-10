@@ -166,7 +166,7 @@ class NumberValue extends Value {
 
   /** operator: | */
   __bitwiseOr__(evalObj, arg) {
-    if (isRealType(this.type()) && isRealType(arg.type())) return new NumberValue(this.rs, this.toPrimitive('real'), evalObj | arg.toPrimitive('real', evalObj));
+    if (isRealType(this.type()) && isRealType(arg.type())) return new NumberValue(this.rs, this.toPrimitive('real', evalObj) | arg.toPrimitive('real', evalObj));
   }
 
   /** operator: ^ */
@@ -1263,6 +1263,7 @@ UndefinedValue.castMap = {
   real: o => new NumberValue(o.rs, NaN),
   real_int: o => new NumberValue(o.rs, NaN),
   bool: o => new BoolValue(o.rs, false),
+  map: o => new MapValue(o.rs),
 };
 
 NumberValue.castMap = {

@@ -6,8 +6,8 @@ class RunspaceVariable {
     this.type = undefined; // Type assertion
     this.refFor = undefined; // What is this a reference to? (update this variable on __assign__) (this is a RunspaceVariable)
   }
-  castTo(type, evalObj) { return this.value.castTo(type, evalObj); }
-  toPrimitive(type, evalObj) { return this.value.toPrimitive(type, evalObj); }
+  castTo(type, evalObj) { return (this.refFor ? this.refFor : this.value).castTo(type, evalObj); }
+  toPrimitive(type, evalObj) { return (this.refFor ? this.refFor : this.value).toPrimitive(type, evalObj); }
   copy() {
     const v = new RunspaceVariable(this.name, this.value, this.desc);
     v.type = this.type;
