@@ -614,7 +614,7 @@ class BoolValue extends Value {
 
 class ArrayValue extends Value {
   constructor(runspace, items = [], castToAny = true) {
-    super(runspace, castToAny ? items.map(v => v.castTo('any')) : items);
+    super(runspace, castToAny ? items.map(v => typeof v.castTo === "function" ? v.castTo('any') : v) : items);
   }
 
   type() { return "array"; }

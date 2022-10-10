@@ -199,7 +199,7 @@ class RunspaceUserFunction extends RunspaceFunction {
       let copy = typeof v.getVar === "function" ? v : await (await v.castTo("any", evalObj)).__copy__();
       vKwargs.set(k, copy);
     }
-
+    
     this.rs.defineVar("args", this.rs.generateArray(vArgs), 'Array of values passed to function', evalObj.pid);
     this.rs.defineVar("kwargs", this.rs.generateMap(vKwargs), 'Map of keyword arguments', evalObj.pid);
     let ret = await this.tstr.eval(evalObj);
