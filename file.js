@@ -39,7 +39,7 @@ async function main() {
     define(rs);
     defineNode(rs);
     defineVars(rs);
-    if (opts.defineFuncs) defineFuncs(rs);
+    defineFuncs(rs);
 
     const mpid = rs.create_process(), mainProc = rs.get_process(mpid);
     mainProc.imported_files.push(file);

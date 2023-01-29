@@ -74,9 +74,7 @@ function argvBool(argv, arg, _default) {
 function parseArgString(args) {
   let argv = parseArgstring(args);
   return {
-    defineFuncs: argvBool(args, args.defineFuncs, true),
     prompt: argv.prompt === undefined ? '>> ' : argv.prompt.toString(),
-    intro: argvBool(argv, "intro", true),
     imag: argv.imag,
     bidmas: argvBool(argv, "bidmas", true),
     multiline: argvBool(argv, "multiline", false),

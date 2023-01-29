@@ -1,7 +1,7 @@
 const Runspace = require("./src/runspace/Runspace");
 const { define, defineVars, defineFuncs } = require("./src/init/def");
 const defineNode = require("./src/init/def-node");
-const { consoleColours, printError } = require("./src/utils");
+const { printError } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
 const { parseArgString } = require("./src/init/args");
 const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
@@ -22,7 +22,7 @@ rs.stdout = process.stdout;
 define(rs);
 defineNode(rs);
 defineVars(rs);
-if (opts.defineFuncs) defineFuncs(rs);
+defineFuncs(rs);
 
 const mpid = rs.create_process(), mainProc = rs.get_process(mpid);
 mainProc.dieonerr = false;
@@ -54,14 +54,7 @@ async function main() {
   rs.io.setPrompt(opts.prompt);
 
   // Print intro stuff to screen
-  if (opts.intro) {
-    rs.io.output.write(`-- ${Runspace.LANG_NAME} v${Runspace.VERSION} --\nType help(), copyright() for more information.\n`);
-    let notes = [];
-    if (!opts.bidmas) notes.push("BIDMAS is being ignored");
-    if (!opts.defineFuncs) notes.push("pre-defined functions were not defined");
-    notes.forEach(note => rs.io.output.write(`${consoleColours.Bright}${consoleColours.FgWhite}${consoleColours.Reverse}Note${consoleColours.Reset} ${note}\n`));
-    rs.io.output.write('\n');
-  }
+  rs.io.output.write(`-- ${Runspace.LANG_NAME} v${Runspace.VERSION} --\nType help(), copyright() for more information.\n`);
 
   // Set input event handlers
   if (rs.opts.value.get("multiline").toPrimitive("bool")) {

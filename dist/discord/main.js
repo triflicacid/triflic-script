@@ -6,7 +6,6 @@ const { RunspaceBuiltinFunction } = require("../../src/runspace/Function");
 const { parseArgString } = require("../../src/init/args");
 const Complex = require("../../src/maths/Complex");
 const { UndefinedValue, ArrayValue, primitiveToValueClass, NumberValue } = require("../../src/evaluation/values");
-const startEventLoop = require("../../src/runspace/event-loop");
 
 // CHECK FOR REQUIRED ENV VARIABLES
 if (!process.env.BOT_TOKEN) throw new Error(`Setup Error: missing BOT_TOKEN environment variable`);
@@ -29,14 +28,16 @@ async function createRunspace(argString = '') {
   rs.root = __dirname;
   define(rs);
   defineVars(rs);
-  if (opts.defineFuncs) defineFuncs(rs);
+  defineFuncs(rs);
   const pid = rs.create_process(), mainProc = rs.get_process(pid);
   mainProc.imported_files.push('<discord>');
   const ret = { rs, pid, opts };
 
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
     if (ret.discordLatestMsg) {
-      sessionEnd(ret.discordLatestMsg); // Declay session ending message
+      setImmediate(() => {
+        sessionEnd(ret.discordLatestMsg); // Declay session ending message
+      });
       return c ?? new NumberValue(rs, 0);
     } else {
       throw new Error(`Fatal Error: could not end session. Try \`!exit\`.`);
@@ -49,7 +50,7 @@ async function createRunspace(argString = '') {
     } else {
       throw new Error(`Fatal Error: unable to print`);
     }
-  }, 'End the discord maths session'), pid);
+  }, 'Print text in a new message'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'println', { o: 'any' }, ({ o }) => {
     if (ret.discordLatestMsg) {
       ret.discordLatestMsg.reply(o.toString() + "\n");
@@ -57,7 +58,7 @@ async function createRunspace(argString = '') {
     } else {
       throw new Error(`Fatal Error: unable to print`);
     }
-  }, 'End the discord session'), pid);
+  }, 'Print text in a new message'), pid);
   rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the host program');
   return ret;
 }
@@ -112,13 +113,14 @@ client.on(Events.MessageCreate, async msg => {
 async function sessionStart(msg, argString = '') {
   envSessions[msg.author.id] = await createRunspace(argString);
   console.log(`> Created session for ${msg.author.username} (#${msg.author.id})`);
-  await msg.reply(`✅ Created new session`);
+  // await msg.reply(`✅ Created new session`);
+  await msg.reply(`-- ${Runspace.LANG_NAME} v${Runspace.VERSION} --`);
 }
 
 async function sessionEnd(msg) {
   delete envSessions[msg.author.id];
   console.log(`< Discarded session for ${msg.author.username} (#${msg.author.id})`);
-  await msg.reply(`🚮 Destroyed session`);
+  await msg.reply(`Goodbye.`);
 }
 
 client.login(process.env.BOT_TOKEN);

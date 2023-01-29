@@ -1291,7 +1291,7 @@ StringValue.castMap = {
   string: o => o,
   char: o => {
     if (o.value.length === 1) return new CharValue(o.rs, o.value[0]);
-    throw new Error(`[${errors.CAST_ERROR}] Cannot safely cast string of length ${o.value.length} to type char`);
+    throw new Error(`[${errors.CAST_ERROR}] Cannot cast string of length ${o.value.length} to type char`);
   },
   bool: o => new BoolValue(o.rs, !!o.value),
   complex: o => new NumberValue(o.rs, +o.value),
@@ -1300,6 +1300,7 @@ StringValue.castMap = {
   real_int: o => new NumberValue(o.rs, Math.floor(+o.value)),
   array: o => new ArrayValue(o.rs, o.value.split('').map(s => new StringValue(o.rs, s))),
   set: o => new SetValue(o.rs, o.value.split('').map(s => new StringValue(o.rs, s))),
+  map: o => new MapValue(o.rs, new Map(o.value.split('').map((c, i) => ([i, c])))),
 };
 
 CharValue.castMap = {
@@ -1339,15 +1340,15 @@ SetValue.castMap = {
   array: o => new ArrayValue(o.rs, o.value),
   string: o => new StringValue(o.rs, "{" + o.value.map(t => t.toString()).join(',') + "}"),
   bool: o => new BoolValue(o.rs, o.value.length !== 0),
-  map: o => o.__len__() === 0 ? new MapValue(o.rs) : undefined, // Convert empty sets to map, nothing else
-  object: o => o.__len__() === 0 ? new ObjectValue(o.rs) : undefined, // Convert empty sets to objects, nothing else
+  map: o => o.__len__().toPrimitive("real") === 0 ? new MapValue(o.rs) : undefined, // Convert empty sets to map, nothing else
+  object: o => o.__len__().toPrimitive("real") === 0 ? new ObjectValue(o.rs) : undefined, // Convert empty sets to objects, nothing else
 };
 
 MapValue.castMap = {
   map: o => o,
   string: o => new StringValue(o.rs, "{" + Array.from(o.value.entries()).map(pair => pair.join(':')).join(',') + "}"),
   bool: o => new BoolValue(o.rs, !!o.value),
-  array: o => new ArrayValue(o.rs, o.__iter__().map(a => new ArrayValue(o.rs, a))),
+  array: o => o.__iter__(),
   object: o => new ObjectValue(o.rs, o.value),
 };
 

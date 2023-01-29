@@ -92,6 +92,7 @@ window.addEventListener("load", async () => {
   const stdout = document.createElement("textarea");
   stdout.classList.add("stdout");
   stdout.id = "stdout";
+  stdout.value = `-- ${Runspace.LANG_NAME} v${Runspace.VERSION} --\nType help(), copyright() for more information.\n`;
   stdout.setAttribute("readonly", "readonly");
   wrapper.appendChild(stdout);
   wrapper.insertAdjacentHTML("beforeend", "<br>");
