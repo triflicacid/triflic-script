@@ -1126,6 +1126,7 @@ function _tokenify(obj) {
     // Break (reached termination)
     if (obj.terminateOn.includes(string[i])) {
       obj.terminateOn = string[i];
+      currentLine.source = string.substring(lastSourceIndex, i).trim();
       break;
     }
 
@@ -1299,7 +1300,7 @@ function _tokenify(obj) {
   // Make sure any remnant tokens are pushes to a new line
   if (currentTokens.length > 0) {
     currentLine.updateTokens(currentTokens);
-    currentLine.source = string.substr(lastSourceIndex).trim();
+    if (currentLine.source === '') currentLine.source = string.substr(lastSourceIndex).trim();
     obj.lines.push(currentLine);
   }
 

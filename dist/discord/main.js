@@ -1,5 +1,5 @@
 require("dotenv").config();
-const Discord = require("discord.js");
+const { Client, GatewayIntentBits, Events } = require("discord.js");
 const { define, defineVars, defineFuncs } = require("../../src/init/def");
 const Runspace = require("../../src/runspace/Runspace");
 const { RunspaceBuiltinFunction } = require("../../src/runspace/Function");
@@ -12,10 +12,15 @@ const startEventLoop = require("../../src/runspace/event-loop");
 if (!process.env.BOT_TOKEN) throw new Error(`Setup Error: missing BOT_TOKEN environment variable`);
 if (!process.env.CHANNEL) throw new Error(`Setup Error: missing CHANNEL environment variable`);
 
-const client = new Discord.Client();
-client.login(process.env.BOT_TOKEN);
+const client = new Client({
+  intents: [
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+  ],
+});
 
-/** Create new runspace */
+/** Create new runspace. Returns { runspace, pid } */
 async function createRunspace(argString = '') {
   const opts = parseArgString(argString, false);
   if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter; // Change imaginary unit
@@ -27,64 +32,75 @@ async function createRunspace(argString = '') {
   if (opts.defineFuncs) defineFuncs(rs);
   const pid = rs.create_process(), mainProc = rs.get_process(pid);
   mainProc.imported_files.push('<discord>');
+  const ret = { rs, pid, opts };
 
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
-    if (rs.discordLatestMsg) {
-      sessionEnd(rs.discordLatestMsg); // Declay session ending message
+    if (ret.discordLatestMsg) {
+      sessionEnd(ret.discordLatestMsg); // Declay session ending message
       return c ?? new NumberValue(rs, 0);
     } else {
-      throw new Error(`Fatal Error: could not end session. Please type '!close'.`);
+      throw new Error(`Fatal Error: could not end session`);
     }
-  }, 'End the discord maths session'));
+  }, 'End the discord maths session'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'print', { o: 'any' }, ({ o }) => {
-    if (rs.discordLatestMsg) {
-      rs.discordLatestMsg.reply(o.toString());
+    if (ret.discordLatestMsg) {
+      ret.discordLatestMsg.reply(o.toString());
       return new UndefinedValue(rs);
     } else {
       throw new Error(`Fatal Error: unable to print`);
     }
-  }, 'End the discord maths session'));
+  }, 'End the discord maths session'), pid);
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'println', { o: 'any' }, ({ o }) => {
+    if (ret.discordLatestMsg) {
+      ret.discordLatestMsg.reply(o.toString() + "\n");
+      return new UndefinedValue(rs);
+    } else {
+      throw new Error(`Fatal Error: unable to print`);
+    }
+  }, 'End the discord session'), pid);
   rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the host program');
 
-  return rs;
+  return ret;
 }
 
 /* LOGGED IN */
-client.on('ready', async () => {
+client.on(Events.ClientReady, async () => {
   console.log('👍 Connected');
-  const c = client.channels.cache.find(c => c.id === process.env.CHANNEL);
-  await c.send('👋 Ready to do some maths? 😀');
+  // const c = client.channels.cache.find(c => c.id === process.env.CHANNEL);
+  // await c.send('👋 Hello 😀');
 });
 
 var envSessions = {}; // { author_id : Environment }
 
-client.on('message', async msg => {
+client.on(Events.MessageCreate, async msg => {
   // Listening on this channel? Not a bot?
-  if (!msg.author.bot && msg.channel.id === process.env.CHANNEL) {
+  if (!msg.author.bot && msg.channelId === process.env.CHANNEL) {
     try {
       if (msg.content.startsWith('!start')) {
         await sessionStart(msg, msg.content.substring(6));
       } else {
         if (envSessions[msg.author.id]) {
-          envSessions[msg.author.id].discordLatestMsg = msg;
-          await envSessions[msg.author.id].exec(pid, msg.content);
+          const obj = envSessions[msg.author.id];
+          obj.discordLatestMsg = msg;
+          let time = Date.now();
+          const out = await obj.rs.exec(obj.pid, msg.content);
+          time = Date.now() - time;
 
           try {
-            let timeObj = {};
             if (out !== undefined) await msg.reply('`' + out.toString() + '`');
-            if (envSessions[msg.author.id]?.opts.timeExecution) await msg.reply(`Timings: ${timeObj.parse} ms parsing, ${timeObj.exec} ms execution`);
           } catch (e) {
             let error = e.toString().split('\n').map(l => `\`⚠ ${l}\``).join('\n');
             await msg.reply(error);
           }
 
+          const mainProc = obj.rs.get_process(obj.pid);
           if (mainProc.state === 0) {
             if (mainProc.stateValue.status < 0) {
               await msg.reply("Process exited with code " + mainProc.stateValue.statusValue + "\n");
               rs.terminate_process(mpid, 0, true);
             } else {
               await msg.reply(mainProc.stateValue.ret.toString() + "\n");
-              if (opts.timeExecution) {
+              if (obj.opts.timeExecution) {
                 msg.reply(`** Took ${time} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
               }
             }
@@ -113,3 +129,5 @@ async function sessionEnd(msg) {
   console.log(`< Discarded session for ${msg.author.username} (#${msg.author.id})`);
   await msg.reply(`🚮 Destroyed session`);
 }
+
+client.login(process.env.BOT_TOKEN);
