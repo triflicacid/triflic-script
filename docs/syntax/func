@@ -44,10 +44,10 @@ println(fkwargs(1, 2, a=5)); // [5, 2, {}] ; Keyword argument override positiona
 println(fkwargs(b = 10, a = -10)); // [-10, 10, {b:10,a:-10}] ; Keyword arguments can fill in for positional arguments
 
 func fkwargs2 { kwargs.a *= 2 }
-let x = 5
-println("{x=}") // x=5
-fkwargs2(a => x)
-println("{x=}") // x=10 ; altered from inside function as => passed a reference
+let x = 5;
+println("{x=}"); // x=5
+fkwargs2(a => x);
+println("{x=}"); // x=10 ; altered from inside function as => passed a reference
 
 // Pass by reference
 func swap(x: ref any, y: ref any) {
@@ -91,8 +91,6 @@ f = x -> x * 2, pow = (a, b = 2) -> a ** b;
 println(f(10));
 println(pow(3));
 println(pow(3, 4));
-
-exit(1);
 
 // '...' arguments: compact to array
 func print_array(...items) {

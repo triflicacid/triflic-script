@@ -166,7 +166,7 @@ class NumberValue extends Value {
 
   /** operator: | */
   __bitwiseOr__(evalObj, arg) {
-    if (isRealType(this.type()) && isRealType(arg.type())) return new NumberValue(this.rs, this.toPrimitive('real'), evalObj | arg.toPrimitive('real', evalObj));
+    if (isRealType(this.type()) && isRealType(arg.type())) return new NumberValue(this.rs, this.toPrimitive('real', evalObj) | arg.toPrimitive('real', evalObj));
   }
 
   /** operator: ^ */
@@ -614,7 +614,7 @@ class BoolValue extends Value {
 
 class ArrayValue extends Value {
   constructor(runspace, items = [], castToAny = true) {
-    super(runspace, castToAny ? items.map(v => v.castTo('any')) : items);
+    super(runspace, castToAny ? items.map(v => typeof v.castTo === "function" ? v.castTo('any') : v) : items);
   }
 
   type() { return "array"; }
@@ -1263,6 +1263,7 @@ UndefinedValue.castMap = {
   real: o => new NumberValue(o.rs, NaN),
   real_int: o => new NumberValue(o.rs, NaN),
   bool: o => new BoolValue(o.rs, false),
+  map: o => new MapValue(o.rs),
 };
 
 NumberValue.castMap = {

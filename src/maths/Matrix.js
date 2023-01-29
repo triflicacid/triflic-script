@@ -50,7 +50,7 @@ class Matrix {
    * @returns {Matrix} New matrix
    */
   apply(fn) {
-    return new Matrix(this.matrix.map((_, r) => this.matrix[r].map((_, c) => Complex.assert(fn(this.matrix[r][c], r, c)))));
+    return new Matrix(this.matrix.map((_, r) => this.matrix[r].map((_, c) => Complex.parse(fn(this.matrix[r][c], r, c)))));
   }
 
   /** Scalar adition: returns new Matrix */
@@ -166,7 +166,7 @@ class Matrix {
 
   /** Count rows which do not contain the given complex number */
   countNotRows(n = 0) {
-    n = Complex.assert(n);
+    n = Complex.parse(n);
     let i = 0;
     for (let r = 0; r < this.matrix.length; ++r) {
       let all0 = true;
@@ -224,7 +224,7 @@ Matrix.fromDimensions = (rows, cols, value = 0) => new Matrix(Array.from({ lengt
 
 /** Create a matrix from string: "v v v; v v v;" */
 Matrix.fromString = string => {
-  let arr = string.split(';').map(a => a.split(/\s/g).filter(a => a.length > 0).map(n => Complex.assert(n))).filter(a => a.length > 0);
+  let arr = string.split(';').map(a => a.split(/\s/g).filter(a => a.length > 0).map(n => Complex.parse(n))).filter(a => a.length > 0);
   if (arr.length === 0) return new Matrix();
   let allNotNaN = arr.map(arr => arr.map(x => !Complex.isNaN(x)).every(x => x)).every(x => x);
   if (!allNotNaN) throw new Error(`Matrix string '${string}' :: invalid matrix string (found NaN value)`);

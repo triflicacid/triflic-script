@@ -398,15 +398,14 @@ class ForStructure extends Structure {
             evalObj.actionValue = obj.actionValue;
           }
           break;
-        }
-        else if (obj.action === 2) {
+        } else if (obj.action === 2) {
           obj.action = 0;
         } else if (obj.action === 3) {
           propagateEvalObj(obj, evalObj);
           break;
         }
 
-        await this.loop.value[2]?.eval(obj);
+        if (this.loop.value[2]) await this.loop.value[2].eval(obj);
       }
     }
   }

@@ -89,6 +89,7 @@ const operators = {
         } else {
           newArgs.push(newArg);
         }
+      
       }
       return await fn.__call__(evalObj, newArgs, kwargs);
     },
@@ -419,7 +420,7 @@ const operators = {
     name: 'addition assignment',
     precedence: 3,
     args: 2,
-    fn: (eo, symbol, value) => symbol.__assignAdd__?.(eo, value),
+    fn: (eo, symbol, value) => symbol.__assignAdd__(eo, value),
     desc: 'Add <v> to <symbol>',
     syntax: 'symbol += v',
     assoc: 'rtl',
