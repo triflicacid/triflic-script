@@ -1,4 +1,3 @@
-const process = require("process");
 const RunspaceVariable = require("./Variable");
 const { tokenify } = require("../evaluation/tokens");
 const { createEvalObj } = require("../utils");
@@ -26,9 +25,8 @@ class Runspace {
 
     this.root = ""; // MUST BE SET EXTERNALLY
 
-
-    this.stdin = process.stdin;
-    this.stdout = process.stdout;
+    this.stdin = null;
+    this.stdout = null;
 
     this.onLineHandler = undefined;
     this.onDataHandler = undefined;
@@ -319,6 +317,6 @@ class Runspace {
 }
 
 Runspace.LANG_NAME = "TriflicScript";
-Runspace.VERSION = 1.162;
+Runspace.VERSION = 1.163;
 
 module.exports = Runspace;

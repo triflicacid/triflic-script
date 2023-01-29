@@ -39,7 +39,7 @@ async function createRunspace(argString = '') {
       sessionEnd(ret.discordLatestMsg); // Declay session ending message
       return c ?? new NumberValue(rs, 0);
     } else {
-      throw new Error(`Fatal Error: could not end session`);
+      throw new Error(`Fatal Error: could not end session. Try \`!exit\`.`);
     }
   }, 'End the discord maths session'), pid);
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'print', { o: 'any' }, ({ o }) => {
@@ -59,7 +59,6 @@ async function createRunspace(argString = '') {
     }
   }, 'End the discord session'), pid);
   rs.defineVar('argv', new ArrayValue(rs, process.argv.slice(2).map(v => primitiveToValueClass(rs, v))), 'Arguments provided to the host program');
-
   return ret;
 }
 
@@ -75,45 +74,37 @@ var envSessions = {}; // { author_id : Environment }
 client.on(Events.MessageCreate, async msg => {
   // Listening on this channel? Not a bot?
   if (!msg.author.bot && msg.channelId === process.env.CHANNEL) {
-    try {
-      if (msg.content.startsWith('!start')) {
-        await sessionStart(msg, msg.content.substring(6));
-      } else {
-        if (envSessions[msg.author.id]) {
-          const obj = envSessions[msg.author.id];
-          obj.discordLatestMsg = msg;
-          let time = Date.now();
-          const out = await obj.rs.exec(obj.pid, msg.content);
-          time = Date.now() - time;
+    if (msg.content.startsWith('!start')) {
+      await sessionStart(msg, msg.content.substring(6));
+    } else if (msg.content.startsWith('!exit')) {
+      await sessionEnd(msg);
+    } else {
+      if (envSessions[msg.author.id]) {
+        const obj = envSessions[msg.author.id];
+        obj.discordLatestMsg = msg;
+        let time = Date.now();
+        await obj.rs.exec(obj.pid, msg.content);
+        time = Date.now() - time;
 
-          try {
-            if (out !== undefined) await msg.reply('`' + out.toString() + '`');
-          } catch (e) {
-            let error = e.toString().split('\n').map(l => `\`⚠ ${l}\``).join('\n');
-            await msg.reply(error);
-          }
-
-          const mainProc = obj.rs.get_process(obj.pid);
-          if (mainProc.state === 0) {
-            if (mainProc.stateValue.status < 0) {
-              await msg.reply("Process exited with code " + mainProc.stateValue.statusValue + "\n");
-              rs.terminate_process(mpid, 0, true);
-            } else {
-              await msg.reply(mainProc.stateValue.ret.toString() + "\n");
-              if (obj.opts.timeExecution) {
-                msg.reply(`** Took ${time} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
-              }
+        const mainProc = obj.rs.get_process(obj.pid);
+        if (mainProc.state === 0) {
+          if (mainProc.stateValue.status < 0) {
+            await msg.reply("Process exited with code " + mainProc.stateValue.statusValue + "\n");
+            rs.terminate_process(mpid, 0, true);
+          } else {
+            let ret = mainProc.stateValue.ret.toString();
+            if (ret.trim().length === 0) ret = "\"" + ret + "\"";
+            await msg.reply("`" + ret + "`\n");
+            if (obj.opts.timeExecution) {
+              msg.reply(`** Took ${time} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
             }
-          } else if (mainProc.state === 2) {
-            let error = mainProc.stateValue.toString().split('\n').map(l => `\`⚠ ${l}\``).join('\n');
-            await msg.reply(error);
-            mainProc.state = 0;
           }
+        } else if (mainProc.state === 2) {
+          let error = mainProc.stateValue.toString().split('\n').map(l => `\`⚠ ${l}\``).join('\n');
+          await msg.reply(error);
+          mainProc.state = 0;
         }
       }
-    } catch (e) {
-      await msg.reply(`Internal Fatal Error: ${e.name}. See dev console.`);
-      throw e;
     }
   }
 });

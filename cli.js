@@ -7,6 +7,7 @@ const { parseArgString } = require("./src/init/args");
 const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
 const { setupIO, destroyIO } = require("./src/runspace/setup-io");
 const startEventLoop = require("./src/runspace/event-loop");
+const process = require("process");
 
 // PARSE ARGV, SETUP RUNSPACE
 const opts = parseArgString(process.argv.slice(2).join(" "), true);
@@ -16,6 +17,8 @@ opts.file = __filename;
 opts.root = __dirname;
 const rs = new Runspace(opts);
 rs.root = __dirname;
+rs.stdin = process.stdin;
+rs.stdout = process.stdout;
 define(rs);
 defineNode(rs);
 defineVars(rs);

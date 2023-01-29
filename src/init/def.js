@@ -9,6 +9,7 @@ const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants")
 const operators = require("../evaluation/operators");
 const { errors, errorDesc } = require("../errors");
 const { Fraction } = require("../maths/Fraction");
+const RunspaceVariable = require("../runspace/Variable");
 
 /** Core definitions !REQUIRED! */
 function define(rs) {
@@ -19,7 +20,6 @@ function define(rs) {
   rs.defineVar('universal_set', new SetValue(rs, []), 'Universal set');
 
   /****************** CORE FUNCTIONS */
-
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'help', { item: '?any' }, async ({ item }, evalObj) => {
     let help = '';
     if (item === undefined) {
@@ -50,7 +50,7 @@ function define(rs) {
     }
     return new StringValue(rs, help);
   }, 'Get general help or help on a provided argument'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copyright', {}, () => new StringValue(rs, "Copyright (c) 2022 Ruben Saunders.\nAll Right Reserved."), 'View copyright information'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'copyright', {}, () => new StringValue(rs, "Copyright (c) 2021-23 Ruben Saunders.\nAll Right Reserved."), 'View copyright information'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'del', { obj: 'any', key: '?any' }, async ({ obj, key }, evalObj) => {
     let v;
     if (key === undefined) {
@@ -177,8 +177,8 @@ function define(rs) {
     if (copy === undefined) throw new Error(`[${errors.CANT_COPY}] Type Error: Type ${o.type()} cannot be copied`);
     return copy;
   }, 'Return a copy of object <o>'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'call', { fn: 'string', args: { type: 'array', optional: true, ellipse: true } }, async ({ fn, args }, evalObj) => {
-    fn = fn.castTo("any", evalObj).getFn();
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'call', { fn: 'func', args: { type: 'array', optional: true, ellipse: true } }, async ({ fn, args }, evalObj) => {
+    fn = fn.castTo("func", evalObj).getFn();
     const ret = await fn.call(evalObj, args ? args.toPrimitive("array").map(t => t.castTo("any", evalObj)) : []);
     return ret;
   }, 'Call function <fn> with <args> provided as arguments'));
@@ -374,7 +374,13 @@ function define(rs) {
     return proc.stateValue.ret ?? rs.UNDEFINED;
   }, 'evaluate an input'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'iif', { cond: 'bool', ifTrue: 'any', ifFalse: '?any' }, ({ cond, ifTrue, ifFalse }) => cond.toPrimitive('bool') ? ifTrue : (ifFalse === undefined ? new BoolValue(rs, false) : ifFalse), 'Inline IF: If <cond> is truthy, return <ifTrue> else return <ifFalse> or false'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, async ({ file }, evalObj) => await rs.import(evalObj.pid, file.toString()), 'Import <file> - see README.md for more details'));
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import', { file: 'string' }, async ({ file }, evalObj) => {
+    if (typeof rs.import === "function") {
+      return await rs.import(evalObj.pid, file.toString());
+    } else {
+      throw new Error(`[${errors.BAD_IMPORT}] Import Error: imports are unavailable in this instance`);
+    }
+  }, 'Import <file> - see README.md for more details'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'import_stack', {}, (_, evalObj) => rs.generateArray(rs.get_process(evalObj.pid).import_stack.map(f => new StringValue(rs, f))), 'Return import stack'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'imported_files', {}, (_, evalObj) => rs.generateArray(rs.get_process(evalObj.pid).imported_files.map(f => new StringValue(rs, f))), 'Return imported files in current import chain'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'error_code', { code: 'string' }, ({ code }) => {
@@ -397,20 +403,20 @@ function define(rs) {
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'numbertypes', {}, () => new ArrayValue(rs, numberTypes.map(t => new StringValue(rs, t))), 'Return array of all numerical types'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'tobinary', { n: 'real', t: '?string' }, ({ n, t }) => {
     t = t ? t.toPrimitive('string') : 'float64';
-    if (!numberTypes.includes(t)) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid numeric type '${t}'`);
+    if (!numberTypes.includes(t)) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid numeric type '${t}'\n\tTo get a list of numeric types, call 'numbertypes'.`);
     n = n.toPrimitive('real');
     let bin = toBinary(n, t);
     return new StringValue(rs, bin);
   }, 'Given a number, return binary representation as type <t> (default: float64. See numbertypes() for list of numerical types)'));
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'frombinary', { bin: 'string', t: '?string' }, ({ bin, t }) => {
     t = t ? t.toPrimitive('string') : 'float64';
-    if (!numberTypes.includes(t)) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid numeric type '${t}'`);
+    if (!numberTypes.includes(t)) throw new Error(`[${errors.BAD_ARG}] Argument Error: invalid numeric type '${t}'\n\tTo get a list of numeric types, call 'numbertypes'.`);
     bin = bin.toPrimitive("string");
     let n = fromBinary(bin, t);
     return new NumberValue(rs, n);
   }, 'Given binary, return number representation as type <t> (default: float64. See numbertypes() for list of numerical types)'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fnanal', { fn: 'func' }, ({ fn }) => {
-    fn = fn.getVar().value.value;
+  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fnanal', { fn: 'func' }, ({ fn }, evalObj) => {
+    fn = fn.castTo("func", evalObj).value;
     let map = new MapValue(rs);
     map.value.set("name", new StringValue(rs, fn.name));
     map.value.set("argMin", new NumberValue(rs, fn.argMin));
@@ -428,11 +434,11 @@ function define(rs) {
     map.value.set("args", new ArrayValue(rs, args));
     return map;
   }, 'Return map analysis of provided function'));
-  rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fnsigmatch', { a: 'func', b: 'func' }, ({ a, b }) => {
-    a = a.getVar().value.value;
-    b = b.getVar().value.value;
-    return new BoolValue(rs, a.signatureMatch(b));
-  }, 'Return whether <a> matches <b>s signature'));
+  // rs.defineFunc(new RunspaceBuiltinFunction(rs, 'fnsigmatch', { a: 'func', b: 'func' }, ({ a, b }, evalObj) => {
+  //   a = a.castTo("func", evalObj).value;
+  //   b = b.castTo("func", evalObj).value;
+  //   return new BoolValue(rs, a.signatureMatch(b));
+  // }, 'Return whether <a> matches <b>s signature'));
 
   return rs;
 }

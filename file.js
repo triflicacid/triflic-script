@@ -34,6 +34,8 @@ async function main() {
     opts.root = __dirname;
     const rs = new Runspace(opts);
     rs.root = __dirname;
+    rs.stdout = process.stdout;
+    rs.stdin = process.stdin;
     define(rs);
     defineNode(rs);
     defineVars(rs);
