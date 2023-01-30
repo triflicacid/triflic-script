@@ -20,10 +20,10 @@ class Runspace {
     opts.time = Date.now();
     const map = new MapValue(this);
     Object.entries(opts).forEach(([k, v]) => map.value.set(k, primitiveToValueClass(this, v)));
-    this.defineVar('headers', map, 'Config headers of current runspace [readonly]', undefined);
+    this.defineVar('headers', map, 'Config headers of current runspace', undefined);
     this.opts = map;
 
-    this.root = ""; // MUST BE SET EXTERNALLY
+    this.pwd = ""; // MUST BE SET EXTERNALLY
 
     this.stdin = null;
     this.stdout = null;
@@ -36,6 +36,18 @@ class Runspace {
   get UNDEFINED() { return new UndefinedValue(this); }
   get TRUE() { return new BoolValue(this, true); }
   get FALSE() { return new BoolValue(this, false); }
+
+  /** Get root */
+  get root() {
+    if (this.opts.value.has("root")) return this.opts.value.get("root").toString();
+    return this.pwd;
+  }
+
+  /** Do bidmas? */
+  get bidmas() {
+    if (this.opts.value.has("bidmas")) return this.opts.value.get("bidmas").toPrimitive("bool");
+    return true;
+  }
 
   /** Create ArrayValue */
   generateArray(items = undefined) {
@@ -183,7 +195,7 @@ class Runspace {
 
       // Handle imports
       imported_files: [],
-      import_stack: [this.root],
+      import_stack: [this.pwd],
 
       // Handle code blocks
       blocks: new Map(), // Other blocks

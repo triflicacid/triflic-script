@@ -1,5 +1,5 @@
 const process = require("process");
-const { parseArgString } = require("./src/init/args");
+const { parseArgString, argvBool } = require("./src/init/args");
 const fs = require("fs");
 const path = require("path");
 const Complex = require("./src/maths/Complex");
@@ -27,15 +27,19 @@ async function main() {
     }
     const source = fs.readFileSync(file, 'utf8');
 
-    const opts = parseArgString(process.argv, true);
-    if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter;
-    opts.app = 'FILE';
-    opts.file = file;
-    opts.root = __dirname;
-    const rs = new Runspace(opts);
-    rs.root = __dirname;
-    rs.stdout = process.stdout;
+    const args = parseArgString(process.argv.slice(2).join(" "));
+    console.log(args)
+    if (args.imag !== undefined) Complex.imagLetter = args.imag;
+
+    const rs = new Runspace({
+      app: "File",
+      file,
+      root: __dirname,
+      bidmas: argvBool(args, "bidmas", true),
+    });
+    rs.pwd = __dirname;
     rs.stdin = process.stdin;
+    rs.stdout = process.stdout;
     define(rs);
     defineNode(rs);
     defineVars(rs);

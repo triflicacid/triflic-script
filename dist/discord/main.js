@@ -3,7 +3,7 @@ const { Client, GatewayIntentBits, Events } = require("discord.js");
 const { define, defineVars, defineFuncs } = require("../../src/init/def");
 const Runspace = require("../../src/runspace/Runspace");
 const { RunspaceBuiltinFunction } = require("../../src/runspace/Function");
-const { parseArgString } = require("../../src/init/args");
+const { parseArgString, argvBool } = require("../../src/init/args");
 const Complex = require("../../src/maths/Complex");
 const { UndefinedValue, ArrayValue, primitiveToValueClass, NumberValue } = require("../../src/evaluation/values");
 
@@ -21,17 +21,20 @@ const client = new Client({
 
 /** Create new runspace. Returns { runspace, pid } */
 async function createRunspace(argString = '') {
-  const opts = parseArgString(argString, false);
-  if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter; // Change imaginary unit
-  opts.app = 'DISCORD';
-  const rs = new Runspace(opts); // Create object
-  rs.root = __dirname;
+  const args = parseArgString(argString);
+  if (args.imag !== undefined) Complex.imagLetter = args.imag;
+
+  const rs = new Runspace({
+    app: 'DISCORD',
+    timeExec: argvBool(args, 'time', false),
+    bidmas: argvBool(args, 'bidmas', true),
+  });
   define(rs);
   defineVars(rs);
   defineFuncs(rs);
   const pid = rs.create_process(), mainProc = rs.get_process(pid);
   mainProc.imported_files.push('<discord>');
-  const ret = { rs, pid, opts };
+  const ret = { rs, pid };
 
   rs.defineFunc(new RunspaceBuiltinFunction(rs, 'exit', { c: '?real_int' }, ({ c }) => {
     if (ret.discordLatestMsg) {
@@ -64,10 +67,9 @@ async function createRunspace(argString = '') {
 }
 
 /* LOGGED IN */
-client.on(Events.ClientReady, async () => {
-  console.log('👍 Connected');
+client.on(Events.ClientReady, client => {
+  console.log(`Client is ready... Logged in as ${client.user.tag}`);
   // const c = client.channels.cache.find(c => c.id === process.env.CHANNEL);
-  // await c.send('👋 Hello 😀');
 });
 
 var envSessions = {}; // { author_id : Environment }
@@ -93,12 +95,12 @@ client.on(Events.MessageCreate, async msg => {
             await msg.reply("Process exited with code " + mainProc.stateValue.statusValue + "\n");
             rs.terminate_process(mpid, 0, true);
           } else {
-            let ret = mainProc.stateValue.ret.toString();
-            if (ret.trim().length === 0) ret = "\"" + ret + "\"";
-            await msg.reply("`" + ret + "`\n");
-            if (obj.opts.timeExecution) {
-              msg.reply(`** Took ${time} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
-            }
+            let resp = mainProc.stateValue.ret.toString();
+            if (resp.trim().length === 0) resp = "\"" + resp + "\"";
+            resp = "`" + resp + "`";
+            if (obj.rs.opts.value.get("timeExec")?.toPrimitive("bool"))
+              resp += `\n** Took ${time} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)`;
+            await msg.reply(resp);
           }
         } else if (mainProc.state === 2) {
           let error = mainProc.stateValue.toString().split('\n').map(l => `\`⚠ ${l}\``).join('\n');
@@ -113,7 +115,6 @@ client.on(Events.MessageCreate, async msg => {
 async function sessionStart(msg, argString = '') {
   envSessions[msg.author.id] = await createRunspace(argString);
   console.log(`> Created session for ${msg.author.username} (#${msg.author.id})`);
-  // await msg.reply(`✅ Created new session`);
   await msg.reply(`-- ${Runspace.LANG_NAME} v${Runspace.VERSION} --`);
 }
 

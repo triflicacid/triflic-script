@@ -129,7 +129,7 @@ class Complex {
         str += '-';
       else if (this.b !== 1)
         str += isFinite(this.b) ? string(this.b) : 'inf';
-      str += 'i';
+      str += Complex.imagLetter;
     }
     return str;
   }

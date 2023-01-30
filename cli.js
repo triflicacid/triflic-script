@@ -3,20 +3,25 @@ const { define, defineVars, defineFuncs } = require("./src/init/def");
 const defineNode = require("./src/init/def-node");
 const { printError } = require("./src/utils");
 const Complex = require('./src/maths/Complex');
-const { parseArgString } = require("./src/init/args");
+const { parseArgString, argvBool } = require("./src/init/args");
 const { ArrayValue, primitiveToValueClass } = require("./src/evaluation/values");
 const { setupIO, destroyIO } = require("./src/runspace/setup-io");
 const startEventLoop = require("./src/runspace/event-loop");
 const process = require("process");
 
 // PARSE ARGV, SETUP RUNSPACE
-const opts = parseArgString(process.argv.slice(2).join(" "), true);
-if (opts.imag !== undefined) Complex.imagLetter = opts.imag; else opts.imag = Complex.imagLetter;
-opts.app = 'CLI';
-opts.file = __filename;
-opts.root = __dirname;
-const rs = new Runspace(opts);
-rs.root = __dirname;
+const args = parseArgString(process.argv.slice(2).join(" "));
+if (args.imag !== undefined) Complex.imagLetter = args.imag;
+
+const rs = new Runspace({
+  app: "CLI",
+  file: __filename,
+  root: __dirname,
+  timeExec: argvBool(args, 'time', false),
+  bidmas: argvBool(args, 'bidmas', true),
+  prompt: argvBool(args, 'prompt', '>> '),
+});
+rs.pwd = __dirname;
 rs.stdin = process.stdin;
 rs.stdout = process.stdout;
 define(rs);
@@ -51,8 +56,9 @@ async function main() {
   await rs.import(mpid, "<io>");
 
   // Any other libraries?
-  if (opts.import) {
-    const libs = opts.import.split(",").map(x => x.trim());
+  if (args.import) {
+    const libs = args.import.split(",").map(x => x.trim());
+    process.stdout.write(`--import: Importing ${libs.length} ${libs.length === 1 ? "module" : "modules"}...\n`);
     for (const lib of libs) {
       try {
         await rs.import(mpid, lib);
@@ -66,23 +72,24 @@ async function main() {
   }
 
   // Set prompt
-  rs.io.setPrompt(opts.prompt);
+  rs.io.setPrompt(rs.opts.value.get("prompt"));
 
   // Print intro stuff to screen
   rs.io.output.write(`-- ${Runspace.LANG_NAME} v${Runspace.VERSION} --\nType help(), copyright() for more information.\n`);
 
   // Set input event handlers
-  if (rs.opts.value.get("multiline").toPrimitive("bool")) {
+  if (args.multiline) {
     const lines = []; // Line buffer
     rs.onLineHandler = async (io, line) => {
+      const prompt = rs.opts.value.get("prompt").toString();
       if (line.length === 0) {
         const input = lines.join('\n');
         lines.length = 0;
-        io.setPrompt(opts.prompt);
+        io.setPrompt(prompt);
         rs.exec(mpid, input);
       } else {
         lines.push(line);
-        io.setPrompt('.'.repeat(opts.prompt.length - 1) + ' ');
+        io.setPrompt('.'.repeat(prompt.length - 1) + ' ');
         rs.io.prompt();
       }
     };
@@ -107,14 +114,14 @@ function handler(proc) {
         rs.terminate_process(mpid, 0, true);
       } else {
         rs.io.output.write(mainProc.stateValue.ret.toString() + "\n");
-        if (opts.timeExecution) {
+        if (rs.opts.value.get("timeExec")?.toPrimitive("bool")) {
           rs.io.output.write(`** Took ${mainProc.stateValue.parse + mainProc.stateValue.exec} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
         }
-        rs.io.setPrompt(rs.opts.value.get("prompt"));
+        rs.io.setPrompt(rs.opts.value.get("prompt") ?? rs.UNDEFINED);
         rs.io.prompt();
       }
     } else {
-      rs.io.setPrompt(rs.opts.value.get("prompt"));
+      rs.io.setPrompt(rs.opts.value.get("prompt") ?? rs.UNDEFINED);
       rs.io.prompt();
     }
   }

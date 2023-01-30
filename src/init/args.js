@@ -22,7 +22,7 @@ function parseString(string, startIndex) {
 }
 
 /** Parse argument string, return object. All non-named elements are pushed to obj._ */
-function parseArgstring(argstr) {
+function parseArgString(argstr) {
   const data = { _: [] };
   let current = "";
   for (let i = 0; i < argstr.length;) {
@@ -67,26 +67,8 @@ function parseArgstring(argstr) {
 
 function argvBool(argv, arg, _default) {
   if (argv[arg] === undefined) return _default;
+  if (argv._[arg]) return true;
   return argv[arg] === true || argv[arg] === "true" || argv[arg] === "0";
 }
 
-/** Populate argv object */
-function parseArgString(args) {
-  let argv = parseArgstring(args);
-  const obj = {
-    prompt: argv.prompt === undefined ? '>> ' : argv.prompt.toString(),
-    imag: argv.imag,
-    bidmas: argvBool(argv, "bidmas", true),
-    multiline: argvBool(argv, "multiline", false),
-    timeExecution: argvBool(argv, "time", false),
-    _: argv._,
-  };
-  for (let key in argv) {
-    if (!(key in obj)) {
-      obj[key] = argv[key];
-    }
-  }
-  return obj;
-}
-
-module.exports = { parseArgString };
+module.exports = { argvBool, parseArgString };

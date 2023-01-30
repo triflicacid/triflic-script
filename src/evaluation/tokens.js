@@ -1001,7 +1001,7 @@ class TokenLine {
 
   /** Return array of tokens of this tokenString RPNd */
   toRPN() {
-    return this._toRPN(this.tokens, this.rs.opts.value.get("bidmas").toPrimitive("bool"));
+    return this._toRPN(this.tokens, this.rs.bidmas);
   }
 
   /** Token array from infix to postfix */

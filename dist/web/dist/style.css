@@ -7,10 +7,17 @@ body {
 .stdin,
 .stdout {
   width: 97vw;
-  height: 25vh;
   outline: none;
   background-color: #000000;
   color: #B8B8B8;
+}
+
+.stdin {
+  height: 20vh;
+}
+
+.stdout {
+  height: 40vh;
 }
 
 button {

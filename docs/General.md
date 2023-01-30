@@ -12,7 +12,7 @@ So
 - Everything is an expression
 - Expressions are seperated by a semi-colon `;` 
 
-There is no syntax highlighter for TriflicScript, although syntax highlighting for the Rust language is suitable for TriflicScript.
+There is no syntax highlighter for TriflicScript, although syntax highlighting for the Rust language is suitable enough for TriflicScript.
 
 ### Literals
 These are structures in the code which define values:
@@ -484,7 +484,10 @@ For more information on built-ins, enter `help()`.
 ### Variables
 - `ans` : `any`. Present if `--ans` is truthy. Contains value of last executed expression.
 - `_isMain` : `bool`. Boolean indicating if script was run or is imported.
-- `headers` : `map`. Contains all headers used to initialise the application, including the value of all CLI argument described above.
+- `headers` : `map`. Contains all headers used to initialise the application, including command-line arguments. Some values are purely for your information, but some have active effects on the current runspace, including
+  - `root: strng` - dictates the file root when searching for imports
+  - `bidmas: bool` - dictates whether the rules of BIDMAS are adhered to when parsing
+  - `timeExec: bool` - if true, parsing and execution time of a statement is printed. Interpreter environments only.
 - `args` : `array`. Available inside functions, lists all position arguments recieved in the function
 - `kwargs` : `map`. Available inside functions, contains map of all keyword arguments provided to the function
 

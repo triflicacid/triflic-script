@@ -1,6 +1,5 @@
 const Runspace = require("../../src/runspace/Runspace");
 const { define, defineVars, defineFuncs } = require("../../src/init/def");
-const createDefaultArgs = require("../../src/init/args-default");
 const { StringValue } = require("../../src/evaluation/values");
 const { RunspaceBuiltinFunction } = require("../../src/runspace/Function");
 
@@ -29,10 +28,15 @@ window.addEventListener("load", async () => {
   }
 
   // Create runspace instance
-  const opts = createDefaultArgs();
-  opts.app = "WEB";
-  opts.file = window.location.hostname;
-  const rs = new Runspace(opts);
+  const bits = location.pathname.split("/");
+  const rs = new Runspace({
+    app: 'WEB',
+    file: bits[bits.length - 1],
+    root: (location.hostname ? location.hostname + "/" : '') + bits.slice(0, bits.length - 1).join("/"),
+    timeExec: false,
+    bidmas: true,
+    prompt: '>> ',
+  });
   define(rs);
   defineVars(rs);
   defineFuncs(rs);
@@ -40,6 +44,9 @@ window.addEventListener("load", async () => {
   mainProc.persistent = true;
   mainProc.dieonerr = false;
   mainProc.imported_files.push('<web>');
+
+  /** Get console prompt as JS String */
+  const getPrompt = () => rs.opts.value.has("prompt") ? rs.opts.value.get("prompt").toString() : "";
 
   rs.defineVar('argv', rs.generateArray(), 'Arguments provided to the program');
 
@@ -70,6 +77,7 @@ window.addEventListener("load", async () => {
     }
   })
   wrapper.appendChild(stdin);
+  stdin.focus();
   wrapper.insertAdjacentHTML("beforeend", "<br>");
   const btnExec = document.createElement("button");
   btnExec.innerText = "Execute";
@@ -81,8 +89,8 @@ window.addEventListener("load", async () => {
     const file = inputFile.files[0];
     if (file) {
       const string = await freadText(file);
-      stdin.value = string;
-      stdout.value += opts.prompt + `[file: ${file.name}] \n`;
+      stdin.value = "";
+      stdout.value += getPrompt() + `[file: ${file.name}] \n`;
       await evaluate(string);
     }
   });
@@ -97,9 +105,9 @@ window.addEventListener("load", async () => {
   wrapper.insertAdjacentHTML("beforeend", "<br>");
   const iTimeExecution = document.createElement("input");
   iTimeExecution.type = "checkbox";
-  iTimeExecution.checked = opts.timeExecution;
+  iTimeExecution.checked = rs.opts.value.get("timeExec").toPrimitive("bool");
   wrapper.appendChild(iTimeExecution);
-  iTimeExecution.addEventListener('click', () => opts.timeExecution = !opts.timeExecution);
+  iTimeExecution.addEventListener('click', () => rs.opts.value.set("timeExec", iTimeExecution.checked ? rs.TRUE : rs.FALSE));
   wrapper.insertAdjacentHTML("beforeend", "Time execution");
 
   wrapper = document.createElement("div");
@@ -138,8 +146,7 @@ window.addEventListener("load", async () => {
   // Evaluate some input
   async function evaluate(input) {
     let time = Date.now();
-    const mutliline = rs.opts.value.get("multiline");
-    await rs.exec(pid, input, mutliline ? !mutliline.toPrimitive("bool") : undefined);
+    await rs.exec(pid, input);
     time = Date.now() - time;
     if (mainProc.state === 0) {
       if (mainProc.stateValue.status < 0) {
@@ -147,7 +154,7 @@ window.addEventListener("load", async () => {
         rs.terminate_process(pid, 0, true);
       } else {
         stdwrite(mainProc.stateValue.ret.toString() + "\n");
-        if (opts.timeExecution) {
+        if (rs.opts.value.get("timeExec")?.toPrimitive("bool")) {
           stdwrite(`** Took ${time} ms (${mainProc.stateValue.parse} ms parsing, ${mainProc.stateValue.exec} ms execution)\n`);
         }
       }
@@ -183,8 +190,7 @@ window.addEventListener("load", async () => {
   // Add event listener for input
   async function evaluateHtml() {
     if (stdin.value.length > 0) {
-      const prompt = (rs.opts.value.get("prompt") ?? ">> ").toString();
-      stdout.value += prompt + stdin.value + '\n';
+      stdout.value += getPrompt() + stdin.value + '\n';
       inputStack.push(stdin.value);
       inputStackPtr = inputStack.length - 1;
       console.log(inputStack, inputStackPtr);

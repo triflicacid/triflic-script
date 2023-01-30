@@ -13,41 +13,50 @@ For more help, see `docs/` for more documentation, `programs/` for example progr
 - `continue` statement may be followed by a label.
 - Add `docs/funcs/` which describes and contains usage of every core-defined function **IN PROGRESS**
   - All core functions done, now functions defined in `defineFuncs`
-- List available distributions into main `README` and some info incl.
-  - Overview
-  - Execution example/steps
-  - Valid command line arguments
-  - Restrictions/limitations
+- Check standard libraries for bugs (`<vector>` is broken)
 
 ## Bugs
 - `discord.js` and `docs/syntax/test.js` need changing to latest version
 - Attempting to print out circular references results in a crash/error
   - Re-Write array/map/set string casting to handle circular references
 
-## Execution Methods
-- `cli.js` - prompt a console-based CLI. Takes command line arguments. `<io>` is imported.
-- `file.js` - takes a filename to execute. `<io>` is imported.
+## Available Distributions
 
-See `dist/` for other execution methods
+- Core. These distributions expose every aspect of TrifliScript with no limitations imposed.
+  - CLI (`cli.js`) - enter code line-by-line in an active environment.
+    - Enter the command `node cli.js [args]` to start.
+    - `<io>` is imported by default.
+    - Accepts the following command-line argument:
+      - `--bidmas [bool]` - enables/disables BIDMAS rules. Can be set via `headers.bidmas`.
+      - `--imag [string]` - sets the "imaginary unit" variable.
+      - `--import [string[,string[, ...]]]` - comma-seperated list of library paths to import. These are passed to `import()`.
+      - `--multiline` - allows mutliple lines to be entered into the CLI.
+      - `--prompt [string]` - sets the CLI prompt. Can be set via `headers.prompt`.
+      - `--time` - times the parsing and execution of each statement. Can be set via `headers.timeExec`.
+  - File execution (`file.js`) - takes a filename to execute.
+    - Enter command `node file.js <file> [args]` to exeute.
+     - `<io>` is imported by default.
+     - Accepts the following command-line arguments:
+      - `--bidmas [bool]` - enables/disables BIDMAS rules. *Note* this **cannot** be set via `headers.bidmas`.
+      - `--imag [string]` - sets the "imaginary unit" variable.
+- Non-core. These remaining distributions are seperated from the core language and have unique restrictions.
+  - Discord (`dist/discord/`) - an interpreter which is fed via a discord bot.
+    - Necessary environment variables must be defined in `dist/discord/.env`
+      - `BOT_TOKEN` is the bot's token.
+      - `CHANNEL` is the ID of the channel for the bot to listen in.
+    - The bot must have the following permissions: `MessageContent`, `Guilds`, `GuildMessages`.
+    - `import()` is disabled
+      - Standard `<io>` is **not** imported. Several polyfills (e.g. `print`) are defined uniquely.
+    - To run, enter the command `node main.js`.
+      
+      Navigate to the discord channel. Instances are session-based and are tied to a user. To start a session, type `!start [args]`. For then on, every message sent will be interpreted until the session is terminated (via `exit()` or `!exit`).
 
-## Interpreter Arguments
-All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. They are all optional.
-
-### Position
-- `cli.js` - Arguments proceed `node cli.js`
-- `discord.js` - Arguments proceed `!start`
-- `file.js` - Arguments proceed `node file.js <file>`
-
-### Arguments
-Not every argument is used in every execution method. Exposed in the `headers` map.
-
-- `bidmas` : `boolean`. Should expressions obey BIDMAS (order of operations)? *May be changed via headers.bidmas*
-- `prompt` : `string`. What prompt to display for input. *May be changed via headers.bidmas*
-- `imag` : `character`. What character to use to represent the imaginary component in complex numbers. Set `--imag " "` to essentially disable complex numbers.
-- `import` : `string`. Comma-seperated list of libraries to import.
-- `multiline` : `boolean`. Does the CLI allow multiline input?
-- `time` : `boolean`. CLI times each line of execution and displays it.
-
-Additional command line arguments not recognised above are inserted into `headers`. Anonymous arguments, such as switches, are places into `headers._`.
-
-For example, `--bidmas 1 --custom "Test" -p` produces `headers = {..., bidmas:true, custom:Test, _:[p]}`.
+    - `!start` accepts the following command-line arguments:
+      - `--bidmas [bool]` - enables/disables BIDMAS rules. Can be set via `headers.bidmas`.
+      - `--imag [string]` - sets the "imaginary unit" variable.
+      - `--time` - times the parsing and execution of each statement. Can be set via `headers.timeExec`.
+  - Web Interpreter (`dist/web/`) - an interpreter based in a webpage.
+    - `import()` is disabled
+      - Standard `<io>` is **not** imported. Several polyfills (e.g. `print`) are defined uniquely.
+    - To compile, run `npm run build`. This will populate the source in `dist/`. To launch, open `dist/index.html` (either on a webserver, or simply double-click).
+    - No command-line arguments are available, although some can be emulated by changing the appropriate properties in `headers`.
