@@ -781,12 +781,14 @@ class LetStructure extends Structure {
     this.rs = rs;
     this.symbol = symbol;
     this.type = undefined; // Type assertion
+    this.strict = false; // STRICT type assertion?
     this.variation = "single"; // single / array / set
   }
 
   validate() { }
 
   async eval(evalObj) {
+    // Special assignment?
     switch (this.variation) {
       case "array":
         for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value, undefined, undefined, evalObj.pid);
@@ -795,8 +797,9 @@ class LetStructure extends Structure {
         for (let i = 0; i < this.symbol.length; i++) this.rs.defineVar(this.symbol[i].value, undefined, undefined, evalObj.pid);
         return new SetValue(this.rs, this.symbol); // Return array of un-evaluated symbols for expression purposes
       default: {
-        const v = this.rs.defineVar(this.symbol.value, undefined, undefined, evalObj.pid);
+        let v = this.rs.defineVar(this.symbol.value, undefined, undefined, evalObj.pid);
         v.type = this.type;
+        v.strict = this.strict;
         return this.symbol;
       }
     }

@@ -1,0 +1,28 @@
+func dump(val) {
+  println("({type(val)}) {val}")
+}
+
+// Normal declaration - dynamic type
+let a = 5;
+dump(a); // (real) 5
+a = true;
+dump(a); // (bool) true
+
+println();
+
+// Type assertion - cast type to states type
+let a: real = 5;
+dump(a); // (real) 5
+a = true;
+dump(a); // (real) 1
+
+println();
+
+// Strict type assertion - must be same type, no cast
+let a:: real = 5;
+dump(a); // (real) 5
+a = true; // Type Assertion error: real != bool
+dump(a);
+
+// We can re-declare 'a' without type assertion now
+let a;

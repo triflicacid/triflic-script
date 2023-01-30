@@ -28,7 +28,6 @@ async function main() {
     const source = fs.readFileSync(file, 'utf8');
 
     const args = parseArgString(process.argv.slice(2).join(" "));
-    console.log(args)
     if (args.imag !== undefined) Complex.imagLetter = args.imag;
 
     const rs = new Runspace({

@@ -4,6 +4,7 @@ class RunspaceVariable {
     this.value = value;
     this.desc = desc ?? '[no information]';
     this.type = undefined; // Type assertion
+    this.strict = false; // Is type assertion strict?
     this.refFor = undefined; // What is this a reference to? (update this variable on __assign__) (this is a RunspaceVariable)
   }
   castTo(type, evalObj) { return (this.refFor ? this.refFor : this.value).castTo(type, evalObj); }

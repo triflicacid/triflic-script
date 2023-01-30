@@ -7,6 +7,7 @@ const { IfStructure, Structure, WhileStructure, DoWhileStructure, ForStructure, 
 const { Block } = require("./block");
 const Complex = require("../maths/Complex");
 const { RunspaceUserFunction } = require("../runspace/Function");
+const { isStrictAssertAllowed } = require("./types");
 
 class Token {
   constructor(tstring, v, pos = NaN) {
@@ -175,10 +176,20 @@ class VariableToken extends Token {
     const name = this.value, thisVar = this.getVarNoError();
     if (thisVar) {
       if (thisVar.type)
-        try {
-          value = await value.castTo(thisVar.type, evalObj);
-        } catch (e) {
-          throw new Error(`[${errors.TYPE_ERROR}] Error assigning object ${value.type()} to ${thisVar.type} symbol "${this.value}":\n${e}`);
+        if (thisVar.strict) {
+          if (isStrictAssertAllowed(thisVar.type, value.type())) {
+            // Due to a quirk of `real_int` type, cast anyway
+            value = await value.castTo(thisVar.type, evalObj);
+          } else {
+            const e = new Error(`[${errors.TYPE_ERROR}] Strict Type Assertion: ${value.type()} != ${thisVar.type}`);
+            throw new Error(`[${errors.TYPE_ERROR}] Error assigning object ${value.type()} to ${thisVar.type} symbol "${this.value}":\n${e}`);
+          }
+        } else {
+          try {
+            value = await value.castTo(thisVar.type, evalObj);
+          } catch (e) {
+            throw new Error(`[${errors.TYPE_ERROR}] Error assigning object ${value.type()} to ${thisVar.type} symbol "${this.value}":\n${e}`);
+          }
         }
       thisVar.value = value;
       if (thisVar.refFor) { // Referencing another variable
@@ -854,15 +865,28 @@ class TokenLine {
           case "let": {
             if (this.tokens[i + 1] instanceof VariableToken) {
               const structure = new LetStructure(this.tokens[i].pos, this.rs, this.tokens[i + 1]);
+              let remove = 2;
+              // Type assertion
               if (this.tokens[i + 2] instanceof OperatorToken && this.tokens[i + 2].value === ':') {
-                if (this.tokens[i + 3] instanceof VariableToken) {
-                  structure.type = this.tokens[i + 3].value;
+                remove++;
+                let k = i + 3, strict = false;
+                // Is a strict assertion?
+                if (this.tokens[k] instanceof OperatorToken && this.tokens[k].value === ':') {
+                  strict = true;
+                  k++;
+                  remove++;
+                }
+
+                if (this.tokens[k] instanceof VariableToken) {
+                  remove++;
+                  structure.type = this.tokens[k].value;
+                  structure.strict = strict;
                 } else {
-                  throw new Error(`[${errors.SYNTAX}] Syntax Error: expected type symbol following type assertion at position ${this.tokens[i + 3] ? this.tokens[i + 3].pos : this.tokens[i + 2].pos}`);
+                  throw new Error(`[${errors.SYNTAX}] Syntax Error: expected type symbol following type assertion at position ${this.tokens[k] ? this.tokens[k].pos : this.tokens[k - 1].pos}`);
                 }
               }
               structure.validate();
-              this.tokens.splice(i, structure.type ? 4 : 2, structure);
+              this.tokens.splice(i, remove, structure);
             } else if (this.tokens[i + 1] instanceof BracketedTokenLines && (this.tokens[i + 1].opening === "[" || this.tokens[i + 1].opening === "{") && this.tokens[i + 1].value.length === 1) {
               let elements = this.tokens[i + 1].value[0].splitByCommas(), symbols = [];
               for (let i = 0; i < elements.length; i++) {

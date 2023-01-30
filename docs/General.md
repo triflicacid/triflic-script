@@ -116,10 +116,11 @@ Variables may be assigned to using the `=` assignment operator. Variables may be
 
 - Declaration using `let`
 
-  Syntax: `let <symbol>[: <type>]`
+  Syntax: `let <symbol>[:[:] <type>]`
 
   - Declares variable `symbol` in given scope to with value `undef`
   - If present, `type` must be a valid, castable type, enforcing `symbol` to type `type`. Any future assignments to `symbol` will be cast into `type` beforehand.
+  - If `::` is used, type assertion is **strict**, meaning the types need to match (almost) exactly. See `syntax/let-assert-type`.
 
 The `ans` variable contains the value of the last executed line. e.g. `2 + 1; ans` -> `3`
 

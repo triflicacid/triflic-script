@@ -329,6 +329,6 @@ class Runspace {
 }
 
 Runspace.LANG_NAME = "TriflicScript";
-Runspace.VERSION = 1.164;
+Runspace.VERSION = 1.166;
 
 module.exports = Runspace;

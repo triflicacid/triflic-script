@@ -30,10 +30,13 @@ function define(rs) {
         if (fn === undefined) {
           item._throwNullRef();
         } else {
-          help = `${(fn instanceof RunspaceBuiltinFunction ? 'built-in' : 'user-defined')} function ${fn.signature()}\n/* @argcount ${fn.argMin === fn.argMax ? fn.argMin : isFinite(fn.argMax) ? `${fn.argMin}-${fn.argMax}` : fn.argMin + "+"}, @about ${fn.about()} */`;
+          const builtin = fn instanceof RunspaceBuiltinFunction;
+          help = `func ${fn.signature()}\n/* ${builtin ? '@builtin ' : ''}@argcount ${fn.argMin === fn.argMax ? fn.argMin : isFinite(fn.argMax) ? `${fn.argMin}-${fn.argMax}` : fn.argMin + "+"}, @about ${fn.about()} */`;
         }
       } else {
-        help = `let ${item.value}: ${v.value.type()} = ${v.toPrimitive("string")}\n/* @about ${v.desc} */`;
+        const type = v.type ? v.type : v.value.type(); // Type assertion?
+        const sep = v.strict ? '::' : ':'; // Strict type assertion?
+        help = `let ${item.value}${sep} ${type} = ${v.toPrimitive("string")}\n/* @about ${v.desc} */`;
       }
     } else if (item instanceof StringValue && operators[item.value] !== undefined) { // Operator
       const info = operators[item.value];
