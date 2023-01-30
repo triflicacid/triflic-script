@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <title>TSWI | Help</title>
+</head>
+
+<body>
+  <h1>TriflicScript Web Interpreter Help</h1>
+
+  <h2>Overview</h2>
+  This is a web-based interpreter for TriflicScript. This page contains guidance on the use of said web interpreter; for
+  information surrounding TriflicScript, please <a href="https://github.com/triflicacid/triflic-script">view the
+    repository on GitHub</a>.
+
+  <h2>Layout</h2>
+  The layout of the interpreter is kept relatively simple: STDIN is the Standard Input, where input to be interpreted is
+  entered. After this is interpreted and executed by the TriflicScript runspace, any output will be directed into
+  STDOUT.
+
+  Below each input box are some additional settings, which will be covered below.
+
+  <h3>STDIN</h3>
+  <ul>
+    <li><strong>Execute</strong> -- this will feed the content of STDIN into the TriflicScript runspace to be
+      interpreted. This is keyboard-bound to <kbd>Ctrl + Enter</kbd>;</li>
+    <li><strong>Upload File</strong> -- this will open a prompt to select a file, whose content will be read and
+      interpeted;</li>
+    <li><strong>Clear</strong> -- this will clear STDIN;</li>
+    <li><strong>Time Execution</strong> -- if enabled, code parsing and execution will be timed. These statistics will
+      be displayed in STDOUT below the expected output;</li>
+    <li><strong>Last Command</strong> -- populated STDIN with the previously entered content in history. Bound to
+      <kbd>ArrowUp</kbd>;
+    </li>
+    <li><strong>Next Command</strong> -- populated STDIN with the next entered content in history. Bound to
+      <kbd>ArrowDown</kbd>;
+    </li>
+  </ul>
+
+  <h3>STDOUT</h3>
+  <ul>
+    <li><strong>Clear</strong> -- this will clear STDOUT;</li>
+    <li><strong>Download</strong> -- this will download the current contents of STDOUT into a text file;</li>
+  </ul>
+
+  <h2>Restrictions</h2>
+  As this is a web-based interpreted, there are several restrictions places on the runspace. Most notable is the
+  disability of accessing system information, restrictions to code importing via <code>import()</code>, etc...
+</body>
+
+</html>

@@ -39,12 +39,16 @@ window.addEventListener("load", async () => {
   const pid = rs.create_process(), mainProc = rs.get_process(pid);
   mainProc.persistent = true;
   mainProc.dieonerr = false;
-  mainProc.imported_files.push('<textarea>');
+  mainProc.imported_files.push('<web>');
 
   rs.defineVar('argv', rs.generateArray(), 'Arguments provided to the program');
 
   // Build webpage
   document.title = `${Runspace.LANG_NAME} v${Runspace.VERSION}`;
+  const h1 = document.createElement('h1');
+  h1.innerText = `${Runspace.LANG_NAME} v${Runspace.VERSION} Web Interpreter`;
+  document.body.appendChild(h1);
+  h1.insertAdjacentHTML("afterend", `<p><a href='help.html' target='_blank'>Help</a> | <a href="https://github.com/triflicacid/triflic-script" target="_blank">GitHub</a></p>`);
   let wrapper = document.createElement('div');
   wrapper.classList.add("stdin-wrapper");
   document.body.appendChild(wrapper);
@@ -52,6 +56,19 @@ window.addEventListener("load", async () => {
   const stdin = document.createElement("textarea");
   stdin.classList.add("stdin");
   stdin.id = "stdin";
+  stdin.addEventListener("keydown", e => {
+    if (e.key === "ArrowUp") {
+      if (inputStackPtr > 0)
+        inputStackPtr--;
+      let value = inputStack[inputStackPtr];
+      if (value !== undefined) stdin.value = value;
+    } else if (e.key === "ArrowDown") {
+      if (inputStackPtr < inputStack.length - 1)
+        inputStackPtr++;
+      let value = inputStack[inputStackPtr];
+      if (value !== undefined) stdin.value = value;
+    }
+  })
   wrapper.appendChild(stdin);
   wrapper.insertAdjacentHTML("beforeend", "<br>");
   const btnExec = document.createElement("button");
@@ -160,11 +177,17 @@ window.addEventListener("load", async () => {
     return rs.UNDEFINED;
   }, 'Clears stdout'));
 
+  const inputStack = [];
+  let inputStackPtr = -1;
+
   // Add event listener for input
   async function evaluateHtml() {
     if (stdin.value.length > 0) {
       const prompt = (rs.opts.value.get("prompt") ?? ">> ").toString();
       stdout.value += prompt + stdin.value + '\n';
+      inputStack.push(stdin.value);
+      inputStackPtr = inputStack.length - 1;
+      console.log(inputStack, inputStackPtr);
       await evaluate(stdin.value);
       stdin.value = '';
     }
