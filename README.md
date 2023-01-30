@@ -13,6 +13,11 @@ For more help, see `docs/` for more documentation, `programs/` for example progr
 - `continue` statement may be followed by a label.
 - Add `docs/funcs/` which describes and contains usage of every core-defined function **IN PROGRESS**
   - All core functions done, now functions defined in `defineFuncs`
+- List available distributions into main `README` and some info incl.
+  - Overview
+  - Execution example/steps
+  - Valid command line arguments
+  - Restrictions/limitations
 
 ## Bugs
 - `discord.js` and `docs/syntax/test.js` need changing to latest version
@@ -34,10 +39,15 @@ All of these arguments are in format `--<name> <value>` or `--<name>=<value>`. T
 - `file.js` - Arguments proceed `node file.js <file>`
 
 ### Arguments
-Not every argument is used in every execution method.
+Not every argument is used in every execution method. Exposed in the `headers` map.
 
 - `bidmas` : `boolean`. Should expressions obey BIDMAS (order of operations)? *May be changed via headers.bidmas*
 - `prompt` : `string`. What prompt to display for input. *May be changed via headers.bidmas*
 - `imag` : `character`. What character to use to represent the imaginary component in complex numbers. Set `--imag " "` to essentially disable complex numbers.
+- `import` : `string`. Comma-seperated list of libraries to import.
 - `multiline` : `boolean`. Does the CLI allow multiline input?
 - `time` : `boolean`. CLI times each line of execution and displays it.
+
+Additional command line arguments not recognised above are inserted into `headers`. Anonymous arguments, such as switches, are places into `headers._`.
+
+For example, `--bidmas 1 --custom "Test" -p` produces `headers = {..., bidmas:true, custom:Test, _:[p]}`.

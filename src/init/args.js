@@ -33,12 +33,12 @@ function parseArgstring(argstr) {
         current = "";
         for (; i < argstr.length && argstr[i] !== ' '; ++i) current += argstr[i];
         data[current] = true;
-        current = undefined;
+        // current = undefined;
       } else {
         current = "";
         for (; i < argstr.length && argstr[i] !== ' '; ++i) current += argstr[i];
         data[current] = true;
-        current = undefined;
+        // current = undefined;
       }
     } else if (argstr[i] === " ") {
       i++;
@@ -73,7 +73,7 @@ function argvBool(argv, arg, _default) {
 /** Populate argv object */
 function parseArgString(args) {
   let argv = parseArgstring(args);
-  return {
+  const obj = {
     prompt: argv.prompt === undefined ? '>> ' : argv.prompt.toString(),
     imag: argv.imag,
     bidmas: argvBool(argv, "bidmas", true),
@@ -81,6 +81,12 @@ function parseArgString(args) {
     timeExecution: argvBool(argv, "time", false),
     _: argv._,
   };
+  for (let key in argv) {
+    if (!(key in obj)) {
+      obj[key] = argv[key];
+    }
+  }
+  return obj;
 }
 
 module.exports = { parseArgString };

@@ -9,7 +9,6 @@ const { PI, E, OMEGA, PHI, TWO_PI, DBL_EPSILON } = require("../maths/constants")
 const operators = require("../evaluation/operators");
 const { errors, errorDesc } = require("../errors");
 const { Fraction } = require("../maths/Fraction");
-const RunspaceVariable = require("../runspace/Variable");
 
 /** Core definitions !REQUIRED! */
 function define(rs) {

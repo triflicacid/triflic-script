@@ -50,6 +50,21 @@ async function main() {
   // Import standard IO library
   await rs.import(mpid, "<io>");
 
+  // Any other libraries?
+  if (opts.import) {
+    const libs = opts.import.split(",").map(x => x.trim());
+    for (const lib of libs) {
+      try {
+        await rs.import(mpid, lib);
+        process.stdout.write(`--import: Successfully imported lib '${lib}'\n`);
+      } catch (e) {
+        e = new Error(`Error importing lib '${lib}' from --import:\n${e.toString()}`);
+        printError(e, str => process.stdout.write(str));
+        process.stdout.write("\n");
+      }
+    }
+  }
+
   // Set prompt
   rs.io.setPrompt(opts.prompt);
 
